@@ -7,10 +7,11 @@
 |---|---|
 | Project Name | AI Job Fit Assistant |
 | Document Type | Project Alignment Document |
-| Version | v0.2 |
+| Version | v0.3 |
 | Status | Draft |
-| Purpose | Record agreed product direction, documentation strategy, and key decisions before implementation |
+| Purpose | Record agreed product direction, documentation strategy, and project-level decisions before implementation |
 | Owner | Mei Chang |
+| Last Updated | 2026-08-20 |
 
 ---
 
@@ -34,7 +35,9 @@ The MVP focuses on a fixed candidate profile:
 
 > Mei Chang
 
-The product is initially designed to support Mei Chang’s job search process while maintaining a product direction that can potentially expand to broader recruitment scenarios.
+The initial product scenario is Mei Chang’s job search process.
+
+However, the product positioning should remain general enough to support broader recruitment scenarios in the future.
 
 ---
 
@@ -46,7 +49,7 @@ The product is:
 
 > An AI-assisted job matching tool.
 
-The product is NOT:
+The product is not:
 
 - An AI capability showcase website;
 - A resume generator;
@@ -57,7 +60,7 @@ The product is NOT:
 
 ## 2.2 Core Value Proposition
 
-The product helps recruiters answer:
+The product helps recruiters understand:
 
 > “How does this candidate’s experience match the requirements of this role?”
 
@@ -75,7 +78,7 @@ by providing:
 
 The product should prioritize evidence-based analysis.
 
-The system should not make unsupported claims.
+The system should avoid unsupported conclusions.
 
 Example:
 
@@ -91,23 +94,15 @@ Correct:
 
 ## 3.2 Assist Decision Making, Not Replace Decision Making
 
-The product supports recruiters by organizing and presenting information.
+The product supports recruiters by organizing information.
 
 It should not make final hiring decisions.
-
-Incorrect:
-
-> This candidate is suitable for this position.
-
-Correct:
-
-> The candidate has evidence matching the following job requirements.
 
 ---
 
 ## 3.3 Transparency Over False Precision
 
-The product should avoid meaningless AI-generated scores.
+The product should avoid unsupported numerical scoring.
 
 Instead of:
 
@@ -119,7 +114,7 @@ Prefer:
 - Partial match;
 - No evidence found.
 
-The reasoning behind the result should be visible.
+The reasoning behind the result should be understandable.
 
 ---
 
@@ -132,8 +127,8 @@ Build a usable demo within one week.
 The MVP validates:
 
 1. Whether recruiters are willing to use an AI-assisted matching tool;
-2. Whether the tool can help recruiters understand candidate fit;
-3. Whether the tool can improve recruitment communication conversion.
+2. Whether the tool helps recruiters understand candidate fit;
+3. Whether the tool improves recruitment communication conversion.
 
 ---
 
@@ -170,8 +165,6 @@ Recruiter decides whether to contact candidate
 ---
 
 ## 4.3 MVP Features
-
-### Included
 
 | Feature | Priority |
 |---|---|
@@ -244,7 +237,7 @@ Potential features:
 
 ## 6.1 Documentation Set
 
-The project maintains four separate documents.
+The project maintains four separate documents:
 
 ```text
 AI Job Fit Assistant Documentation
@@ -261,10 +254,10 @@ AI Job Fit Assistant Documentation
 
 | Document | Responsibility |
 |---|---|
-| Product Requirement Document | Define product requirements, user problems, scope, features, roadmap |
-| AI System Design | Define AI capabilities, Agent workflow, prompts, knowledge strategy |
-| Frontend Technical Design | Define frontend implementation |
-| Backend Technical Design | Define backend implementation |
+| Product Requirement Document | Define product requirements, user problems, scope, features, and roadmap |
+| AI System Design | Define AI capabilities, Agent workflow, knowledge strategy, and AI-related requirements |
+| Frontend Technical Design | Define frontend implementation based on product requirements |
+| Backend Technical Design | Define backend implementation based on product requirements and AI system requirements |
 
 ---
 
@@ -286,13 +279,13 @@ All documentation uses English as the source of truth.
 
 MVP does not implement full multilingual support.
 
-However, the product design should remain compatible with future localization.
+However, product design should remain compatible with future localization.
 
 Requirements:
 
 - Avoid hard-coded UI text;
 - Keep language configuration separable;
-- Avoid architecture decisions that block future multilingual support.
+- Avoid architecture decisions that block future localization.
 
 ---
 
@@ -332,6 +325,11 @@ Example:
 |Version|Date|Changes|Reason|
 |-|-|-|-|
 |v0.1|2026-08-20|Initial document created|Define project direction|
+|v0.2|2026-08-20|Updated documentation structure|Separate product and technical documents|
+|v0.3|2026-08-20|Updated document dependency model and roadmap ordering|Improve documentation consistency|
+
+---
+Sure. Please replace Section 8 with the following version:
 
 ---
 
@@ -340,35 +338,72 @@ Example:
 The relationship between documents:
 
 ```text
-                 Product Requirement Document
-                              |
+                    Product Requirement Document
+                               |
         ------------------------------------------------
         |                      |                       |
         ↓                      ↓                       ↓
 
- AI System Design   Frontend Technical Design   Backend Technical Design
-                             
+ AI System Design      Frontend Technical Design   Backend Technical Design
+
+
+        AI System Design
+                |
+                ↓
+
+       Backend Technical Design
+
+
+ Frontend Technical Design  ↔  Backend Technical Design
+                |
+                ↓
+
+            API Contract
 ```
 
-Additional dependency:
+## Dependency Explanation
 
-```text
-AI System Design
+- **Product Requirement Document → AI System Design**
+  
+  PRD defines required product capabilities and user-facing behaviors.  
+  AI System Design defines how AI-related capabilities are designed and implemented.
 
-        ↓
+- **Product Requirement Document → Frontend Technical Design**
+  
+  PRD defines user flows, interface requirements, and product interactions.  
+  Frontend Technical Design defines how these requirements are implemented on the frontend.
 
-Backend Technical Design
-```
+- **Product Requirement Document → Backend Technical Design**
+  
+  PRD defines functional requirements and business logic.  
+  Backend Technical Design defines the backend services and infrastructure required to support these requirements.
 
-PRD is the source of truth for product requirements.
+- **AI System Design → Backend Technical Design**
+  
+  AI System Design provides AI-specific implementation requirements, such as AI workflows, model integration, and AI-related processing logic. Backend Technical Design needs to support these capabilities.
 
-Technical documents define implementation details based on PRD requirements.
+- **Frontend Technical Design ↔ Backend Technical Design**
+  
+  Frontend and backend communicate through API contracts.
 
-Changes to product requirements should be reflected in related technical documents.
+  The API Contract defines:
+  - Request formats;
+  - Response formats;
+  - Data structures;
+  - Error handling rules;
+  - Communication interfaces between frontend and backend.
 
 ---
 
-# 9. Current Key Decisions
+## Documentation Principle
+
+- PRD is the source of truth for product requirements.
+- Technical documents define implementation details based on PRD requirements.
+- Technical documents should not redefine product requirements without updating PRD.
+- Changes affecting interfaces between frontend and backend should update the API Contract accordingly.
+
+
+# 9. Current Product Decisions
 
 ## Decision 1
 
@@ -390,7 +425,7 @@ Reason:
 
 The product solves a broader recruitment information matching problem.
 
-AI-related capability analysis is only one application scenario.
+AI-related capability analysis is one application scenario.
 
 ---
 
@@ -400,7 +435,7 @@ MVP focuses on structured matching analysis instead of conversational AI.
 
 Reason:
 
-The core validation goal is:
+The initial validation flow is:
 
 ```text
 JD Input
@@ -435,26 +470,3 @@ Reason:
 - Better alignment with technical ecosystem;
 - Easier AI-assisted development;
 - Consistent terminology.
-
----
-
-# 10. Next Steps
-
-The project will proceed in the following order:
-
-1. Finalize PRD;
-2. Review and freeze PRD;
-3. Create AI System Design;
-4. Create Frontend Technical Design;
-5. Create Backend Technical Design;
-6. Start MVP implementation.
-
----
-
-One small note: I kept **“Current Key Decisions”** instead of removing all decision-related content. This is slightly different from the removed “Decision Log”.
-
-Reason:
-- A maintained Decision Log is a process overhead;
-- A short list of current product principles/decisions is useful context for future documents.
-
-If later this section grows too much, we can remove it or merge it into Version Log.
