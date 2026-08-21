@@ -147,15 +147,11 @@ Inputs Job Description
 
 ↓
 
-AI analyzes requirements
+AI generates Matching Report
 
 ↓
 
-AI maps requirements to candidate evidence
-
-↓
-
-Recruiter reviews matching report
+Recruiter reviews Matching Report
 
 ↓
 
@@ -168,19 +164,25 @@ Recruiter decides whether to contact candidate
 
 | Feature | Priority |
 |---|---|
+| Candidate Profile Data Source | P0 |
 | Job Description Input | P0 |
-| Job Requirement Analysis | P0 |
-| Hard / Soft Requirement Classification | P0 |
-| Candidate Knowledge Base | P0 |
-| Requirement-Evidence Matching | P0 |
-| Unknown Information Detection | P0 |
+| Matching Report | P0 |
 | Resume Preview | P0 |
+| Ask Follow-up Questions | P1 |
 | Contact CTA | P0 |
 | Basic User Behavior Tracking | P0 |
+| Report Feedback | P1 |
 
 ---
+## 4.4 Core Matching Capabilities
+| Capability | Description |
+|---|---|
+| Requirement Analysis | Analyze and structure key requirements from the provided job description |
+| Hard / Soft Requirement Classification | Classify requirements based on their importance and evaluation criteria |
+| Requirement-Evidence Matching | Map job requirements to relevant candidate evidence |
+| Unknown Information Detection | Identify requirements where sufficient candidate evidence is unavailable |
 
-## 4.4 MVP Excluded Features
+## 4.5 MVP Excluded Features
 
 The following features are intentionally excluded:
 

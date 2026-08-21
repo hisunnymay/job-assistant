@@ -37,6 +37,21 @@ Related documents:
 ---
 
 
+Version Log
+
+The Version Log records document changes and the reasons behind those changes.
+
+Currently the following updates are not real. It is just for demonstration and will be replaced by when there comes the real document change.
+
+| Version | Date       | Changes                                                           | Reason                                                           |
+| ------- | ---------- | ----------------------------------------------------------------- | ---------------------------------------------------------------- |
+| v0.1    | 2026-08-20 | Initial PRD structure created                                     | Establish product requirement documentation structure            |
+| v0.2    | 2026-08-20 | Refined feature boundaries between PRD and AI System Design       | Separate user-facing features from internal AI capabilities      |
+| v0.3    | 2026-08-20 | Updated functional requirements and system requirements structure | Improve document clarity and support downstream technical design |
+
+
+
+
 
 # 1. Product Overview
 
