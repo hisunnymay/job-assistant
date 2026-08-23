@@ -1,24 +1,66 @@
-# Development Plan
+# TODO
+- When we move to Codex, I would create an AGENTS.md file.
 
-## 1. Design Phase
+# Process
+``` text
+Lightweight AI Design Decision
+        ↓
+Frontend Technical Design
+        ↓
+Backend Technical Design
+        ↓
+Build Demo
+        ↓
+Complete AI System Design
+```
 
+# Outline for front-end
+
+``` text
+1. User Flow
+   - Recruiter enters JD
+   - Reviews report
+   - Asks questions
+   - Contacts candidate
+
+2. Page Structure
+   - Main page
+   - Report page
+   - Follow-up interaction
+
+3. Component Design
+   - Input area
+   - Report sections
+   - Chat/question area
+   - Contact CTA
+
+4. Frontend Data Requirements
+   - What data frontend receives
+   - What actions frontend sends
+
+5. Technical Considerations
+   - State management
+   - Loading/error handling
+   - Responsive considerations
+```
+
+# Order
+# 整体顺序
 ```text
 1. Frontend Technical Design Outline
 2. Backend Technical Design Outline
 3. Review dependency between them
 4. Write the documents
 5. Confirm Frontend-Backend Integration Assumptions
+6. Start vibe coding 
 ```
-
----
-
-## 2. Implementation Phase (Vibe Coding)
-
+#  vibe coding 顺序
+```text
 ### Step 1: Build the user flow skeleton
 
 Frontend:
 
-```text
+```
 Input JD page
 
 ↓
@@ -46,7 +88,7 @@ Use mock data initially.
 
 Replace mock data:
 
-```text
+```
 Frontend
    |
    |
@@ -67,22 +109,17 @@ You discover:
 "The report is too long."
 
 Frontend:
-
 - Need collapsible sections.
 
 Backend/AI:
-
 - Need shorter output.
 
 Both change together.
 
 ---
-
-
-
-## 3. Repository Structure
-
-```text
+```
+# Repo
+``` text
 ai-job-fit-assistant/
 
 ├── frontend/
@@ -101,28 +138,4 @@ ai-job-fit-assistant/
 │   └── 05_Backend_Technical_Design.md
 
 └── README.md
-```
-
-
-# Shared Assumptions
-```text
-Frontend ↔ Backend Integration Assumptions
-
-1. Frontend consumes backend APIs for:
-   - Matching Report generation
-   - Follow-up questions
-   - Resume access
-
-2. Backend returns AI-generated content.
-
-3. AI output format is Markdown/text for MVP.
-
-4. Frontend renders AI output without interpreting AI logic.
-
-5. Backend manages AI context.
-
-6. MVP uses synchronous request-response flow.
-
-7. REST API is sufficient for MVP.
-
 ```
