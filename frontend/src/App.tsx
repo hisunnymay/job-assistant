@@ -2,7 +2,10 @@ import { useState, type FormEvent } from 'react'
 import { ConversationMessage } from './components/ConversationMessage'
 import { JobDescriptionForm } from './components/JobDescriptionForm'
 import { zhCN } from './content/zh-CN'
-import { createMockAnalysisClient } from './services/mockAnalysisClient'
+import {
+  AnalysisClientError,
+  createAnalysisClient,
+} from './services/analysisClient'
 import type {
   AnalysisClient,
   ConversationMessage as ConversationMessageData,
@@ -12,7 +15,7 @@ import './styles.css'
 type JourneyState = 'ready' | 'loading' | 'success' | 'failure'
 
 const minimumJobDescriptionLength = 40
-const defaultAnalysisClient = createMockAnalysisClient()
+const defaultAnalysisClient = createAnalysisClient()
 
 const initialGuidanceMessage: ConversationMessageData = {
   id: 'initial-guidance',
@@ -30,6 +33,10 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
   const [submittedJobDescription, setSubmittedJobDescription] = useState('')
   const [fieldError, setFieldError] = useState<string>()
   const [journeyState, setJourneyState] = useState<JourneyState>('ready')
+  const [failureDescription, setFailureDescription] = useState<string>(
+    zhCN.failure.description,
+  )
+  const [canRetryFailure, setCanRetryFailure] = useState(true)
   const [messages, setMessages] = useState<ConversationMessageData[]>([
     initialGuidanceMessage,
   ])
@@ -68,6 +75,8 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
     }
 
     setJourneyState('loading')
+    setFailureDescription(zhCN.failure.description)
+    setCanRetryFailure(true)
 
     try {
       const response = await analysisClient.analyze(normalizedJobDescription)
@@ -84,7 +93,16 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
         analysisMessage,
       ])
       setJourneyState('success')
-    } catch {
+    } catch (error) {
+      if (error instanceof AnalysisClientError) {
+        if (error.code === 'INVALID_REQUEST') {
+          setFailureDescription(zhCN.failure.invalidRequest)
+          setJobDescription(normalizedJobDescription)
+          setCanRetryFailure(false)
+        } else if (error.code === 'AI_SERVICE_UNAVAILABLE') {
+          setFailureDescription(zhCN.failure.aiUnavailable)
+        }
+      }
       setJourneyState('failure')
     }
   }
@@ -100,6 +118,8 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
     }
 
     setFieldError(undefined)
+    setFailureDescription(zhCN.failure.description)
+    setCanRetryFailure(true)
     void requestAnalysis(normalizedJobDescription, true)
   }
 
@@ -228,15 +248,17 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
                     <div className="message-bubble failure-bubble">
                       <div>
                         <h3>{zhCN.failure.title}</h3>
-                        <p>{zhCN.failure.description}</p>
+                        <p>{failureDescription}</p>
                       </div>
-                      <button
-                        className="secondary-button"
-                        type="button"
-                        onClick={handleRetry}
-                      >
-                        {zhCN.failure.retry}
-                      </button>
+                      {canRetryFailure ? (
+                        <button
+                          className="secondary-button"
+                          type="button"
+                          onClick={handleRetry}
+                        >
+                          {zhCN.failure.retry}
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 </article>
@@ -244,7 +266,8 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
             ) : null}
           </ol>
 
-          {journeyState === 'ready' ? (
+          {journeyState === 'ready' ||
+          (journeyState === 'failure' && !canRetryFailure) ? (
             <JobDescriptionForm
               value={jobDescription}
               error={fieldError}

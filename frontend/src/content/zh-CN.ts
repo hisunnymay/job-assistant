@@ -45,12 +45,14 @@ export const zhCN = {
   failure: {
     title: '暂时无法生成报告',
     description: '本次处理没有完成。你的职位描述仍然保留，可以重新尝试。',
+    invalidRequest: '后端未接受这份职位描述。请检查内容后重新提交。',
+    aiUnavailable: 'Mock AI 服务暂时不可用。你的职位描述仍然保留，可以重新尝试。',
     retry: '重新尝试',
   },
   report: {
     startOver: '分析新的职位',
-    mockNoticeTitle: '前端演示数据',
-    mockNoticeBody: '此报告用于验证界面和交互，不代表针对当前输入职位的真实 AI 分析。',
+    mockNoticeTitle: 'Mock AI 演示',
+    mockNoticeBody: '此报告由后端确定性 Mock AI 服务生成，用于验证完整产品流程。',
   },
   sampleJobDescription:
     '我们正在招聘一名 AI 产品经理，负责大模型产品从需求分析、方案设计、PRD 到研发落地和持续迭代。候选人需要具备 LLM 应用、Prompt 与模型评测经验，能够设计复杂 B 端业务流程并与研发团队高效协作。具备数据分析能力、API 调试或基础编程经验者优先，同时希望候选人能够说明产品上线后的量化业务结果。',

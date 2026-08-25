@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+psycopg://job_assistant:job_assistant@localhost:5432/job_assistant"
     )
+    frontend_origin: str = "http://localhost:5173"
 
 
 @lru_cache
