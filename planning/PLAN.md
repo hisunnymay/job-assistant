@@ -2,14 +2,15 @@
 
 ## Document Information
 
-- **Version:** v0.4
-- **Status:** Draft — Pre-implementation Decisions Complete
+- **Version:** v0.5
+- **Status:** Draft — Goal 0 Complete
 - **Owner:** Mei Chang
 - **Last Updated:** 2026-08-25
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.5 — 2026-08-25:** Completed Goal 0 with runnable frontend/backend scaffolds, PostgreSQL initialization, safe configuration, locked dependencies, and the agreed validation baseline.
 - **v0.4 — 2026-08-25:** Added and verified the finalized candidate résumé PDF at its agreed static-resource path, completing the Pre-implementation Decisions.
 - **v0.3 — 2026-08-25:** Confirmed the package managers, Python version, PostgreSQL database, environment and secret rules, validation tools, and standard commands; retained the candidate résumé PDF as a pending required asset.
 - **v0.2 — 2026-08-25:** Clarified that this is a living plan that can evolve with implementation and that the user only needs to review one Goal at a time.
@@ -40,10 +41,10 @@ Codex should implement only the Goal explicitly requested by the user. Branch, c
 
 ## 3. Plan Status
 
-- **Phase A — Demo with Mock AI:** Planned
+- **Phase A — Demo with Mock AI:** In progress
 - **AI Design Gate:** Not ready; `docs/02_AI_System_Design.md` has not been created or finalized.
 - **Phase B — Real AI:** Deferred until the AI Design Gate is complete.
-- **Current coding readiness:** Pre-implementation Decisions are complete. Goal 0 is ready to begin when requested.
+- **Current coding readiness:** Goal 0 is complete. Goal 1 is ready to begin when requested.
 
 ## 4. Pre-implementation Decisions
 
@@ -96,7 +97,7 @@ Goal 0 must configure these commands before treating its validation baseline as 
 
 ## Goal 0 — Project Scaffold and Validation Baseline
 
-- **Status:** Not started
+- **Status:** Complete
 - **Depends on:** Confirmed Decisions in Section 4
 - **Branch:** `goal/00-project-scaffold`
 

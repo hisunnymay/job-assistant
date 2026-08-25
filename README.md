@@ -1,21 +1,89 @@
 # AI Job Fit Assistant
 
-An AI-assisted MVP that helps recruiters compare a job description with a predefined candidate resume using evidence-based matching analysis.
+A Chinese-language MVP that helps recruiters compare a job description with a predefined candidate résumé using evidence-based matching analysis.
 
 ## Project Status
 
-Product and technical design are complete. Detailed implementation planning and application coding have not started.
+Goal 0 provides a runnable React frontend shell, FastAPI backend, PostgreSQL foundation, and validation baseline. Matching analysis is not implemented yet; later Demo Goals will add deterministic mock behavior without a real AI provider.
 
 ## Repository Structure
 
 ```text
 job-assistant/
 ├── AGENTS.md             # Codex implementation rules
-├── frontend/             # Recruiter-facing application (not started)
-├── backend/              # Modular-monolith backend (not started)
-├── docs/                 # Active source-of-truth project documents
-├── planning/             # Reserved for the future PLAN.md
-└── history/              # Analysis records, earlier decisions, learning summaries, and notes
+├── frontend/             # React + TypeScript + Vite application
+├── backend/              # FastAPI modular-monolith backend
+├── compose.yaml          # Local PostgreSQL service
+├── docs/                 # Active source-of-truth documents
+├── planning/PLAN.md      # Goal order, scope, and validation
+└── history/              # Analysis and implementation records
+```
+
+## Prerequisites
+
+- Node.js supported by the current Vite release and npm;
+- [uv](https://docs.astral.sh/uv/) for Python 3.12 and backend dependencies;
+- Docker with Compose for the recommended local PostgreSQL setup.
+
+No AI provider or API key is required during the Demo phase.
+
+## Local Setup
+
+Start PostgreSQL from the repository root:
+
+```bash
+docker compose up -d database
+```
+
+Initialize and run the backend:
+
+```bash
+cd backend
+cp .env.example .env
+uv sync
+uv run python -m app.db.init_db
+uv run uvicorn app.main:app --reload
+```
+
+The health endpoint is available at `http://localhost:8000/health`.
+
+In another terminal, run the frontend:
+
+```bash
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
+
+Vite prints the local frontend URL when it starts.
+
+## Validation
+
+Frontend:
+
+```bash
+cd frontend
+npm run test
+npm run type-check
+npm run lint
+npm run build
+```
+
+Backend:
+
+```bash
+cd backend
+uv run pytest
+uv run mypy app
+uv run ruff check .
+```
+
+Database initialization:
+
+```bash
+cd backend
+uv run python -m app.db.init_db
 ```
 
 ## Active Documents
@@ -24,12 +92,12 @@ job-assistant/
 - [Lightweight AI Design Decision](docs/03_Lightweight_AI_Design_Decision.md)
 - [Frontend Technical Design](docs/04_Frontend_Technical_Design.md)
 - [Backend Technical Design](docs/05_Backend_Technical_Design.md)
+- [Implementation Plan](planning/PLAN.md)
 
-## Analysis Records
+## Supporting Records
 
 - [Implementation Strategy](history/strategy_analysis/01_Implementation_Strategy.md)
 - [Technology Strategy Comparison](history/strategy_analysis/02_Technology_Strategy_Comparison.md)
+- [Goal 0 Implementation Record](history/implementation_logs/goal-00-project-scaffold.md)
 
-Read `AGENTS.md` before implementation. The next planning artifact will be `planning/PLAN.md`, containing bounded coding goals, completion criteria, and validation commands. It has intentionally not been created yet.
-
-Do not treat the empty `frontend/` and `backend/` folders as an implemented scaffold.
+Read `AGENTS.md` before implementation. Implement only the explicitly requested Goal from `planning/PLAN.md`.
