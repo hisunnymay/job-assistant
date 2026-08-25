@@ -1,146 +1,73 @@
-# AI Job Fit Assistant — Codex Implementation Guide
+# AI Job Fit Assistant — Codex Guide
+
+## Version Log
+
+- **v0.2 — 2026-08-25:** Simplified the initial guide and aligned technology, document authority, project prohibitions, agent workflow, implementation records, and document-update rules.
 
 ## Project Goal
 
-Build a usable, Chinese-language MVP that helps a recruiter evaluate how the fixed candidate, Mei Chang, matches a supplied job description. The product should turn the job description and candidate resume into evidence-based matching analysis, expose missing information clearly, and help the recruiter decide whether to contact the candidate.
+Build a Chinese-language, one-week MVP that helps a recruiter evaluate how the fixed candidate, Mei Chang, matches a supplied job description. Produce evidence-based analysis, identify unsupported or unknown information clearly, and help the recruiter decide whether to contact the candidate. Prioritize a complete core journey over production-scale infrastructure.
 
-This is a one-week validation demo. Optimize for a complete, understandable core journey—not production-scale infrastructure.
+## Document Authority
 
-## Source of Truth
+- `docs/01_Product_Requirement_Document.md` owns product scope, behavior, priorities, and acceptance criteria.
+- `docs/03_Lightweight_AI_Design_Decision.md` owns AI inputs, outputs, capabilities, and limitations.
+- `docs/04_Frontend_Technical_Design.md` owns recruiter experience, UI behavior, frontend state, and presentation responsibilities.
+- `docs/05_Backend_Technical_Design.md` owns backend architecture, persistence, workflows, AI integration, and API contracts. Section 5 is the authoritative MVP API contract.
+- `planning/PLAN.md`, when created, owns goal order, task details, completion criteria, validation commands, dependencies, and status. It does not override `docs/`.
+- `history/` contains analysis and implementation records. It is not authoritative for current product behavior or technical contracts.
 
-Use each finalized document only for the decisions it owns:
+This file provides operating rules and must not override the documents above. If authoritative documents conflict, stop and ask the user to resolve the conflict before changing behavior or an agreed interface.
 
-1. **Product Requirement Document (PRD)** — source of truth for product requirements, MVP behavior, priorities, and acceptance criteria.
-2. **Lightweight AI Design Decision** — AI inputs, outputs, supported capabilities, and limitations.
-3. **Frontend Technical Design** — recruiter experience, UI behavior, frontend state, and presentation responsibilities.
-4. **Backend Technical Design** — backend architecture, persistence, workflows, AI integration, and unresolved backend decisions. Section 5 is the MVP API contract.
+## Project-wide Implementation Rules
 
-Do not let this file silently override those documents. If documents appear to conflict, follow the document that owns the decision and resolve the inconsistency before changing product behavior or an agreed interface.
+- Implement only the approved PRD MVP scope.
+- Use React, TypeScript, and Vite for the frontend; use Python and FastAPI for the backend.
+- During the Demo phase, keep AI behavior mocked behind the AI Service boundary. Do not select or integrate a real AI provider or framework before the AI System Design is agreed.
+- Choose the simplest implementation that completes the requested vertical slice.
+- Preserve module and layer boundaries without adding abstractions that have no current use.
+- Keep the AI provider replaceable behind the AI Service boundary.
+- Keep the UI in Chinese and keep user-facing strings separable from components; do not build a full internationalization system for the MVP.
+- Use one primary implementation agent by default. Use reviewer subagents only for bounded review or investigation at meaningful checkpoints; do not parallelize tightly coupled frontend and backend edits by default.
 
-## MVP Scope
+## Architecture Boundaries
 
-Implement the end-to-end recruiter flow:
-
-- Show initial guidance and accept a job description.
-- Generate and display a Matching Report. `Matching Analysis` is the AI-generated content; `Matching Report` is its recruiter-facing presentation.
-- Analyze job requirements, distinguish hard/soft requirements where appropriate, map requirements to resume evidence, and identify unknown or unsupported information.
-- Allow follow-up questions within the current evaluation conversation.
-- Preview and, where supported, download the candidate's original resume PDF.
-- Provide candidate contact entry points using frontend-owned static content. Recruiter name is optional if collected for contact initiation.
-- Collect report/response feedback.
-- Track page visits, job-description submission, matching-report generation, resume-preview clicks, contact-CTA clicks, and feedback submission.
-- Use synchronous request/response behavior for MVP; show clear loading and error states.
-
-The website UI is Chinese. Keep user-facing strings separable from components so later localization remains possible; a full i18n system is not required.
-
-## Non-goals
-
-Do not add:
-
-- Multiple candidates or candidate comparison;
-- Recruiter resume upload or candidate management;
-- Resume generation or editing;
-- Open-ended chat unrelated to the current evaluation;
-- Candidate ranking, an overall AI match score, hiring decisions, or performance prediction;
-- User accounts, a complex permission system, or a full recruitment SaaS workflow;
-- Microservices, event-driven infrastructure, multiple databases, or speculative scale work;
-- Streaming AI output or strict structured AI output unless later agreed.
-
-
-
-## Architecture and Responsibility Boundaries
-
-Use a **modular monolith with layered architecture**:
+Use a modular monolith with layered backend architecture:
 
 ```text
 API Access Protection -> Controller -> Service -> AI Service / Repository
 ```
 
-- **Frontend:** collect input; manage UI/loading/error state; render text/Markdown AI content without changing its conclusions; provide static initial guidance and contact content; display the PDF; emit tracking events. It must not implement AI reasoning or backend workflows.
-- **Controller:** handle HTTP, basic request validation, service calls, and responses. It must not contain business logic, access persistence directly, or call an AI provider directly.
-- **Service:** own business workflows and conversation context; coordinate the AI Service and Repository.
-- **AI Service:** hide provider-specific file/request/response handling; call the selected provider and perform basic response validation. It must not load or persist conversations itself.
-- **Repository:** hide storage details for conversations, messages, and feedback. One lightweight repository layer is sufficient.
-- **AI capability/provider:** analyze requirements, match evidence, identify information gaps, generate analysis, and answer supported follow-ups. It must not invent evidence, make hiring decisions, rank candidates, or return false precision.
+- The frontend owns interaction and presentation; it must not implement AI reasoning or backend workflows.
+- Controllers own HTTP handling and basic request validation; they must not contain business logic, access persistence directly, or call AI providers.
+- Services own business workflows and conversation context and coordinate the AI Service and repositories.
+- The AI Service owns provider-specific handling and basic response validation; it must not load or persist conversations directly.
+- Repositories hide persistence details from the rest of the application.
 
-The backend validates that an AI response exists and is renderable; it does not judge whether the AI conclusion is substantively correct.
+## Prohibited Changes
 
-## Resume Handling
+- Do not add multiple candidates, candidate comparison, résumé upload or management, ranking, an overall match score, hiring decisions, or performance prediction.
+- Do not add open-ended chat, user accounts, or a broader recruitment-management workflow.
+- Do not invent candidate evidence or present unknown or unsupported information as fact.
+- Use the same predefined static résumé PDF for preview/download and AI context. Do not add backend PDF extraction, preprocessing, or a required text/Markdown mirror.
+- Do not expose or persist raw prompts, raw provider responses, provider-specific payloads, secrets, or internal errors.
+- Do not place AI reasoning or business workflow in the frontend or controller, and do not let the AI Service access persistence directly.
+- Do not introduce microservices, distributed or event-driven infrastructure, multiple databases, complex retry systems, or speculative scaling work.
+- Do not add streaming AI output or strict structured AI output unless the relevant design is updated and approved.
 
-The Candidate Resume is one predefined **static PDF resource**, not persistent business data.
+## Implementation Records
 
-- Use the same PDF for recruiter preview/download and as candidate context for AI processing.
-- The Service supplies the resume resource; the AI Service packages or uploads it in the format supported by the selected provider.
-- Do **not** build backend PDF text extraction, preprocessing, or a required text/Markdown mirror for MVP.
-- Do **not** add resume upload merely to anticipate a future version.
+After completing a requested implementation goal, add a concise record under `history/implementation_logs/` containing:
 
+- The completed goal and material behavior or files changed;
+- Validation performed and its results;
+- Problems fixed, approved deviations, and remaining known issues.
 
+Do not record internal reasoning, every command, or conversation transcripts. Create the log folder when implementation begins.
 
-## Backend and API Expectations
+## Document Update Rules
 
-Keep the agreed business-capability APIs stable:
-
-```text
-POST /api/matching-analysis
-  { jobDescription }
-  -> { conversationId, messageId, content }
-
-POST /api/conversations/{conversationId}/messages
-  { question }
-  -> { messageId, content }
-
-GET /api/resume
-  -> application/pdf
-
-POST /api/feedback
-  { conversationId, messageId, rating, comment }
-  -> { success }
-```
-
-- Return AI `content` as frontend-renderable text/Markdown.
-- Use a consistent error body: `{ code, message }`. Do not expose internal errors or provider payloads. The frontend may map `code` to localized UI copy rather than relying only on `message`.
-- Apply lightweight API access protection before business processing; this is backend API protection, not user authentication.
-- Persist `Conversation`, `Conversation Message`, and `Feedback`. Messages must distinguish `job_description`, `matching_analysis`, `follow_up_question`, and `follow_up_answer`.
-- Matching generation uses `Candidate Resume + Job Description`.
-- Follow-up generation uses `Candidate Resume + Full Conversation History`.
-- Store user-facing AI responses as conversation messages. Do not store raw prompts, raw provider responses, or provider-specific payloads. Log only enough diagnostic information to investigate failures safely.
-- Do not store missing/unusable AI output as a conversation message.
-- A tracking session identifies a product visit and may exist before a Conversation; do not treat `conversationId` as the universal analytics session identifier.
-
-
-
-## Implementation Principles
-
-- Choose the simplest implementation that completes and demonstrates the MVP flow.
-- Preserve clear module/layer boundaries, but avoid boilerplate abstractions with no current use.
-- Model business concepts before database tables; keep schemas minimal.
-- Expose business capabilities, not database structures, through APIs.
-- Keep the AI provider replaceable behind the AI Service boundary.
-- Prefer small, testable vertical slices and verify the end-to-end journey as implementation progresses.
-- Do not design for hypothetical future requirements.
-
-
-
-## Intentionally Unresolved Decisions
-
-Codex may choose these pragmatically during implementation, using the simplest option compatible with the contracts above:
-
-- Frontend framework, component library, detailed layout, state management, and PDF preview method;
-- Deployment and hosting approach;
-- API access-protection mechanism;
-- Database technology and exact table/repository structure;
-- AI provider, framework, SDK, and provider-specific PDF handoff;
-- Custom versus third-party behavior tracking and tracking-session mechanism;
-- No retry versus one limited retry for transient AI failures.
-
-Do not introduce complex retry infrastructure, distributed systems, or new product behavior while resolving these choices. Record material choices in the relevant technical document.
-
-## Keep Documentation in Sync
-
-If implementation appears to require a change to product behavior, AI capability boundaries, data ownership, persistence meaning, or an API request/response/error contract:
-
-1. **Ask the user explicitly whether the corresponding project document should be updated. Do not update it without confirmation.**
-2. After approval, update the document that owns the changed decision.
-3. Add or update the **Version Log** in every changed document, recording the version, date, change, and reason.
-
-For an approved frontend-backend contract change, update Backend Technical Design Section 5 and the corresponding frontend integration assumptions together.
+- Before changing this file or a finalized document under `docs/`, ask the user explicitly whether it should be updated and identify the affected document.
+- After approval, update the document that owns the decision and add or update its Version Log with version, date, change, and reason.
+- Do not let implementation silently change product behavior, AI capability boundaries, data ownership, persistence meaning, or API request, response, or error contracts.
+- For an approved frontend-backend contract change, update Backend Technical Design Section 5 and the corresponding frontend integration assumptions together.
