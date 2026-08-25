@@ -21,11 +21,11 @@ export function JobDescriptionForm({
   const errorId = error ? 'job-description-error' : undefined
 
   return (
-    <form className="jd-form" onSubmit={onSubmit} noValidate>
-      <div className="section-heading">
+    <form className="composer" onSubmit={onSubmit} noValidate>
+      <div className="composer-heading">
         <div>
-          <p className="section-kicker">{zhCN.jobDescription.kicker}</p>
           <h2>{zhCN.jobDescription.title}</h2>
+          <p>{zhCN.jobDescription.description}</p>
         </div>
         <button
           className="text-button"
@@ -37,15 +37,15 @@ export function JobDescriptionForm({
         </button>
       </div>
 
-      <p className="section-description">{zhCN.jobDescription.description}</p>
-
-      <label htmlFor="job-description">{zhCN.jobDescription.label}</label>
+      <label className="sr-only" htmlFor="job-description">
+        {zhCN.jobDescription.label}
+      </label>
       <textarea
         id="job-description"
         name="jobDescription"
         value={value}
         placeholder={zhCN.jobDescription.placeholder}
-        rows={10}
+        rows={6}
         maxLength={6000}
         disabled={isSubmitting}
         aria-invalid={Boolean(error)}
@@ -53,20 +53,22 @@ export function JobDescriptionForm({
         onChange={(event) => onChange(event.target.value)}
       />
 
-      <div className="form-meta">
-        <span>{zhCN.jobDescription.characterCount(value.length)}</span>
-        {error ? (
-          <span className="field-error" id={errorId} role="alert">
-            {error}
-          </span>
-        ) : null}
-      </div>
+      <div className="composer-footer">
+        <div className="form-meta">
+          <span>{zhCN.jobDescription.characterCount(value.length)}</span>
+          {error ? (
+            <span className="field-error" id={errorId} role="alert">
+              {error}
+            </span>
+          ) : null}
+        </div>
 
-      <button className="primary-button" type="submit" disabled={isSubmitting}>
-        {isSubmitting
-          ? zhCN.jobDescription.submitting
-          : zhCN.jobDescription.submit}
-      </button>
+        <button className="primary-button" type="submit" disabled={isSubmitting}>
+          {isSubmitting
+            ? zhCN.jobDescription.submitting
+            : zhCN.jobDescription.submit}
+        </button>
+      </div>
     </form>
   )
 }

@@ -1,15 +1,25 @@
 import { useState, type FormEvent } from 'react'
+import { ConversationMessage } from './components/ConversationMessage'
 import { JobDescriptionForm } from './components/JobDescriptionForm'
-import { MatchingReportView } from './components/MatchingReportView'
 import { zhCN } from './content/zh-CN'
 import { createMockAnalysisClient } from './services/mockAnalysisClient'
-import type { AnalysisClient, MatchingReport } from './types/matching'
+import type {
+  AnalysisClient,
+  ConversationMessage as ConversationMessageData,
+} from './types/matching'
 import './styles.css'
 
-type JourneyState = 'initial' | 'loading' | 'success' | 'failure'
+type JourneyState = 'ready' | 'loading' | 'success' | 'failure'
 
 const minimumJobDescriptionLength = 40
 const defaultAnalysisClient = createMockAnalysisClient()
+
+const initialGuidanceMessage: ConversationMessageData = {
+  id: 'initial-guidance',
+  role: 'assistant',
+  messageType: 'initial_guidance',
+  content: zhCN.guidance.content,
+}
 
 interface AppProps {
   analysisClient?: AnalysisClient
@@ -19,8 +29,11 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
   const [jobDescription, setJobDescription] = useState('')
   const [submittedJobDescription, setSubmittedJobDescription] = useState('')
   const [fieldError, setFieldError] = useState<string>()
-  const [journeyState, setJourneyState] = useState<JourneyState>('initial')
-  const [report, setReport] = useState<MatchingReport>()
+  const [journeyState, setJourneyState] = useState<JourneyState>('ready')
+  const [messages, setMessages] = useState<ConversationMessageData[]>([
+    initialGuidanceMessage,
+  ])
+  const [conversationId, setConversationId] = useState<string>()
 
   function validateJobDescription(value: string): string | undefined {
     if (!value) {
@@ -34,7 +47,50 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
     return undefined
   }
 
-  async function runAnalysis() {
+  async function requestAnalysis(
+    normalizedJobDescription: string,
+    appendJobDescription: boolean,
+  ) {
+    if (appendJobDescription) {
+      const jobDescriptionMessage: ConversationMessageData = {
+        id: 'submitted-job-description',
+        role: 'user',
+        messageType: 'job_description',
+        content: normalizedJobDescription,
+      }
+
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        jobDescriptionMessage,
+      ])
+      setSubmittedJobDescription(normalizedJobDescription)
+      setJobDescription('')
+    }
+
+    setJourneyState('loading')
+
+    try {
+      const response = await analysisClient.analyze(normalizedJobDescription)
+      const analysisMessage: ConversationMessageData = {
+        id: response.messageId,
+        role: 'assistant',
+        messageType: 'matching_analysis',
+        content: response.content,
+      }
+
+      setConversationId(response.conversationId)
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        analysisMessage,
+      ])
+      setJourneyState('success')
+    } catch {
+      setJourneyState('failure')
+    }
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
     const normalizedJobDescription = jobDescription.trim()
     const validationError = validateJobDescription(normalizedJobDescription)
 
@@ -44,24 +100,7 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
     }
 
     setFieldError(undefined)
-    setJourneyState('loading')
-    setReport(undefined)
-    setSubmittedJobDescription(normalizedJobDescription)
-
-    try {
-      const matchingReport = await analysisClient.analyze(
-        normalizedJobDescription,
-      )
-      setReport(matchingReport)
-      setJourneyState('success')
-    } catch {
-      setJourneyState('failure')
-    }
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    void runAnalysis()
+    void requestAnalysis(normalizedJobDescription, true)
   }
 
   function handleChange(value: string) {
@@ -76,11 +115,17 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
     setFieldError(undefined)
   }
 
+  function handleRetry() {
+    void requestAnalysis(submittedJobDescription, false)
+  }
+
   function handleStartOver() {
     setJobDescription('')
     setSubmittedJobDescription('')
-    setReport(undefined)
-    setJourneyState('initial')
+    setFieldError(undefined)
+    setJourneyState('ready')
+    setMessages([initialGuidanceMessage])
+    setConversationId(undefined)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -100,79 +145,115 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
       </header>
 
       <main id="main-content">
-        <section className="hero" aria-labelledby="hero-title">
-          <div>
-            <p className="hero-eyebrow">{zhCN.hero.eyebrow}</p>
-            <h1 id="hero-title">{zhCN.hero.title}</h1>
-            <p className="hero-introduction">{zhCN.hero.introduction}</p>
-          </div>
+        <header className="workspace-intro">
+          <p className="eyebrow">{zhCN.hero.eyebrow}</p>
+          <h1>{zhCN.hero.title}</h1>
+          <p>{zhCN.hero.introduction}</p>
+        </header>
 
-          <aside className="guidance-card" aria-labelledby="guidance-title">
-            <p className="assistant-label">{zhCN.guidance.label}</p>
-            <h2 id="guidance-title">{zhCN.guidance.title}</h2>
-            <p>{zhCN.guidance.body}</p>
-            <ul>
-              {zhCN.guidance.points.map((point) => (
-                <li key={point}>{point}</li>
-              ))}
-            </ul>
-          </aside>
-        </section>
+        <section
+          className="conversation-shell"
+          aria-labelledby="conversation-title"
+          data-conversation-id={conversationId}
+        >
+          <header className="conversation-header">
+            <div>
+              <h2 id="conversation-title">{zhCN.conversation.title}</h2>
+              <p>{zhCN.conversation.description}</p>
+            </div>
+            <span className="ready-status">
+              <span aria-hidden="true" />
+              {zhCN.conversation.ready}
+            </span>
+          </header>
 
-        <section className="workspace" aria-label={zhCN.navigationLabel}>
-          <JobDescriptionForm
-            value={jobDescription}
-            error={fieldError}
-            isSubmitting={journeyState === 'loading'}
-            onChange={handleChange}
-            onUseExample={handleUseExample}
-            onSubmit={handleSubmit}
-          />
-
-          <div className="journey-output" aria-live="polite">
-            {journeyState === 'initial' ? (
-              <div className="empty-state">
-                <span className="empty-state-icon" aria-hidden="true">
-                  ↗
-                </span>
-                <p>{zhCN.guidance.title}</p>
-              </div>
-            ) : null}
+          <ol className="message-list" aria-live="polite">
+            {messages.map((message) => (
+              <ConversationMessage
+                key={message.id}
+                message={message}
+                isMockAnalysis={message.messageType === 'matching_analysis'}
+                onStartOver={
+                  message.messageType === 'matching_analysis'
+                    ? handleStartOver
+                    : undefined
+                }
+              />
+            ))}
 
             {journeyState === 'loading' ? (
-              <div className="loading-state" role="status">
-                <span className="spinner" aria-hidden="true" />
-                <div>
-                  <h2>{zhCN.loading.title}</h2>
-                  <p>{zhCN.loading.description}</p>
-                </div>
-              </div>
+              <li className="message-row message-row-assistant">
+                <article
+                  className="message message-assistant status-message"
+                  aria-label={`${zhCN.conversation.assistantName}：${zhCN.loading.title}`}
+                  role="status"
+                >
+                  <div className="message-avatar" aria-hidden="true">
+                    {zhCN.conversation.assistantAvatar}
+                  </div>
+                  <div className="message-column">
+                    <div className="message-meta">
+                      <strong>{zhCN.conversation.assistantName}</strong>
+                    </div>
+                    <div className="message-bubble loading-bubble">
+                      <span className="typing-indicator" aria-hidden="true">
+                        <i />
+                        <i />
+                        <i />
+                      </span>
+                      <div>
+                        <h3>{zhCN.loading.title}</h3>
+                        <p>{zhCN.loading.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </li>
             ) : null}
 
             {journeyState === 'failure' ? (
-              <div className="failure-state" role="alert">
-                <div>
-                  <h2>{zhCN.failure.title}</h2>
-                  <p>{zhCN.failure.description}</p>
-                </div>
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={() => void runAnalysis()}
+              <li className="message-row message-row-assistant">
+                <article
+                  className="message message-assistant status-message"
+                  aria-label={`${zhCN.conversation.assistantName}：${zhCN.failure.title}`}
+                  role="alert"
                 >
-                  {zhCN.failure.retry}
-                </button>
-              </div>
+                  <div className="message-avatar" aria-hidden="true">
+                    {zhCN.conversation.assistantAvatar}
+                  </div>
+                  <div className="message-column">
+                    <div className="message-meta">
+                      <strong>{zhCN.conversation.assistantName}</strong>
+                    </div>
+                    <div className="message-bubble failure-bubble">
+                      <div>
+                        <h3>{zhCN.failure.title}</h3>
+                        <p>{zhCN.failure.description}</p>
+                      </div>
+                      <button
+                        className="secondary-button"
+                        type="button"
+                        onClick={handleRetry}
+                      >
+                        {zhCN.failure.retry}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              </li>
             ) : null}
+          </ol>
 
-            {journeyState === 'success' && report ? (
-              <MatchingReportView
-                report={report}
-                submittedJobDescription={submittedJobDescription}
-                onStartOver={handleStartOver}
-              />
-            ) : null}
-          </div>
+          {journeyState === 'ready' ? (
+            <JobDescriptionForm
+              value={jobDescription}
+              error={fieldError}
+              isSubmitting={false}
+              onChange={handleChange}
+              onUseExample={handleUseExample}
+              onSubmit={handleSubmit}
+            />
+          ) : null}
         </section>
       </main>
     </div>
