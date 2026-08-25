@@ -2,14 +2,17 @@
 
 ## Document Information
 
-- **Version:** v0.6
-- **Status:** Draft — Goal 1 Complete
+- **Version:** v0.9
+- **Status:** Draft — Goal 1 Correction Required
 - **Owner:** Mei Chang
 - **Last Updated:** 2026-08-25
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.9 — 2026-08-25:** Recorded Goal 0's user-provided actual implementation time as 21 minutes.
+- **v0.8 — 2026-08-25:** Required actual implementation time and its measurement basis to be recorded for each completed coding Goal, without inventing unavailable historical timing data.
+- **v0.7 — 2026-08-25:** Added the Goal readiness and conformance gate, recorded the Goal 1 architecture mismatch, introduced Goal 1A to realign the conversation workspace and response contract, and blocked Goal 2 until that correction is complete.
 - **v0.6 — 2026-08-25:** Completed Goal 1 with the Chinese frontend matching journey, deterministic résumé-grounded mock data, recoverable UI states, responsive presentation, and automated and browser validation.
 - **v0.5 — 2026-08-25:** Completed Goal 0 with runnable frontend/backend scaffolds, PostgreSQL initialization, safe configuration, locked dependencies, and the agreed validation baseline.
 - **v0.4 — 2026-08-25:** Added and verified the finalized candidate résumé PDF at its agreed static-resource path, completing the Pre-implementation Decisions.
@@ -35,17 +38,29 @@ Codex should implement only the Goal explicitly requested by the user. Branch, c
 
 - This is a living implementation guide, not a fixed contract. It may change when real implementation reveals better task boundaries, dependencies, validation methods, or technical constraints.
 - The user does not need to understand or approve the entire plan before implementation begins. Focus on one Goal at a time.
-- Before starting a Goal, Codex should explain in plain language what will be built, why it is needed, what decisions require user input, and how completion will be checked.
+- Before starting a Goal, Codex should explain in plain language what will be built, why it is needed, what decisions require user input, which authoritative sections apply, which constraints are non-negotiable, and how completion will be checked.
 - Future Goals may be clarified, split, combined, or reordered with the user's agreement. Update this file's Version Log when that happens.
 - Plan changes must not silently override the PRD, finalized design documents, `AGENTS.md`, or agreed API contracts. Changes to those contracts must follow their document-update rules.
 - Do not rewrite completed Goals to hide what happened. Record implementation results in the corresponding implementation log and add follow-up work explicitly when needed.
+- After completing a coding Goal, add **Actual Implementation Time** and its measurement basis to the Goal metadata. Prefer the Codex Goal timer when available; otherwise use a clearly identified start-to-finish measurement. Exclude time spent waiting for user decisions, approvals, or external blockers when it can be separated, and do not invent unavailable historical timing data.
+
+### Goal Readiness and Conformance Gate
+
+Before coding begins, the active Goal must identify:
+
+- The authoritative product and design sections that apply;
+- Non-negotiable interaction, architecture, ownership, and contract constraints;
+- A representative request/response fixture when the Goal crosses a frontend-backend boundary;
+- Validation that checks specification conformance in addition to tests, lint, type-checking, builds, and browser behavior.
+
+Before a Goal is marked complete, Codex must compare the implementation with those references and record the result in the implementation log. A code review such as Bugbot checks defects within the implementation; it does not replace this specification-conformance review. A material mismatch creates an explicit correction Goal or blocks dependent Goals.
 
 ## 3. Plan Status
 
 - **Phase A — Demo with Mock AI:** In progress
 - **AI Design Gate:** Not ready; `docs/02_AI_System_Design.md` has not been created or finalized.
 - **Phase B — Real AI:** Deferred until the AI Design Gate is complete.
-- **Current coding readiness:** Goals 0 and 1 are complete. Goal 2 is ready to begin when requested.
+- **Current coding readiness:** Goal 1 passed its original functional checks, but Goal 1A must correct the frontend architecture before Goal 2 can begin.
 
 ## 4. Pre-implementation Decisions
 
@@ -101,6 +116,7 @@ Goal 0 must configure these commands before treating its validation baseline as 
 - **Status:** Complete
 - **Depends on:** Confirmed Decisions in Section 4
 - **Branch:** `goal/00-project-scaffold`
+- **Actual Implementation Time:** 21 minutes, provided by the user from the original implementation session.
 
 ### Outcome
 
@@ -147,6 +163,7 @@ cd backend && uv run ruff check .
 - **Status:** Complete
 - **Depends on:** Goal 0
 - **Branch:** `goal/01-frontend-matching-journey`
+- **Actual Implementation Time:** Approximately 15 minutes, reported by the Codex Goal timer.
 
 ### Outcome
 
@@ -182,11 +199,73 @@ cd frontend && npm run build
 Manual browser check: initial, invalid, loading, success, and failure states
 ```
 
-## Goal 2 — Integrated Matching Vertical Slice with Mock AI Service
+### Post-completion Finding
+
+Goal 1 passed its stated functional validation but diverged from the finalized conversation-workspace structure and text/Markdown message contract. The original completion remains recorded rather than rewritten; Goal 1A is the required corrective work. See `history/implementation_logs/goal-01-frontend-matching-journey.md`.
+
+## Goal 1A — Conversation Workspace and Contract Alignment
 
 - **Status:** Not started
 - **Depends on:** Goal 1
+- **Branch:** `goal/01a-conversation-workspace-alignment`
+
+### Authoritative References and Constraints
+
+- Product Requirement Document: F002 Job Description Input, F003 Matching Report, and F005 Ask Follow-up Questions;
+- Frontend Technical Design: Sections 1.2, 2.1–2.2, 3.1–3.3, 4.1, and 5.1–5.2;
+- Backend Technical Design: Conversation Message, Section 5.2 request/response formats, and Section 5.3 integration assumptions;
+- The workspace must use a continuing message-based interaction while keeping exact layout and styling flexible;
+- The frontend may render matching content but must not define or infer AI conclusions;
+- The mock analysis boundary must use the future API response shape: `conversationId`, `messageId`, and text/Markdown `content`.
+
+### Outcome
+
+The existing Goal 1 journey is realigned as the first slice of the Job Assistant conversation workspace and can accept Goal 2 backend responses without changing its interaction model or inventing a frontend-owned report contract.
+
+### Scope
+
+- Present initial guidance as assistant content in a conversation timeline;
+- Present the submitted job description as a user message;
+- Present processing, failure, retry, and matching analysis as assistant-message states;
+- Replace the frontend-owned structured `MatchingReport` boundary with the agreed message response fixture;
+- Render deterministic mock matching analysis from text/Markdown `content` while preserving supported, partial, and missing-information clarity;
+- Preserve the existing Chinese copy separation, input validation, responsive behavior, accessibility, and prohibited-content boundaries;
+- Do not add backend integration, persistence, follow-up questions, résumé actions, contact, or feedback in this corrective Goal.
+
+### Completion Criteria
+
+- Initial guidance, submitted job description, and matching analysis appear in one continuing message timeline;
+- The mock client returns `conversationId`, `messageId`, and text/Markdown `content`;
+- No frontend-owned schema is required to determine AI evidence status, findings, or conclusions;
+- Loading and failure behavior appear in the conversation context and remain recoverable;
+- The structure can append follow-up user and assistant messages in Goal 3 without another page-level redesign;
+- A specification-conformance review against the cited sections finds no unresolved material mismatch.
+
+### Validation
+
+```text
+cd frontend && npm run test
+cd frontend && npm run type-check
+cd frontend && npm run lint
+cd frontend && npm run build
+Contract fixture check: mock response uses conversationId, messageId, and text/Markdown content
+Manual browser check: initial guidance -> user JD message -> loading -> assistant report -> failure/retry
+Specification review: compare the page structure, data boundary, and state flow with the cited authoritative sections
+```
+
+## Goal 2 — Integrated Matching Vertical Slice with Mock AI Service
+
+- **Status:** Not started
+- **Depends on:** Goal 1A
 - **Branch:** `goal/02-matching-vertical-slice`
+
+### Authoritative References and Constraints
+
+- Backend Technical Design Section 5 is the authoritative API contract;
+- Frontend Technical Design Sections 2.1–2.2 and 5.1–5.2 define the conversation presentation and frontend ownership boundary;
+- Use the exact matching-analysis response fields `conversationId`, `messageId`, and text/Markdown `content`;
+- Replace the mock transport without changing the Goal 1A conversation interaction model;
+- Do not introduce a frontend-owned AI-analysis schema or transform backend content into new conclusions.
 
 ### Outcome
 
