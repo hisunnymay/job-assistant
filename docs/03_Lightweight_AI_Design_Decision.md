@@ -6,11 +6,19 @@
 |---|---|
 | Document Name | Lightweight AI Design Decision |
 | Document Type | AI Design Decision |
-| Version | v0.1 |
-| Status | Draft |
+| Version | v0.2 |
+| Status | Finalized |
 | Owner | Mei Chang |
-| Last Updated | 2026-08-20 |
+| Last Updated | 2026-08-25 |
 | Related Documents | AI Job Fit Assistant PRD |
+
+
+## Version Log
+
+| Version | Date | Change | Reason |
+| --- | --- | --- | --- |
+| v0.1 | 2026-08-20 | Created the lightweight AI capability definition. | Establish the MVP AI scope and integration boundaries. |
+| v0.2 | 2026-08-25 | Marked the reviewed AI design as finalized. | Prepare the approved design baseline for implementation planning. |
 
 
 ---

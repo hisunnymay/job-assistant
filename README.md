@@ -4,7 +4,7 @@ An AI-assisted MVP that helps recruiters compare a job description with a predef
 
 ## Project Status
 
-Planning and technical design are complete. Application coding has not started.
+Product and technical design are complete. Detailed implementation planning and application coding have not started.
 
 ## Repository Structure
 
@@ -14,7 +14,8 @@ job-assistant/
 ├── frontend/             # Recruiter-facing application (not started)
 ├── backend/              # Modular-monolith backend (not started)
 ├── docs/                 # Active source-of-truth project documents
-└── history/              # Earlier decisions, learning summaries, and notes
+├── planning/             # Reserved for the future PLAN.md
+└── history/              # Analysis records, earlier decisions, learning summaries, and notes
 ```
 
 ## Active Documents
@@ -23,6 +24,12 @@ job-assistant/
 - [Lightweight AI Design Decision](docs/03_Lightweight_AI_Design_Decision.md)
 - [Frontend Technical Design](docs/04_Frontend_Technical_Design.md)
 - [Backend Technical Design](docs/05_Backend_Technical_Design.md)
-- [Implementation Strategy](docs/06_Implementation_Strategy.md)
 
-Read `AGENTS.md` before implementation. The next step is to agree on the first bounded coding goal; do not treat the empty `frontend/` and `backend/` folders as an implemented scaffold.
+## Analysis Records
+
+- [Implementation Strategy](history/strategy_analysis/01_Implementation_Strategy.md)
+- [Technology Strategy Comparison](history/strategy_analysis/02_Technology_Strategy_Comparison.md)
+
+Read `AGENTS.md` before implementation. The next planning artifact will be `planning/PLAN.md`, containing bounded coding goals, completion criteria, and validation commands. It has intentionally not been created yet.
+
+Do not treat the empty `frontend/` and `backend/` folders as an implemented scaffold.

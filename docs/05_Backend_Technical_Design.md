@@ -6,10 +6,18 @@
 | --- | --- |
 | Document Name | AI Job Fit Assistant Backend Technical Design |
 | Document Type | Backend Technical Design |
-| Version | 0.1 |
-| Status | Draft |
+| Version | v0.2 |
+| Status | Finalized |
 | Owner | Mei Chang |
+| Last Updated | 2026-08-25 |
 | Related Documents | Project Alignment Document, Product Requirement Document, Lightweight AI Design Decision, Frontend Technical Design |
+
+
+## Version Log
+
+| Version | Date | Change | Reason |
+| --- | --- | --- | --- |
+| v0.2 | 2026-08-25 | Finalized the backend design and selected Python with FastAPI. | Establish the backend implementation baseline before planning. |
 
 
 # 1. Backend Design Goal
@@ -83,7 +91,12 @@ Business workflow should remain independent from the specific AI provider so tha
 
 ## 2.1 Architecture Approach
 
-The MVP uses:
+The backend technology stack is:
+
+- Python;
+- FastAPI.
+
+The MVP architecture uses:
 
 ```text
 Modular Monolith

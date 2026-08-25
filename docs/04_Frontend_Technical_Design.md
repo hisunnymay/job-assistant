@@ -7,9 +7,17 @@
 | ----------------- | -------------------------------------------------------------------------------------- |
 | Document Name     | AI Job Fit Assistant Frontend Technical Design                                         |
 | Document Type     | Frontend Technical Design                                                              |
-| Version           | v0.3                                                                                   |
-| Status            | Draft                                                                                  |
+| Version           | v0.4                                                                                   |
+| Status            | Finalized                                                                              |
+| Last Updated      | 2026-08-25                                                                             |
 | Related Documents | Product Requirement Document, Lightweight AI Design Decision, Backend Technical Design |
+
+
+## Version Log
+
+| Version | Date | Change | Reason |
+| --- | --- | --- | --- |
+| v0.4 | 2026-08-25 | Finalized the frontend design and selected React, TypeScript, and Vite. | Establish the frontend implementation baseline before planning. |
 
 
 
@@ -445,12 +453,17 @@ The frontend assumes:
 
 
 
-### 5.3 Unresolved Decisions
+### 5.3 Technology Decision and Remaining Unresolved Decisions
 
-The following decisions can be finalized during implementation:
+The frontend technology stack is:
 
-- Frontend framework and component library;
+- React;
+- TypeScript;
+- Vite.
+
+The following decisions remain intentionally unresolved and can be finalized during implementation:
+
+- Component library;
 - Detailed UI layout;
 - Resume Preview implementation method;
 - Frontend state management approach.
-
