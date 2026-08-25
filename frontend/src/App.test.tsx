@@ -2,6 +2,10 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { App } from './App'
 import { zhCN } from './content/zh-CN'
+import {
+  AnalysisClientError,
+  createAnalysisClient,
+} from './services/analysisClient'
 import { createMockAnalysisClient } from './services/mockAnalysisClient'
 
 function renderJourney(options?: { failFirstRequest?: boolean }) {
@@ -124,6 +128,50 @@ describe('conversation matching journey', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('restores an editable composer when the backend rejects the request', async () => {
+    const analyze = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new AnalysisClientError(
+          'INVALID_REQUEST',
+          '请求格式无效，请检查职位描述。',
+          400,
+        ),
+      )
+      .mockResolvedValueOnce({
+        conversationId: 'conversation_corrected_001',
+        messageId: 'message_corrected_002',
+        content: '# 修改后生成的匹配分析',
+      })
+    render(<App analysisClient={{ analyze }} />)
+    submitExampleJobDescription()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      zhCN.failure.invalidRequest,
+    )
+    expect(screen.getByLabelText(zhCN.jobDescription.label)).toHaveValue(
+      zhCN.sampleJobDescription,
+    )
+    expect(
+      screen.queryByRole('button', { name: zhCN.failure.retry }),
+    ).not.toBeInTheDocument()
+
+    const correctedJobDescription = `${zhCN.sampleJobDescription} 补充岗位工作地点为北京。`
+    fireEvent.change(screen.getByLabelText(zhCN.jobDescription.label), {
+      target: { value: correctedJobDescription },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.jobDescription.submit }),
+    )
+
+    expect(
+      await screen.findByRole('article', {
+        name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
+      }),
+    ).toHaveTextContent('修改后生成的匹配分析')
+    expect(analyze).toHaveBeenLastCalledWith(correctedJobDescription)
+  })
+
   it('starts a new conversation without retaining previous messages', async () => {
     window.scrollTo = vi.fn()
     renderJourney()
@@ -152,5 +200,29 @@ describe('conversation matching journey', () => {
         name: `${zhCN.conversation.assistantName}：${zhCN.conversation.initialMessageLabel}`,
       }),
     ).toBeInTheDocument()
+  })
+
+  it('renders the matching response returned through the backend API client', async () => {
+    const fetchImplementation = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          conversationId: 'conversation_backend_001',
+          messageId: 'message_backend_002',
+          content: '# 后端返回的匹配分析\n\n**证据状态：部分信息**',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+    const analysisClient = createAnalysisClient({ fetchImplementation })
+    render(<App analysisClient={analysisClient} />)
+
+    submitExampleJobDescription()
+
+    expect(
+      await screen.findByRole('article', {
+        name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
+      }),
+    ).toHaveTextContent('后端返回的匹配分析')
+    expect(fetchImplementation).toHaveBeenCalledOnce()
   })
 })

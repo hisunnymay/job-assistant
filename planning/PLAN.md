@@ -2,14 +2,15 @@
 
 ## Document Information
 
-- **Version:** v0.10
-- **Status:** Draft — Goal 1A Complete
+- **Version:** v0.11
+- **Status:** Draft — Goal 2 Complete
 - **Owner:** Mei Chang
 - **Last Updated:** 2026-08-25
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.11 — 2026-08-25:** Completed Goal 2 with the persisted matching-analysis API, deterministic backend Mock AI Service, PostgreSQL-backed conversation workflow, frontend HTTP integration, safe error contract, and end-to-end local validation.
 - **v0.10 — 2026-08-25:** Completed Goal 1A by realigning the frontend around a conversation message timeline and the authoritative text/Markdown matching-analysis response contract; Goal 2 is now ready.
 - **v0.9 — 2026-08-25:** Recorded Goal 0's user-provided actual implementation time as 21 minutes.
 - **v0.8 — 2026-08-25:** Required actual implementation time and its measurement basis to be recorded for each completed coding Goal, without inventing unavailable historical timing data.
@@ -61,7 +62,7 @@ Before a Goal is marked complete, Codex must compare the implementation with tho
 - **Phase A — Demo with Mock AI:** In progress
 - **AI Design Gate:** Not ready; `docs/02_AI_System_Design.md` has not been created or finalized.
 - **Phase B — Real AI:** Deferred until the AI Design Gate is complete.
-- **Current coding readiness:** Goal 1A is complete. Goal 2 is ready to begin when requested.
+- **Current coding readiness:** Goal 2 is complete. Goals 3 and 4 are ready to begin when requested.
 
 ## 4. Pre-implementation Decisions
 
@@ -257,9 +258,10 @@ Specification review: compare the page structure, data boundary, and state flow 
 
 ## Goal 2 — Integrated Matching Vertical Slice with Mock AI Service
 
-- **Status:** Not started
+- **Status:** Complete
 - **Depends on:** Goal 1A
 - **Branch:** `goal/02-matching-vertical-slice`
+- **Actual Implementation Time:** Approximately 12 minutes, based on the Codex Goal timer through implementation, automated validation, live API and browser checks, and documentation closeout.
 
 ### Authoritative References and Constraints
 
