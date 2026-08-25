@@ -2,6 +2,7 @@
 
 ## Version Log
 
+- **v0.4 — 2026-08-25:** Added goal-level requirements traceability and specification-conformance rules after Goal 1 passed functional validation but diverged from the finalized conversation-workspace design.
 - **v0.3 — 2026-08-25:** Added the goal-level Git workflow: one short-lived branch per coding Goal, authorized local commits, protected unrelated changes, and explicit approval for push, merge, and pull requests.
 - **v0.2 — 2026-08-25:** Simplified the initial guide and aligned technology, document authority, project prohibitions, agent workflow, implementation records, and document-update rules.
 
@@ -30,6 +31,14 @@ This file provides operating rules and must not override the documents above. If
 - Keep the AI provider replaceable behind the AI Service boundary.
 - Keep the UI in Chinese and keep user-facing strings separable from components; do not build a full internationalization system for the MVP.
 - Use one primary implementation agent by default. Use reviewer subagents only for bounded review or investigation at meaningful checkpoints; do not parallelize tightly coupled frontend and backend edits by default.
+
+## Goal Traceability and Conformance
+
+- Treat a `PLAN.md` Goal as the current task boundary, not as a replacement for the authoritative product and design documents.
+- Before implementing a coding Goal, identify the applicable authoritative document sections and state the non-negotiable product behavior, architecture boundaries, and API or data contracts.
+- If the Goal omits or appears to conflict with an authoritative constraint, follow the authoritative document. Stop and ask the user when resolving the difference would change product behavior, architecture, or an agreed contract.
+- Before declaring a Goal complete, compare the implementation with the identified constraints. Automated tests and code review do not replace this specification-conformance check.
+- Record the conformance result, approved deviations, and remaining mismatches in the Goal's implementation log.
 
 ## Architecture Boundaries
 
