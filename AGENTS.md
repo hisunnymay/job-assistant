@@ -2,6 +2,7 @@
 
 ## Version Log
 
+- **v0.3 — 2026-08-25:** Added the goal-level Git workflow: one short-lived branch per coding Goal, authorized local commits, protected unrelated changes, and explicit approval for push, merge, and pull requests.
 - **v0.2 — 2026-08-25:** Simplified the initial guide and aligned technology, document authority, project prohibitions, agent workflow, implementation records, and document-update rules.
 
 ## Project Goal
@@ -64,6 +65,19 @@ After completing a requested implementation goal, add a concise record under `hi
 - Problems fixed, approved deviations, and remaining known issues.
 
 Do not record internal reasoning, every command, or conversation transcripts. Create the log folder when implementation begins.
+
+## Git Workflow
+
+- Work on one explicitly requested `PLAN.md` Goal at a time.
+- Before implementing each coding Goal, create or switch to a short-lived branch named `goal/<number>-<slug>`.
+- Use `fix/<slug>` for an isolated fix. Small documentation-only changes may be made directly on `main`.
+- Keep `main` stable. Do not create long-lived `frontend` or `backend` branches.
+- Use goal-level commits; do not commit every small change automatically.
+- Before proposing a commit, complete and validate the Goal, review the changed files, exclude unrelated or user-owned changes, and report the implementation summary, validation results, and proposed commit message.
+- Create a local commit only when the user explicitly authorizes it for that Goal. Authorization may be provided in the original request.
+- Never push, merge, or open a pull request without explicit user approval.
+- Use Git worktrees only when multiple independent tasks need to run concurrently; they are not the default workflow for this MVP.
+- Commits record code versions and differences. Implementation logs record decisions, validation, fixes, and encountered problems; neither replaces the other.
 
 ## Document Update Rules
 
