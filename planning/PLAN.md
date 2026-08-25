@@ -2,14 +2,16 @@
 
 ## Document Information
 
-- **Version:** v0.2
-- **Status:** Draft — Pending Pre-implementation Decisions
+- **Version:** v0.4
+- **Status:** Draft — Pre-implementation Decisions Complete
 - **Owner:** Mei Chang
 - **Last Updated:** 2026-08-25
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.4 — 2026-08-25:** Added and verified the finalized candidate résumé PDF at its agreed static-resource path, completing the Pre-implementation Decisions.
+- **v0.3 — 2026-08-25:** Confirmed the package managers, Python version, PostgreSQL database, environment and secret rules, validation tools, and standard commands; retained the candidate résumé PDF as a pending required asset.
 - **v0.2 — 2026-08-25:** Clarified that this is a living plan that can evolve with implementation and that the user only needs to review one Goal at a time.
 - **v0.1 — 2026-08-25:** Created the initial phased implementation plan. Pre-implementation technology and validation choices remain intentionally unresolved.
 
@@ -41,20 +43,32 @@ Codex should implement only the Goal explicitly requested by the user. Branch, c
 - **Phase A — Demo with Mock AI:** Planned
 - **AI Design Gate:** Not ready; `docs/02_AI_System_Design.md` has not been created or finalized.
 - **Phase B — Real AI:** Deferred until the AI Design Gate is complete.
-- **Current coding readiness:** Not ready; the Pre-implementation Decisions below remain open.
+- **Current coding readiness:** Pre-implementation Decisions are complete. Goal 0 is ready to begin when requested.
 
-## 4. Pre-implementation Decisions — Pending
+## 4. Pre-implementation Decisions
 
-These are decisions, not a coding Goal. Resolve them through discussion before starting Goal 0.
+These are agreed project inputs, not a coding Goal.
 
-- Frontend package manager;
-- Python project and dependency manager;
-- MVP database technology;
-- Frontend and backend environment-variable conventions;
-- Frontend test, type-check, and lint tools;
-- Backend test, type-check, and lint tools;
-- End-to-end test tool;
-- Candidate résumé PDF filename and repository location.
+### Confirmed Decisions
+
+- **Frontend package manager:** npm.
+- **Python project and dependency manager:** uv with project-specific Python 3.12 and a committed `uv.lock`.
+- **MVP database:** PostgreSQL for local development, testing, and public deployment. Access remains behind the Repository layer.
+- **Frontend configuration:** expose only non-secret browser configuration, such as `VITE_API_BASE_URL`, through Vite environment variables.
+- **Backend configuration:** use Pydantic Settings for validated environment variables, including `DATABASE_URL` and later server-side secrets.
+- **Environment files:** commit `.env.example` with variable names and safe examples; do not commit `.env` or `.env.*.local` files.
+- **AI secrets:** no AI provider key is required during the Demo phase. Add provider secrets only after the AI System Design and provider are approved, and keep them backend-only.
+- **Frontend validation:** ESLint, TypeScript (`tsc --noEmit`), Vitest with React Testing Library, and the Vite production build.
+- **Backend validation:** Ruff, mypy, pytest, and FastAPI `TestClient`.
+- **End-to-end validation:** Playwright, introduced when Goal 6 requires full-journey coverage.
+
+### Candidate Résumé PDF
+
+- **Status:** Confirmed and verified.
+- **Repository location:** `backend/app/resources/resume/mei_chang_resume.pdf`.
+- **SHA-256:** `20a4d191dcc675b67a55da4296c2200cf2ceed1b3deb9aca4fbdf9e5e8cb08bd`.
+- The file is an unencrypted, two-page A4 PDF and renders correctly.
+- Use this exact, unmodified file for recruiter preview/download and later AI context. Do not add backend extraction or preprocessing.
 
 Already finalized:
 
@@ -63,21 +77,18 @@ Already finalized:
 - Demo AI: deterministic mock behind the AI Service boundary;
 - Real AI provider/framework: deliberately deferred until the AI System Design is approved.
 
-### Validation Placeholders
+### Standard Validation Commands
 
-Until the decisions above are resolved, this plan uses:
+- Frontend tests: `cd frontend && npm run test`;
+- Frontend type-check: `cd frontend && npm run type-check`;
+- Frontend lint: `cd frontend && npm run lint`;
+- Frontend build: `cd frontend && npm run build`;
+- Backend tests: `cd backend && uv run pytest`;
+- Backend type-check: `cd backend && uv run mypy app`;
+- Backend lint: `cd backend && uv run ruff check .`;
+- End-to-end tests after Goal 6 introduces Playwright: `cd frontend && npm run test:e2e`.
 
-- `<FE_PM>` — selected frontend package manager command;
-- `<PY_RUN>` — selected Python environment runner;
-- `<FE_TEST>` — frontend test command;
-- `<FE_TYPECHECK>` — frontend type-check command;
-- `<FE_LINT>` — frontend lint command;
-- `<BE_TEST>` — backend test command;
-- `<BE_TYPECHECK>` — backend type-check command;
-- `<BE_LINT>` — backend lint command;
-- `<E2E_TEST>` — end-to-end test command.
-
-After the decisions are resolved, update this plan to replace the placeholders with exact runnable commands before Goal 0 implementation begins.
+Goal 0 must configure these commands before treating its validation baseline as complete.
 
 ---
 
@@ -86,7 +97,7 @@ After the decisions are resolved, update this plan to replace the placeholders w
 ## Goal 0 — Project Scaffold and Validation Baseline
 
 - **Status:** Not started
-- **Depends on:** Pre-implementation Decisions
+- **Depends on:** Confirmed Decisions in Section 4
 - **Branch:** `goal/00-project-scaffold`
 
 ### Outcome
@@ -115,18 +126,18 @@ A minimal frontend and backend can run locally, and all agreed validation comman
 - Type-check and lint commands run successfully;
 - Database initialization works in a clean local environment;
 - No secret is committed or exposed through frontend environment variables;
-- Every validation placeholder in this file is replaced with an exact command.
+- Every standard validation command defined in Section 4 exists and runs successfully.
 
 ### Validation
 
 ```text
-cd frontend && <FE_TEST>
-cd frontend && <FE_TYPECHECK>
-cd frontend && <FE_LINT>
-cd frontend && <FE_PM> run build
-cd backend && <BE_TEST>
-cd backend && <BE_TYPECHECK>
-cd backend && <BE_LINT>
+cd frontend && npm run test
+cd frontend && npm run type-check
+cd frontend && npm run lint
+cd frontend && npm run build
+cd backend && uv run pytest
+cd backend && uv run mypy app
+cd backend && uv run ruff check .
 ```
 
 ## Goal 1 — Frontend Matching Journey with Mock Data
@@ -162,10 +173,10 @@ A recruiter can complete the main matching-report journey in Chinese using deter
 ### Validation
 
 ```text
-cd frontend && <FE_TEST>
-cd frontend && <FE_TYPECHECK>
-cd frontend && <FE_LINT>
-cd frontend && <FE_PM> run build
+cd frontend && npm run test
+cd frontend && npm run type-check
+cd frontend && npm run lint
+cd frontend && npm run build
 Manual browser check: initial, invalid, loading, success, and failure states
 ```
 
@@ -201,12 +212,12 @@ The frontend submits a job description to the authoritative matching-analysis AP
 ### Validation
 
 ```text
-cd backend && <BE_TEST>
-cd backend && <BE_TYPECHECK>
-cd backend && <BE_LINT>
-cd frontend && <FE_TEST>
-cd frontend && <FE_TYPECHECK>
-cd frontend && <FE_PM> run build
+cd backend && uv run pytest
+cd backend && uv run mypy app
+cd backend && uv run ruff check .
+cd frontend && npm run test
+cd frontend && npm run type-check
+cd frontend && npm run build
 Contract smoke test: POST /api/matching-analysis
 ```
 
@@ -241,10 +252,10 @@ A recruiter can ask supported follow-up questions within the same evaluation con
 ### Validation
 
 ```text
-cd backend && <BE_TEST>
-cd frontend && <FE_TEST>
-cd frontend && <FE_TYPECHECK>
-cd frontend && <FE_PM> run build
+cd backend && uv run pytest
+cd frontend && npm run test
+cd frontend && npm run type-check
+cd frontend && npm run build
 Conversation smoke test: matching analysis followed by multiple questions
 ```
 
@@ -282,10 +293,10 @@ Recruiters can review/download the fixed résumé, access the candidate contact 
 ### Validation
 
 ```text
-cd backend && <BE_TEST>
-cd frontend && <FE_TEST>
-cd frontend && <FE_TYPECHECK>
-cd frontend && <FE_PM> run build
+cd backend && uv run pytest
+cd frontend && npm run test
+cd frontend && npm run type-check
+cd frontend && npm run build
 File smoke test: GET /api/resume returns the expected PDF
 Feedback smoke test: POST /api/feedback persists the expected record
 Manual browser check: preview, download, contact, and feedback
@@ -325,8 +336,8 @@ The Demo records the required product events and has repeatable checks for the A
 ### Validation
 
 ```text
-cd backend && <BE_TEST>
-cd frontend && <FE_TEST>
+cd backend && uv run pytest
+cd frontend && npm run test
 Run tracking integration checks for every required event
 Run deterministic AI-boundary fixture suite
 ```
@@ -371,14 +382,14 @@ The complete mocked-AI MVP is reproducible, reviewed, and ready for an approved 
 ### Validation
 
 ```text
-cd frontend && <FE_TEST>
-cd frontend && <FE_TYPECHECK>
-cd frontend && <FE_LINT>
-cd frontend && <FE_PM> run build
-cd backend && <BE_TEST>
-cd backend && <BE_TYPECHECK>
-cd backend && <BE_LINT>
-<E2E_TEST>
+cd frontend && npm run test
+cd frontend && npm run type-check
+cd frontend && npm run lint
+cd frontend && npm run build
+cd backend && uv run pytest
+cd backend && uv run mypy app
+cd backend && uv run ruff check .
+cd frontend && npm run test:e2e
 Independent read-only code review
 Clean-environment setup and smoke test
 ```
