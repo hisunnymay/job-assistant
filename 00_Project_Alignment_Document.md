@@ -164,7 +164,7 @@ Recruiter decides whether to contact candidate
 
 | Feature | Priority |
 |---|---|
-| Candidate Profile Data Source | P0 |
+| Candidate Resume Data Source | P0 |
 | Job Description Input | P0 |
 | Matching Report | P0 |
 | Resume Preview | P0 |

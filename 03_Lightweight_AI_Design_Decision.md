@@ -37,7 +37,7 @@ The AI capability receives different inputs depending on the scenario.
 Input:
 
 - Job Description
-- Candidate Profile Information
+- Candidate Resume
 
 
 ### Follow-up Question Answering
@@ -45,7 +45,7 @@ Input:
 Input:
 
 - Job Description
-- Candidate Profile Information
+- Candidate Resume
 - Existing Matching Report Context
 - Recruiter Questions
 

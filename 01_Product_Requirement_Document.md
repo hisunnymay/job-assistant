@@ -401,7 +401,7 @@ The MVP also includes a lightweight feedback loop to collect user insights for f
 
 | Feature                       | Priority | Description                                                                                                    |
 | ----------------------------- | -------- | -------------------------------------------------------------------------------------------------------------- |
-| Candidate Profile Data Source | P0       | Provide structured candidate information as the source for candidate-job fit analysis.                         |
+| Candidate Resume Data Source | P0       | Provide the predefined candidate resume as the source for candidate-job fit analysis.                          |
 | Job Description Input         | P0       | Allow recruiters to provide job descriptions for matching analysis.                                            |
 | Matching Report               | P0       | Present evidence-based analysis of candidate-job fit, including matching insights and missing information.     |
 | Resume Preview                | P0       | Allow recruiters to review candidate background information.                                                   |
@@ -573,7 +573,7 @@ The MVP includes the following features and system capabilities:
 
 | ID   | Feature                       | Priority | Description                                                                                                                                             |
 | ---- | ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F001 | Candidate Profile Data Source | P0       | Provide candidate information context required for AI-powered candidate-job fit analysis.                                                               |
+| F001 | Candidate Resume Data Source | P0       | Provide the predefined candidate resume required for AI-powered candidate-job fit analysis.                                                             |
 | F002 | Job Description Input         | P0       | Allow recruiters to provide job descriptions as the input for candidate-job matching analysis.                                                          |
 | F003 | Matching Report               | P0       | Present evidence-based candidate-job fit analysis, including relevant candidate experience, supporting evidence, and identified information gaps.       |
 | F004 | Resume Preview                | P0       | Allow recruiters to review and download candidate resume information.                                                                                   |
@@ -590,15 +590,13 @@ The MVP includes the following features and system capabilities:
 
 
 
-### F001 Candidate Profile Data Source
-
-
+### F001 Candidate Resume Data Source
 
 #### Overview
 
-Candidate Profile Data Source provides the candidate information foundation used by the AI system for candidate-job fit analysis. The data source may include resume content and other related candidate information required for generating matching insights and answering follow-up questions.
+Candidate Resume Data Source provides the candidate information used by the AI system for candidate-job fit analysis and follow-up question answering.
 
-In the MVP, the system uses a predefined candidate profile: "Mei Chang". Recruiters should be clearly informed of this limitation before using the analysis result.
+In the MVP, the system uses the predefined resume of "Mei Chang" as the only candidate information source. Recruiters should be clearly informed of this limitation before using the analysis result.
 
 ---
 
@@ -618,9 +616,9 @@ so that I can understand the candidate’s experience through matching insights.
 
 The system should:
 
-- Maintain structured candidate information required for AI analysis;
-- Support multiple candidate information sources, including resume and additional related information;
-- Provide candidate information context for Matching Report generation and follow-up question answering.
+- Maintain access to the predefined candidate resume required for AI analysis;
+- Use the candidate resume as the candidate information source for Matching Report generation;
+- Use the candidate resume as candidate context for follow-up question answering.
 
 ---
 
@@ -628,9 +626,9 @@ The system should:
 
 #### Acceptance Criteria
 
-- The system has access to the predefined candidate profile;
-- The candidate information can be used to generate a matching report;
-- The candidate information is not directly exposed as an editable user input in the MVP.
+- The system has access to the predefined candidate resume;
+- The candidate resume can be used to generate a matching report and answer follow-up questions;
+- The candidate resume is not exposed as an editable user input in the MVP.
 
 ---
 

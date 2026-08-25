@@ -1,18 +1,6 @@
 # Development Plan
 
-## 1. Design Phase
-
-```text
-1. Frontend Technical Design Outline
-2. Backend Technical Design Outline
-3. Review dependency between them
-4. Write the documents
-5. Confirm Frontend-Backend Integration Assumptions
-```
-
----
-
-## 2. Implementation Phase (Vibe Coding)
+## Implementation Phase (Vibe Coding)
 
 ### Step 1: Build the user flow skeleton
 
@@ -101,28 +89,4 @@ ai-job-fit-assistant/
 │   └── 05_Backend_Technical_Design.md
 
 └── README.md
-```
-
-
-# Shared Assumptions
-```text
-Frontend ↔ Backend Integration Assumptions
-
-1. Frontend consumes backend APIs for:
-   - Matching Report generation
-   - Follow-up questions
-   - Resume access
-
-2. Backend returns AI-generated content.
-
-3. AI output format is Markdown/text for MVP.
-
-4. Frontend renders AI output without interpreting AI logic.
-
-5. Backend manages AI context.
-
-6. MVP uses synchronous request-response flow.
-
-7. REST API is sufficient for MVP.
-
 ```
