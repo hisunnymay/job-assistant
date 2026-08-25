@@ -1,23 +1,23 @@
-export type EvidenceStatus = 'supported' | 'partial' | 'missing'
+export type ConversationRole = 'user' | 'assistant'
 
-export type RequirementImportance = 'core' | 'important' | 'additional'
+export type ConversationMessageType =
+  | 'initial_guidance'
+  | 'job_description'
+  | 'matching_analysis'
 
-export interface MatchingRequirement {
+export interface ConversationMessage {
   id: string
-  requirement: string
-  importance: RequirementImportance
-  status: EvidenceStatus
-  finding: string
-  evidence: string[]
-  informationGap?: string
+  role: ConversationRole
+  messageType: ConversationMessageType
+  content: string
 }
 
-export interface MatchingReport {
-  title: string
-  requirements: MatchingRequirement[]
-  limitations: string[]
+export interface MatchingAnalysisResponse {
+  conversationId: string
+  messageId: string
+  content: string
 }
 
 export interface AnalysisClient {
-  analyze(jobDescription: string): Promise<MatchingReport>
+  analyze(jobDescription: string): Promise<MatchingAnalysisResponse>
 }

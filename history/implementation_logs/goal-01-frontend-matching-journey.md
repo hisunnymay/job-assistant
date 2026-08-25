@@ -2,6 +2,7 @@
 
 ## Version Log
 
+- **v1.3 — 2026-08-25:** Recorded that Goal 1A resolved the conversation-workspace and response-contract mismatch before Goal 2 began.
 - **v1.2 — 2026-08-25:** Added prevention measures and clarified which controls belong in `AGENTS.md`, `PLAN.md`, and the finalized frontend design.
 - **v1.1 — 2026-08-25:** Added the post-implementation architecture review after identifying that the frontend journey and mock response model do not follow the finalized conversation-workspace design.
 - **v1.0 — 2026-08-25:** Recorded the initial Goal 1 implementation and validation results.
@@ -64,6 +65,10 @@ The mock client also returns a frontend-defined structured `MatchingReport` cont
 ### Required Correction Direction
 
 Before Goal 2 begins, the frontend foundation should be realigned around a conversation workspace and message timeline. The Goal 1 mock boundary should model the agreed backend-facing message response rather than a frontend-owned matching-report schema. Exact layout and styling remain flexible, but the interaction structure and ownership boundaries are not optional.
+
+### Resolution Status
+
+Resolved by Goal 1A on 2026-08-25. The frontend now presents initial guidance, the submitted job description, processing and failure states, and matching analysis in one message timeline. The mock client uses the authoritative `conversationId`, `messageId`, and text/Markdown `content` response shape, and the frontend-owned structured matching-report schema has been removed. Goal 2 may proceed on this corrected foundation.
 
 ### Prevention for Future Goals
 

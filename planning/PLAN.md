@@ -2,14 +2,15 @@
 
 ## Document Information
 
-- **Version:** v0.9
-- **Status:** Draft — Goal 1 Correction Required
+- **Version:** v0.10
+- **Status:** Draft — Goal 1A Complete
 - **Owner:** Mei Chang
 - **Last Updated:** 2026-08-25
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.10 — 2026-08-25:** Completed Goal 1A by realigning the frontend around a conversation message timeline and the authoritative text/Markdown matching-analysis response contract; Goal 2 is now ready.
 - **v0.9 — 2026-08-25:** Recorded Goal 0's user-provided actual implementation time as 21 minutes.
 - **v0.8 — 2026-08-25:** Required actual implementation time and its measurement basis to be recorded for each completed coding Goal, without inventing unavailable historical timing data.
 - **v0.7 — 2026-08-25:** Added the Goal readiness and conformance gate, recorded the Goal 1 architecture mismatch, introduced Goal 1A to realign the conversation workspace and response contract, and blocked Goal 2 until that correction is complete.
@@ -60,7 +61,7 @@ Before a Goal is marked complete, Codex must compare the implementation with tho
 - **Phase A — Demo with Mock AI:** In progress
 - **AI Design Gate:** Not ready; `docs/02_AI_System_Design.md` has not been created or finalized.
 - **Phase B — Real AI:** Deferred until the AI Design Gate is complete.
-- **Current coding readiness:** Goal 1 passed its original functional checks, but Goal 1A must correct the frontend architecture before Goal 2 can begin.
+- **Current coding readiness:** Goal 1A is complete. Goal 2 is ready to begin when requested.
 
 ## 4. Pre-implementation Decisions
 
@@ -205,9 +206,10 @@ Goal 1 passed its stated functional validation but diverged from the finalized c
 
 ## Goal 1A — Conversation Workspace and Contract Alignment
 
-- **Status:** Not started
+- **Status:** Complete
 - **Depends on:** Goal 1
 - **Branch:** `goal/01a-conversation-workspace-alignment`
+- **Actual Implementation Time:** Approximately 14 minutes, based on the Codex Goal timer through implementation, validation, and documentation closeout.
 
 ### Authoritative References and Constraints
 
