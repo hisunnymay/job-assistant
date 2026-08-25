@@ -2,14 +2,15 @@
 
 ## Document Information
 
-- **Version:** v0.5
-- **Status:** Draft — Goal 0 Complete
+- **Version:** v0.6
+- **Status:** Draft — Goal 1 Complete
 - **Owner:** Mei Chang
 - **Last Updated:** 2026-08-25
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.6 — 2026-08-25:** Completed Goal 1 with the Chinese frontend matching journey, deterministic résumé-grounded mock data, recoverable UI states, responsive presentation, and automated and browser validation.
 - **v0.5 — 2026-08-25:** Completed Goal 0 with runnable frontend/backend scaffolds, PostgreSQL initialization, safe configuration, locked dependencies, and the agreed validation baseline.
 - **v0.4 — 2026-08-25:** Added and verified the finalized candidate résumé PDF at its agreed static-resource path, completing the Pre-implementation Decisions.
 - **v0.3 — 2026-08-25:** Confirmed the package managers, Python version, PostgreSQL database, environment and secret rules, validation tools, and standard commands; retained the candidate résumé PDF as a pending required asset.
@@ -44,7 +45,7 @@ Codex should implement only the Goal explicitly requested by the user. Branch, c
 - **Phase A — Demo with Mock AI:** In progress
 - **AI Design Gate:** Not ready; `docs/02_AI_System_Design.md` has not been created or finalized.
 - **Phase B — Real AI:** Deferred until the AI Design Gate is complete.
-- **Current coding readiness:** Goal 0 is complete. Goal 1 is ready to begin when requested.
+- **Current coding readiness:** Goals 0 and 1 are complete. Goal 2 is ready to begin when requested.
 
 ## 4. Pre-implementation Decisions
 
@@ -143,7 +144,7 @@ cd backend && uv run ruff check .
 
 ## Goal 1 — Frontend Matching Journey with Mock Data
 
-- **Status:** Not started
+- **Status:** Complete
 - **Depends on:** Goal 0
 - **Branch:** `goal/01-frontend-matching-journey`
 
