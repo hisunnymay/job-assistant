@@ -4,7 +4,7 @@ A Chinese-language MVP that helps recruiters compare a job description with a pr
 
 ## Project Status
 
-Goal 2 provides an integrated React and FastAPI matching journey. The backend persists each submitted job description and matching-analysis message in PostgreSQL and generates the report through a deterministic Mock AI Service. No real AI provider or API key is used during this Demo phase.
+Goal 4 provides the integrated matching journey plus approved résumé preview/download, static candidate contact actions, and report-linked feedback persistence. Matching reports still use the deterministic backend Mock AI Service; no real AI provider or API key is used during this Demo phase.
 
 ## Repository Structure
 
@@ -45,7 +45,7 @@ uv run python -m app.db.init_db
 uv run uvicorn app.main:app --reload
 ```
 
-The health endpoint is available at `http://localhost:8000/health`. The matching endpoint is `POST http://localhost:8000/api/matching-analysis`.
+The health endpoint is available at `http://localhost:8000/health`. Goal 4 uses `POST /api/matching-analysis`, `GET /api/resume`, and `POST /api/feedback` on the same backend origin.
 
 In another terminal, run the frontend:
 
@@ -100,5 +100,6 @@ uv run python -m app.db.init_db
 - [Technology Strategy Comparison](history/strategy_analysis/02_Technology_Strategy_Comparison.md)
 - [Goal 0 Implementation Record](history/implementation_logs/goal-00-project-scaffold.md)
 - [Goal 2 Implementation Record](history/implementation_logs/goal-02-matching-vertical-slice.md)
+- [Goal 4 Implementation Record](history/implementation_logs/goal-04-supporting-actions.md)
 
 Read `AGENTS.md` before implementation. Implement only the explicitly requested Goal from `planning/PLAN.md`.
