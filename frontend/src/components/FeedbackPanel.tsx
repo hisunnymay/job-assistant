@@ -6,6 +6,34 @@ import { Icon } from './Icon'
 
 type SubmissionState = 'idle' | 'submitting' | 'success' | 'error'
 
+const MAX_FEEDBACK_COMMENT_LENGTH = 2000
+
+function serializeFeedbackComment(
+  selectedOptions: string[],
+  comment: string,
+) {
+  return [
+    selectedOptions.length > 0
+      ? `${zhCN.feedback.selectedReasonsPrefix}${selectedOptions.join('；')}`
+      : '',
+    comment.trim()
+      ? `${zhCN.feedback.customFeedbackPrefix}${comment.trim()}`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
+
+function getCustomFeedbackMaxLength(selectedOptions: string[]) {
+  const selectedReasons = serializeFeedbackComment(selectedOptions, '')
+  const reservedLength =
+    selectedReasons.length +
+    (selectedReasons ? 1 : 0) +
+    zhCN.feedback.customFeedbackPrefix.length
+
+  return Math.max(0, MAX_FEEDBACK_COMMENT_LENGTH - reservedLength)
+}
+
 interface FeedbackPanelProps {
   conversationId: string
   messageId: string
@@ -35,6 +63,8 @@ export function FeedbackPanel({
     submissionState === 'success'
   const hasFeedbackContribution =
     selectedOptions.length > 0 || comment.trim().length > 0
+  const customFeedbackMaxLength =
+    getCustomFeedbackMaxLength(selectedOptions)
 
   function openFeedbackDialog(rating: 1 | 5) {
     if (feedbackLocked) {
@@ -70,14 +100,7 @@ export function FeedbackPanel({
     }
 
     const rating = pendingRating
-    const commentParts = [
-      selectedOptions.length > 0
-        ? `${zhCN.feedback.selectedReasonsPrefix}${selectedOptions.join('；')}`
-        : '',
-      comment.trim()
-        ? `${zhCN.feedback.customFeedbackPrefix}${comment.trim()}`
-        : '',
-    ].filter(Boolean)
+    const serializedComment = serializeFeedbackComment(selectedOptions, comment)
     setSubmissionState('submitting')
     setErrorMessage('')
 
@@ -86,7 +109,7 @@ export function FeedbackPanel({
         conversationId,
         messageId,
         rating,
-        comment: commentParts.join('\n'),
+        comment: serializedComment,
       })
       setSubmissionState('success')
       onSubmitted(rating)
@@ -180,12 +203,17 @@ export function FeedbackPanel({
                       aria-pressed={isSelected}
                       disabled={submissionState === 'submitting'}
                       onClick={() => {
-                        setSelectedOptions((currentOptions) =>
-                          isSelected
-                            ? currentOptions.filter(
-                                (currentOption) => currentOption !== option,
-                              )
-                            : [...currentOptions, option],
+                        const nextOptions = isSelected
+                          ? selectedOptions.filter(
+                              (currentOption) => currentOption !== option,
+                            )
+                          : [...selectedOptions, option]
+                        setSelectedOptions(nextOptions)
+                        setComment((currentComment) =>
+                          currentComment.slice(
+                            0,
+                            getCustomFeedbackMaxLength(nextOptions),
+                          ),
                         )
                       }}
                     >
@@ -201,11 +229,15 @@ export function FeedbackPanel({
             <textarea
               id="feedback-comment"
               value={comment}
-              maxLength={2000}
+              maxLength={customFeedbackMaxLength}
               autoFocus
               disabled={submissionState === 'submitting'}
               placeholder={zhCN.feedback.commentPlaceholder}
-              onChange={(event) => setComment(event.target.value)}
+              onChange={(event) =>
+                setComment(
+                  event.target.value.slice(0, customFeedbackMaxLength),
+                )
+              }
             />
             {!hasFeedbackContribution ? (
               <p className="feedback-contribution-required">

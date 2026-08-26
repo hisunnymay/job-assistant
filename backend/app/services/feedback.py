@@ -16,7 +16,11 @@ class FeedbackPersistenceError(Exception):
 
 
 class FeedbackRepository(Protocol):
-    def get_message(self, message_id: str) -> ConversationMessage | None: ...
+    def get_message_for_update(
+        self, message_id: str
+    ) -> ConversationMessage | None: ...
+
+    def get_feedback_for_message(self, message_id: str) -> Feedback | None: ...
 
     def add_feedback(self, feedback: Feedback) -> None: ...
 
@@ -43,13 +47,18 @@ class FeedbackService:
         comment: str | None,
     ) -> FeedbackResult:
         try:
-            message = self._repository.get_message(message_id)
+            message = self._repository.get_message_for_update(message_id)
             if (
                 message is None
                 or message.conversation_id != conversation_id
                 or message.message_type != "matching_analysis"
             ):
                 raise FeedbackTargetNotFoundError
+
+            existing_feedback = self._repository.get_feedback_for_message(message_id)
+            if existing_feedback is not None:
+                self._repository.commit()
+                return FeedbackResult(feedback_id=existing_feedback.id)
 
             feedback = Feedback(
                 id=f"feedback_{uuid4().hex}",

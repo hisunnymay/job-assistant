@@ -53,6 +53,31 @@ def test_feedback_is_persisted_against_the_matching_report(
     assert feedback.comment == "证据关系清楚，信息缺口也很明确。"
 
 
+def test_feedback_retry_replays_success_without_duplicate_row(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    report = create_matching_report(client)
+    payload = {
+        "conversationId": report["conversationId"],
+        "messageId": report["messageId"],
+        "rating": 5,
+        "comment": "选择项：证据清晰可核验",
+    }
+
+    committed_response = client.post("/api/feedback", json=payload)
+    retried_response = client.post("/api/feedback", json=payload)
+
+    assert committed_response.status_code == 200
+    assert retried_response.status_code == 200
+    assert retried_response.json() == {"success": True}
+    stored_feedback = list(db_session.scalars(select(Feedback)))
+    assert len(stored_feedback) == 1
+    assert stored_feedback[0].message_id == report["messageId"]
+    assert stored_feedback[0].rating == 5
+    assert stored_feedback[0].comment == "选择项：证据清晰可核验"
+
+
 def test_feedback_rejects_invalid_format(client: TestClient) -> None:
     response = client.post(
         "/api/feedback",

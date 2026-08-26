@@ -2,7 +2,7 @@
 
 ## Document Information
 
-- **Version:** v0.15
+- **Version:** v0.16
 - **Status:** Draft — Goal 4 Complete
 - **Owner:** Mei Chang
 - **Last Updated:** 2026-08-26
@@ -10,6 +10,7 @@
 
 ## Version Log
 
+- **v0.16 — 2026-08-26:** Addressed the Goal 4 Bugbot findings by making report feedback retry-safe under a matching-message lock and constraining the final serialized qualitative comment to the existing 2,000-character backend limit without changing the API contract.
 - **v0.15 — 2026-08-26:** Added the approved Goal 4 feedback refinement: contextual icon tooltips, rating-specific predefined reasons, and required qualitative input after a recruiter opens the feedback dialog, without changing the backend contract.
 - **v0.14 — 2026-08-26:** Completed Goal 4 reference UI alignment with the standalone entrance, three-view workspace, preserved conversation navigation, original résumé preview/download, non-sending contact copy flow, report-linked one-click feedback, and desktop/compact validation.
 - **v0.13 — 2026-08-26:** Reopened Goal 4 for implementation of the approved Frontend Technical Design v0.6 desktop reference UI while preserving the already completed résumé, contact, and feedback backend capabilities.
