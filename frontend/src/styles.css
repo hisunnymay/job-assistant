@@ -404,6 +404,17 @@ p {
   border-bottom: 1px solid #e2e8f3;
 }
 
+.message[data-message-type="follow_up_question"] {
+  width: min(760px, 88%);
+  margin-left: auto;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.message[data-message-type="follow_up_answer"] {
+  padding-top: 4px;
+}
+
 .user-message-content {
   margin: 0;
   padding: 13px 18px;
@@ -751,6 +762,7 @@ p {
 }
 
 .follow-up-composer {
+  position: relative;
   width: min(1040px, calc(100% - 32px));
   min-height: 60px;
   margin: 0 auto;
@@ -762,6 +774,22 @@ p {
   border-radius: 12px;
   background: #ffffff;
   box-shadow: 0 7px 18px rgb(28 67 132 / 7%);
+}
+
+.follow-up-field-error {
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 18px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: var(--danger);
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgb(28 67 132 / 10%);
+  font-size: 0.74rem;
+}
+
+.follow-up-status-message {
+  width: min(760px, 100%);
 }
 
 .follow-up-composer input {
@@ -1127,6 +1155,10 @@ p {
 
   .message-user {
     padding-bottom: 20px;
+  }
+
+  .message[data-message-type="follow_up_question"] {
+    width: 94%;
   }
 
   .user-message-content {

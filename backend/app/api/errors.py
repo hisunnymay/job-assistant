@@ -33,11 +33,14 @@ def register_error_handlers(application: FastAPI) -> None:
         request: Request,
         _error: RequestValidationError,
     ) -> JSONResponse:
-        message = (
-            "反馈格式无效，请检查评分和反馈内容。"
-            if request.url.path == "/api/feedback"
-            else "请求格式无效，请检查职位描述。"
-        )
+        if request.url.path == "/api/feedback":
+            message = "反馈格式无效，请检查评分和反馈内容。"
+        elif request.url.path.startswith("/api/conversations/") and request.url.path.endswith(
+            "/messages"
+        ):
+            message = "追问格式无效，请检查问题内容。"
+        else:
+            message = "请求格式无效，请检查职位描述。"
         return JSONResponse(
             status_code=400,
             content={
