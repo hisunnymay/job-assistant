@@ -2,6 +2,7 @@
 
 ## Version Log
 
+- **v1.6 — 2026-08-26:** Recorded the Bugbot corrective fixes for retry-safe feedback persistence and serialized-comment length enforcement, with regression coverage and full revalidation.
 - **v1.5 — 2026-08-26:** Recorded the approved required-feedback interaction, predefined reason options, contextual icon tooltips, document updates, and validation.
 - **v1.4 — 2026-08-26:** Recorded the requested conversation-density, sidebar-width, feedback-dialog, and icon refinements with automated and browser validation.
 - **v1.3 — 2026-08-26:** Recorded completion of the approved reference UI alignment, final validation, and specification-conformance review.
@@ -63,6 +64,15 @@
 - A live Helpful submission persisted rating `5` with `选择项：证据清晰可核验；信息缺口标注清楚` and `补充：结构清楚，便于核验。` in the existing comment field.
 - Desktop browser checks confirmed tooltip visibility and both rating-specific option sets. At 390 × 844, the required-feedback modal measured 350 × 490.25 px with zero horizontal overflow. No browser console warnings or errors were observed.
 
+### v1.6 Feedback Integrity Validation
+
+- Locked the target matching-analysis message before checking or creating feedback. An immediate retry now returns success using the existing feedback row, preventing duplicate persistence without adding a request field or changing the `POST /api/feedback` response.
+- Added API regression coverage that submits the same feedback twice and confirms both responses succeed while exactly one feedback row remains.
+- Reserved space for selected-reason labels, separators, and the custom-text prefix within the existing 2,000-character backend limit. The textarea limit updates as reasons change and truncates existing custom input when newly selected reasons reduce its available capacity.
+- Added frontend regression coverage that combines a predefined reason with oversized custom input and confirms the final submitted comment is exactly 2,000 characters.
+- `cd backend && uv run pytest` passed with 16 tests; `uv run mypy app tests` and `uv run ruff check .` passed.
+- `cd frontend && npm run test` passed with 5 files and 21 tests; type-check, lint, and production build passed with 183 transformed modules.
+
 ## Specification-Conformance Review
 
 - **Product behavior:** Conforms to PRD F003, F004, F006, and F007. The UI presents the backend report, exposes the approved PDF, provides copy-only contact initiation, and stores optional report-linked feedback.
@@ -74,6 +84,8 @@
 
 ## Problems Fixed and Remaining Known Issues
 
+- Prevented a retry after a committed-but-lost feedback response from creating a second feedback row for the same matching report.
+- Prevented selected-reason prefixes and separators from pushing an otherwise valid custom entry beyond the backend's 2,000-character comment limit.
 - Corrected the earlier long-page composition to the approved standalone entrance and one-active-view workspace without changing the completed backend capabilities.
 - Prevented compact layouts from pushing the bottom composer outside the viewport and added explicit accessible names when visible navigation labels collapse.
 - Kept qualitative feedback available through a compact modal opened by either thumb action, without changing the existing rating/comment API contract.

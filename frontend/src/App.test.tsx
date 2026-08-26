@@ -638,6 +638,32 @@ describe('Goal 4 recruiter workspace', () => {
     })
   })
 
+  it('keeps the serialized feedback comment within the backend limit', async () => {
+    const submit = vi.fn().mockResolvedValue(undefined)
+    const analysisClient = createMockAnalysisClient({ delayMs: 0 })
+    render(<App analysisClient={analysisClient} feedbackClient={{ submit }} />)
+    await openCompletedAnalysis()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.feedback.helpful }),
+    )
+    const option = zhCN.feedback.predefinedOptions(5)[0]
+    fireEvent.click(screen.getByRole('button', { name: `+ ${option}` }))
+    const comment = screen.getByLabelText(zhCN.feedback.commentLabel)
+    const reservedText = `${zhCN.feedback.selectedReasonsPrefix}${option}\n${zhCN.feedback.customFeedbackPrefix}`
+    const expectedCustomLimit = 2000 - reservedText.length
+    expect(comment).toHaveAttribute('maxlength', String(expectedCustomLimit))
+
+    fireEvent.change(comment, { target: { value: '测'.repeat(2000) } })
+    expect(comment).toHaveValue('测'.repeat(expectedCustomLimit))
+    fireEvent.click(screen.getByRole('button', { name: zhCN.feedback.submit }))
+
+    await screen.findByText(zhCN.feedback.successDescription)
+    const submittedComment = submit.mock.calls[0][0].comment
+    expect(submittedComment).toHaveLength(2000)
+    expect(submittedComment).toBe(`${reservedText}${'测'.repeat(expectedCustomLimit)}`)
+  })
+
   it('shows a recoverable inline error when feedback cannot be stored', async () => {
     const submit = vi.fn().mockRejectedValue(
       new FeedbackClientError(

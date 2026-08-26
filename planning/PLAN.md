@@ -2,14 +2,15 @@
 
 ## Document Information
 
-- **Version:** v0.18
-- **Status:** Draft — Goal 3 Complete
+- **Version:** v0.19
+- **Status:** Draft — Goals 3 and 4 Complete
 - **Owner:** Mei Chang
 - **Last Updated:** 2026-08-26
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.19 — 2026-08-26:** Addressed the Goal 4 Bugbot findings by making report feedback retry-safe under a matching-message lock and constraining the final serialized qualitative comment to the existing 2,000-character backend limit without changing the API contract.
 - **v0.18 — 2026-08-26:** Addressed the Goal 3 Bugbot findings by resolving referential follow-ups from prior persisted questions and replaying an identical immediately retried exchange under a conversation lock without changing the approved API contract.
 - **v0.17 — 2026-08-26:** Completed Goal 3 with the persisted multi-turn follow-up API, ordered backend context preparation, deterministic bounded Mock answers, atomic rollback behavior, recoverable frontend conversation flow, and full automated/API/persistence/browser/conformance validation.
 - **v0.16 — 2026-08-26:** Started Goal 3 and added its authoritative references, non-negotiable behavior and architecture boundaries, exact API fixture, atomic persistence and failure semantics, and complete validation requirements before implementation.
