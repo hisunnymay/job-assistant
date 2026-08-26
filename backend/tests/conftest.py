@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.db.base import Base
-from app.db.models import Conversation, ConversationMessage
+from app.db.models import Conversation, ConversationMessage, Feedback
 from app.db.session import get_db_session
 from app.main import app
 
@@ -45,6 +45,7 @@ def db_session(database_engine: Engine) -> Generator[Session, None, None]:
         session.rollback()
 
     with database_engine.begin() as connection:
+        connection.execute(delete(Feedback))
         connection.execute(delete(ConversationMessage))
         connection.execute(delete(Conversation))
 
