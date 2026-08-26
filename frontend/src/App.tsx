@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ContactPanel } from './components/ContactPanel'
 import { ConversationMessage } from './components/ConversationMessage'
 import { FeedbackPanel } from './components/FeedbackPanel'
@@ -12,7 +12,12 @@ import {
   createAnalysisClient,
 } from './services/analysisClient'
 import { createFeedbackClient } from './services/feedbackClient'
+import {
+  createFollowUpClient,
+  FollowUpClientError,
+} from './services/followUpClient'
 import type { FeedbackClient } from './types/feedback'
+import type { FollowUpClient } from './types/followUp'
 import type {
   AnalysisClient,
   ConversationMessage as ConversationMessageData,
@@ -20,16 +25,25 @@ import type {
 import './styles.css'
 
 type JourneyState = 'ready' | 'loading' | 'success' | 'failure'
+type FollowUpState = 'idle' | 'loading' | 'failure'
 type WorkspaceView = 'home' | 'conversation' | 'resume' | 'contact'
 
+interface FailedFollowUp {
+  messageId: string
+  question: string
+}
+
 const minimumJobDescriptionLength = 40
+const maximumFollowUpLength = 1000
 const defaultAnalysisClient = createAnalysisClient()
 const defaultFeedbackClient = createFeedbackClient()
+const defaultFollowUpClient = createFollowUpClient()
 const resumeUrl = `${appConfig.apiBaseUrl.replace(/\/$/, '')}/api/resume`
 
 interface AppProps {
   analysisClient?: AnalysisClient
   feedbackClient?: FeedbackClient
+  followUpClient?: FollowUpClient
 }
 
 function getInitialView(): WorkspaceView {
@@ -47,6 +61,7 @@ function getInitialView(): WorkspaceView {
 export function App({
   analysisClient = defaultAnalysisClient,
   feedbackClient = defaultFeedbackClient,
+  followUpClient = defaultFollowUpClient,
 }: AppProps) {
   const [jobDescription, setJobDescription] = useState('')
   const [submittedJobDescription, setSubmittedJobDescription] = useState('')
@@ -61,11 +76,33 @@ export function App({
   const [conversationId, setConversationId] = useState<string>()
   const [matchingMessageId, setMatchingMessageId] = useState<string>()
   const [submittedFeedbackRating, setSubmittedFeedbackRating] = useState<1 | 5>()
+  const [followUpQuestion, setFollowUpQuestion] = useState('')
+  const [followUpState, setFollowUpState] = useState<FollowUpState>('idle')
+  const [followUpError, setFollowUpError] = useState<string>()
+  const [failedFollowUp, setFailedFollowUp] = useState<FailedFollowUp>()
+  const conversationScrollRef = useRef<HTMLDivElement>(null)
+  const activeConversationIdRef = useRef<string | undefined>(undefined)
+  const followUpInFlightRef = useRef(false)
+  const followUpSequenceRef = useRef(0)
 
   const normalizedJobDescription = jobDescription.trim()
+  const normalizedFollowUpQuestion = followUpQuestion.trim()
   const hasActiveConversation = Boolean(submittedJobDescription)
   const canSubmitJobDescription =
     normalizedJobDescription.length >= minimumJobDescriptionLength
+  const canAskFollowUp = Boolean(conversationId) && journeyState === 'success'
+  const canSubmitFollowUp =
+    canAskFollowUp &&
+    followUpState === 'idle' &&
+    normalizedFollowUpQuestion.length >= 1 &&
+    normalizedFollowUpQuestion.length <= maximumFollowUpLength
+
+  useEffect(() => {
+    const scrollContainer = conversationScrollRef.current
+    if (activeView === 'conversation' && scrollContainer) {
+      scrollContainer.scrollTop = scrollContainer.scrollHeight
+    }
+  }, [activeView, followUpState, journeyState, messages.length])
 
   function validateJobDescription(value: string): string | undefined {
     if (!value) {
@@ -95,6 +132,13 @@ export function App({
       setSubmittedJobDescription(description)
       setJobDescription('')
       setSubmittedFeedbackRating(undefined)
+      setConversationId(undefined)
+      setMatchingMessageId(undefined)
+      activeConversationIdRef.current = undefined
+      setFollowUpQuestion('')
+      setFollowUpState('idle')
+      setFollowUpError(undefined)
+      setFailedFollowUp(undefined)
     }
 
     setJourneyState('loading')
@@ -111,6 +155,7 @@ export function App({
       }
 
       setConversationId(response.conversationId)
+      activeConversationIdRef.current = response.conversationId
       setMatchingMessageId(response.messageId)
       setMessages((currentMessages) => [...currentMessages, analysisMessage])
       setJourneyState('success')
@@ -124,6 +169,7 @@ export function App({
           setSubmittedJobDescription('')
           setMessages([])
           setConversationId(undefined)
+          activeConversationIdRef.current = undefined
           setMatchingMessageId(undefined)
           setActiveView('home')
         } else if (error.code === 'AI_SERVICE_UNAVAILABLE') {
@@ -169,6 +215,117 @@ export function App({
     void requestAnalysis(submittedJobDescription, false)
   }
 
+  function getFollowUpFailureDescription(error: unknown): string {
+    if (!(error instanceof FollowUpClientError)) {
+      return zhCN.followUp.failureDescription
+    }
+
+    if (error.code === 'INVALID_REQUEST') {
+      return zhCN.followUp.invalidQuestion
+    }
+    if (error.code === 'CONVERSATION_NOT_FOUND') {
+      return zhCN.followUp.conversationNotFound
+    }
+    if (error.code === 'AI_SERVICE_UNAVAILABLE') {
+      return zhCN.followUp.aiUnavailable
+    }
+    if (error.code === 'PERSISTENCE_ERROR') {
+      return zhCN.followUp.persistenceError
+    }
+
+    return zhCN.followUp.failureDescription
+  }
+
+  async function requestFollowUp(
+    question: string,
+    questionMessageId: string,
+    appendQuestion: boolean,
+  ) {
+    const requestedConversationId = conversationId
+    if (
+      !requestedConversationId ||
+      journeyState !== 'success' ||
+      followUpInFlightRef.current
+    ) {
+      return
+    }
+
+    followUpInFlightRef.current = true
+    if (appendQuestion) {
+      const questionMessage: ConversationMessageData = {
+        id: questionMessageId,
+        role: 'user',
+        messageType: 'follow_up_question',
+        content: question,
+      }
+      setMessages((currentMessages) => [...currentMessages, questionMessage])
+    }
+    setFollowUpQuestion('')
+    setFollowUpError(undefined)
+    setFailedFollowUp(undefined)
+    setFollowUpState('loading')
+
+    try {
+      const response = await followUpClient.ask(requestedConversationId, question)
+      if (activeConversationIdRef.current !== requestedConversationId) {
+        return
+      }
+      const answerMessage: ConversationMessageData = {
+        id: response.messageId,
+        role: 'assistant',
+        messageType: 'follow_up_answer',
+        content: response.content,
+      }
+      setMessages((currentMessages) => [...currentMessages, answerMessage])
+      setFollowUpState('idle')
+    } catch (error) {
+      if (activeConversationIdRef.current === requestedConversationId) {
+        setFollowUpError(getFollowUpFailureDescription(error))
+        setFailedFollowUp({ messageId: questionMessageId, question })
+        setFollowUpState('failure')
+      }
+    } finally {
+      followUpInFlightRef.current = false
+    }
+  }
+
+  function handleFollowUpSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!canSubmitFollowUp) {
+      if (canAskFollowUp && followUpState !== 'loading') {
+        setFollowUpError(zhCN.followUp.invalidQuestion)
+      }
+      return
+    }
+
+    followUpSequenceRef.current += 1
+    const questionMessageId = `local-follow-up-${followUpSequenceRef.current}`
+    void requestFollowUp(
+      normalizedFollowUpQuestion,
+      questionMessageId,
+      true,
+    )
+  }
+
+  function handleFollowUpChange(value: string) {
+    setFollowUpQuestion(value)
+    setFollowUpError(
+      value.length > maximumFollowUpLength
+        ? zhCN.followUp.invalidQuestion
+        : undefined,
+    )
+  }
+
+  function handleFollowUpRetry() {
+    if (failedFollowUp) {
+      void requestFollowUp(
+        failedFollowUp.question,
+        failedFollowUp.messageId,
+        false,
+      )
+    }
+  }
+
   function showJobMatching() {
     setActiveView(hasActiveConversation ? 'conversation' : 'home')
   }
@@ -195,7 +352,9 @@ export function App({
           <JobDescriptionForm
             value={jobDescription}
             error={fieldError}
-            isSubmitting={journeyState === 'loading'}
+            isSubmitting={
+              journeyState === 'loading' || followUpState === 'loading'
+            }
             canSubmit={canSubmitJobDescription}
             onChange={handleChange}
             onUseExample={handleUseExample}
@@ -255,7 +414,7 @@ export function App({
             aria-label={zhCN.conversation.title}
             data-conversation-id={conversationId}
           >
-            <div className="conversation-scroll">
+            <div className="conversation-scroll" ref={conversationScrollRef}>
               <ol className="message-list" aria-live="polite">
                 {messages.map((message) => (
                   <ConversationMessage
@@ -340,13 +499,64 @@ export function App({
                     </article>
                   </li>
                 ) : null}
+
+                {followUpState === 'loading' ? (
+                  <li className="message-row message-row-assistant">
+                    <article
+                      className="status-message loading-message follow-up-status-message"
+                      aria-label={`${zhCN.conversation.assistantName}：${zhCN.followUp.loadingTitle}`}
+                      role="status"
+                    >
+                      <span className="typing-indicator" aria-hidden="true">
+                        <i />
+                        <i />
+                        <i />
+                      </span>
+                      <div>
+                        <h2>{zhCN.followUp.loadingTitle}</h2>
+                        <p>{zhCN.followUp.loadingDescription}</p>
+                      </div>
+                    </article>
+                  </li>
+                ) : null}
+
+                {followUpState === 'failure' ? (
+                  <li className="message-row message-row-assistant">
+                    <article
+                      className="status-message failure-message follow-up-status-message"
+                      aria-label={`${zhCN.conversation.assistantName}：${zhCN.followUp.failureTitle}`}
+                      role="alert"
+                    >
+                      <div>
+                        <h2>{zhCN.followUp.failureTitle}</h2>
+                        <p id="follow-up-error">
+                          {followUpError ?? zhCN.followUp.failureDescription}
+                        </p>
+                      </div>
+                      <button
+                        className="secondary-button"
+                        type="button"
+                        onClick={handleFollowUpRetry}
+                      >
+                        {zhCN.followUp.retry}
+                      </button>
+                    </article>
+                  </li>
+                ) : null}
               </ol>
             </div>
 
             <form
               className="follow-up-composer"
-              aria-describedby="follow-up-unavailable"
-              onSubmit={(event) => event.preventDefault()}
+              aria-describedby={
+                followUpError
+                  ? 'follow-up-error'
+                  : canAskFollowUp
+                    ? undefined
+                    : 'follow-up-unavailable'
+              }
+              onSubmit={handleFollowUpSubmit}
+              noValidate
             >
               <label className="sr-only" htmlFor="follow-up-question">
                 {zhCN.followUp.label}
@@ -354,15 +564,32 @@ export function App({
               <input
                 id="follow-up-question"
                 type="text"
+                value={followUpQuestion}
                 placeholder={zhCN.followUp.placeholder}
-                disabled
+                maxLength={maximumFollowUpLength}
+                disabled={!canAskFollowUp || followUpState !== 'idle'}
+                aria-invalid={Boolean(followUpError)}
+                onChange={(event) => handleFollowUpChange(event.target.value)}
               />
-              <button type="submit" disabled>
-                {zhCN.followUp.send}
+              <button type="submit" disabled={!canSubmitFollowUp}>
+                {followUpState === 'loading'
+                  ? zhCN.followUp.sending
+                  : zhCN.followUp.send}
               </button>
-              <span className="sr-only" id="follow-up-unavailable">
-                {zhCN.followUp.unavailable}
-              </span>
+              {!canAskFollowUp ? (
+                <span className="sr-only" id="follow-up-unavailable">
+                  {zhCN.followUp.unavailable}
+                </span>
+              ) : null}
+              {followUpError && followUpState !== 'failure' ? (
+                <span
+                  className="follow-up-field-error"
+                  id="follow-up-error"
+                  role="alert"
+                >
+                  {followUpError}
+                </span>
+              ) : null}
             </form>
           </section>
         ) : null}

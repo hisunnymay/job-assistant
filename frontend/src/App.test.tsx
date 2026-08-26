@@ -7,15 +7,25 @@ import {
   createAnalysisClient,
 } from './services/analysisClient'
 import { FeedbackClientError } from './services/feedbackClient'
+import { FollowUpClientError } from './services/followUpClient'
 import { createMockAnalysisClient } from './services/mockAnalysisClient'
+import type { FollowUpClient } from './types/followUp'
 
-function renderJourney(options?: { failFirstRequest?: boolean }) {
+function renderJourney(options?: {
+  failFirstRequest?: boolean
+  followUpClient?: FollowUpClient
+}) {
   const analysisClient = createMockAnalysisClient({
     delayMs: 0,
     failFirstRequest: options?.failFirstRequest,
   })
 
-  render(<App analysisClient={analysisClient} />)
+  render(
+    <App
+      analysisClient={analysisClient}
+      followUpClient={options?.followUpClient}
+    />,
+  )
 }
 
 function submitExampleJobDescription() {
@@ -146,7 +156,217 @@ describe('Goal 4 recruiter workspace', () => {
         name: zhCN.feedback.notHelpful,
       }),
     ).toHaveAttribute('data-tooltip', zhCN.feedback.notHelpful)
-    expect(screen.getByLabelText(zhCN.followUp.label)).toBeDisabled()
+    expect(screen.getByLabelText(zhCN.followUp.label)).toBeEnabled()
+    expect(
+      screen.getByRole('button', { name: zhCN.followUp.send }),
+    ).toBeDisabled()
+  })
+
+  it('enables follow-up only after analysis and appends backend Markdown in context', async () => {
+    let resolveFollowUp:
+      | ((value: { messageId: string; content: string }) => void)
+      | undefined
+    const ask = vi.fn().mockImplementation(
+      () =>
+        new Promise<{ messageId: string; content: string }>((resolve) => {
+          resolveFollowUp = resolve
+        }),
+    )
+    renderJourney({ followUpClient: { ask } })
+    submitExampleJobDescription()
+
+    const followUpInput = screen.getByLabelText(zhCN.followUp.label)
+    expect(followUpInput).toBeDisabled()
+    expect(followUpInput).toHaveAttribute('maxlength', '1000')
+
+    await screen.findByRole('article', {
+      name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
+    })
+    expect(followUpInput).toBeEnabled()
+    const send = screen.getByRole('button', { name: zhCN.followUp.send })
+    expect(send).toBeDisabled()
+
+    fireEvent.change(followUpInput, { target: { value: '   ' } })
+    expect(send).toBeDisabled()
+    expect(ask).not.toHaveBeenCalled()
+
+    fireEvent.change(followUpInput, {
+      target: { value: '  候选人有哪些 AI 产品经验？  ' },
+    })
+    expect(send).toBeEnabled()
+    fireEvent.click(send)
+
+    expect(
+      screen.getByRole('article', {
+        name: `${zhCN.conversation.userName}：${zhCN.conversation.followUpQuestionMessageLabel}`,
+      }),
+    ).toHaveTextContent('候选人有哪些 AI 产品经验？')
+    expect(
+      screen.getByRole('status', {
+        name: `${zhCN.conversation.assistantName}：${zhCN.followUp.loadingTitle}`,
+      }),
+    ).toHaveTextContent(zhCN.followUp.loadingDescription)
+    expect(followUpInput).toBeDisabled()
+    expect(ask).toHaveBeenCalledOnce()
+    expect(ask).toHaveBeenCalledWith(
+      'conversation_mock_001',
+      '候选人有哪些 AI 产品经验？',
+    )
+
+    resolveFollowUp?.({
+      messageId: 'message_follow_up_001',
+      content: '# 后端边界回答\n\n**只渲染后端内容**',
+    })
+
+    expect(
+      await screen.findByRole('article', {
+        name: `${zhCN.conversation.assistantName}：${zhCN.conversation.followUpAnswerMessageLabel}`,
+      }),
+    ).toHaveTextContent('只渲染后端内容')
+    expect(followUpInput).toBeEnabled()
+  })
+
+  it('keeps a failed question visible and retries without duplicating it', async () => {
+    const ask = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new FollowUpClientError(
+          'AI_SERVICE_UNAVAILABLE',
+          'raw backend detail',
+          503,
+        ),
+      )
+      .mockResolvedValueOnce({
+        messageId: 'message_follow_up_retry',
+        content: '# 重试后的回答',
+      })
+    renderJourney({ followUpClient: { ask } })
+    await openCompletedAnalysis()
+
+    fireEvent.change(screen.getByLabelText(zhCN.followUp.label), {
+      target: { value: '候选人的 API 协作经验是什么？' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: zhCN.followUp.send }))
+
+    const failure = await screen.findByRole('alert', {
+      name: `${zhCN.conversation.assistantName}：${zhCN.followUp.failureTitle}`,
+    })
+    expect(failure).toHaveTextContent(zhCN.followUp.aiUnavailable)
+    expect(
+      screen.getByRole('article', {
+        name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getAllByRole('article', {
+        name: `${zhCN.conversation.userName}：${zhCN.conversation.followUpQuestionMessageLabel}`,
+      }),
+    ).toHaveLength(1)
+
+    fireEvent.click(
+      within(failure).getByRole('button', { name: zhCN.followUp.retry }),
+    )
+
+    expect(
+      await screen.findByRole('article', {
+        name: `${zhCN.conversation.assistantName}：${zhCN.conversation.followUpAnswerMessageLabel}`,
+      }),
+    ).toHaveTextContent('重试后的回答')
+    expect(
+      screen.getAllByRole('article', {
+        name: `${zhCN.conversation.userName}：${zhCN.conversation.followUpQuestionMessageLabel}`,
+      }),
+    ).toHaveLength(1)
+    expect(ask).toHaveBeenCalledTimes(2)
+    expect(ask.mock.calls[0]).toEqual(ask.mock.calls[1])
+  })
+
+  it('prevents concurrent follow-ups and preserves multiple turns in order', async () => {
+    let resolveFirst:
+      | ((value: { messageId: string; content: string }) => void)
+      | undefined
+    const ask = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<{ messageId: string; content: string }>((resolve) => {
+            resolveFirst = resolve
+          }),
+      )
+      .mockResolvedValueOnce({
+        messageId: 'message_answer_002',
+        content: '# 第二个回答',
+      })
+    renderJourney({ followUpClient: { ask } })
+    await openCompletedAnalysis()
+
+    const input = screen.getByLabelText(zhCN.followUp.label)
+    fireEvent.change(input, { target: { value: '第一个候选人经验问题' } })
+    fireEvent.click(screen.getByRole('button', { name: zhCN.followUp.send }))
+    expect(input).toBeDisabled()
+    fireEvent.submit(input.closest('form') as HTMLFormElement)
+    expect(ask).toHaveBeenCalledOnce()
+
+    resolveFirst?.({
+      messageId: 'message_answer_001',
+      content: '# 第一个回答',
+    })
+    await screen.findByText('第一个回答')
+
+    fireEvent.change(input, { target: { value: '第二个候选人经验问题' } })
+    fireEvent.click(screen.getByRole('button', { name: zhCN.followUp.send }))
+    await screen.findByText('第二个回答')
+
+    expect(ask).toHaveBeenCalledTimes(2)
+    const timeline = screen
+      .getAllByRole('article')
+      .map((article) => article.getAttribute('data-message-type'))
+      .filter(Boolean)
+    expect(timeline).toEqual([
+      'job_description',
+      'matching_analysis',
+      'follow_up_question',
+      'follow_up_answer',
+      'follow_up_question',
+      'follow_up_answer',
+    ])
+  })
+
+  it('preserves follow-up messages across workspace and Home navigation', async () => {
+    const ask = vi.fn().mockResolvedValue({
+      messageId: 'message_follow_up_preserved',
+      content: '# 保留的追问回答',
+    })
+    renderJourney({ followUpClient: { ask } })
+    await openCompletedAnalysis()
+
+    fireEvent.change(screen.getByLabelText(zhCN.followUp.label), {
+      target: { value: '候选人有哪些大模型产品经验？' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: zhCN.followUp.send }))
+    await screen.findByText('保留的追问回答')
+
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.navigation.resume }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.navigation.contact }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: zhCN.navigation.home }))
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.navigation.returnToConversation }),
+    )
+
+    expect(
+      screen.getByRole('article', {
+        name: `${zhCN.conversation.userName}：${zhCN.conversation.followUpQuestionMessageLabel}`,
+      }),
+    ).toHaveTextContent('候选人有哪些大模型产品经验？')
+    expect(
+      screen.getByRole('article', {
+        name: `${zhCN.conversation.assistantName}：${zhCN.conversation.followUpAnswerMessageLabel}`,
+      }),
+    ).toHaveTextContent('保留的追问回答')
   })
 
   it('keeps the submitted JD visible after failure and recovers in place', async () => {

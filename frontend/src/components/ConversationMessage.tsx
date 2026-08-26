@@ -12,6 +12,8 @@ const messageLabels = {
   initial_guidance: zhCN.conversation.initialMessageLabel,
   job_description: zhCN.conversation.jobDescriptionMessageLabel,
   matching_analysis: zhCN.conversation.matchingAnalysisMessageLabel,
+  follow_up_question: zhCN.conversation.followUpQuestionMessageLabel,
+  follow_up_answer: zhCN.conversation.followUpAnswerMessageLabel,
 } as const
 
 export function ConversationMessage({

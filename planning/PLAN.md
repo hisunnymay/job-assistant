@@ -2,14 +2,17 @@
 
 ## Document Information
 
-- **Version:** v0.15
-- **Status:** Draft — Goal 4 Complete
+- **Version:** v0.18
+- **Status:** Draft — Goal 3 Complete
 - **Owner:** Mei Chang
 - **Last Updated:** 2026-08-26
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.18 — 2026-08-26:** Addressed the Goal 3 Bugbot findings by resolving referential follow-ups from prior persisted questions and replaying an identical immediately retried exchange under a conversation lock without changing the approved API contract.
+- **v0.17 — 2026-08-26:** Completed Goal 3 with the persisted multi-turn follow-up API, ordered backend context preparation, deterministic bounded Mock answers, atomic rollback behavior, recoverable frontend conversation flow, and full automated/API/persistence/browser/conformance validation.
+- **v0.16 — 2026-08-26:** Started Goal 3 and added its authoritative references, non-negotiable behavior and architecture boundaries, exact API fixture, atomic persistence and failure semantics, and complete validation requirements before implementation.
 - **v0.15 — 2026-08-26:** Added the approved Goal 4 feedback refinement: contextual icon tooltips, rating-specific predefined reasons, and required qualitative input after a recruiter opens the feedback dialog, without changing the backend contract.
 - **v0.14 — 2026-08-26:** Completed Goal 4 reference UI alignment with the standalone entrance, three-view workspace, preserved conversation navigation, original résumé preview/download, non-sending contact copy flow, report-linked one-click feedback, and desktop/compact validation.
 - **v0.13 — 2026-08-26:** Reopened Goal 4 for implementation of the approved Frontend Technical Design v0.6 desktop reference UI while preserving the already completed résumé, contact, and feedback backend capabilities.
@@ -66,7 +69,7 @@ Before a Goal is marked complete, Codex must compare the implementation with tho
 - **Phase A — Demo with Mock AI:** In progress
 - **AI Design Gate:** Not ready; `docs/02_AI_System_Design.md` has not been created or finalized.
 - **Phase B — Real AI:** Deferred until the AI Design Gate is complete.
-- **Current coding readiness:** Goal 4 is complete. Goal 3 is ready when requested; Goal 5 remains dependent on both Goals 3 and 4.
+- **Current coding readiness:** Goals 3 and 4 are complete with no unresolved conformance mismatch. Goal 5 is ready for its required tracking entry decision when requested.
 
 ## 4. Pre-implementation Decisions
 
@@ -312,9 +315,58 @@ Contract smoke test: POST /api/matching-analysis
 
 ## Goal 3 — Follow-up Workflow and Persisted Conversation Context
 
-- **Status:** Not started
+- **Status:** Complete
 - **Depends on:** Goal 2
 - **Branch:** `goal/03-follow-up-context`
+- **Actual Implementation Time:** Approximately 21 minutes, measured by the Codex Goal timer through readiness documentation, implementation, automated validation, API and persistence smoke tests, failure/retry testing, desktop and compact browser checks, conformance review, and documentation closeout.
+
+### Authoritative References and Constraints
+
+- Product Requirement Document: F001 Candidate Resume Data Source, F005 Ask Follow-up Questions, and S002 Conversation Logging;
+- Lightweight AI Design Decision: Sections 1.2–1.4 and 2.1–2.2;
+- Frontend Technical Design: Sections 2.1–2.3, 3.3, 3.5, 4.2–4.3, 4.6–4.7, and 5.1–5.3;
+- Backend Technical Design: Conversation and Conversation Message entities, Sections 3.2, 4.1 follow-up flow, 4.2, 5, and 6.1–6.3;
+- Follow-up is available only after a successful matching analysis has created an active persisted conversation;
+- Questions and answers remain in that conversation and are presented in the existing scrollable Conversation View; navigation must preserve the current-session timeline;
+- The frontend owns input and UI state only. It must not classify scope, infer evidence, construct AI answers, or implement backend workflow;
+- The Service Layer owns conversation validation, ordered context preparation, AI coordination, and transaction control; repositories own persistence access, and the AI Service has no persistence access;
+- The Demo uses the deterministic Mock AI Service and the same static résumé PDF path already used by matching analysis, without extraction, preprocessing, or a text mirror;
+- Supported scope is candidate experience/background, evidence behind matching results, identified information gaps, and available candidate context. Unknown information must remain unknown; hiring recommendations, ranking/comparison, performance prediction, personal judgments, scoring, and unrelated requests must be rejected or redirected;
+- Do not add a real provider, provider SDK or secret, raw prompt/provider-payload persistence, streaming, conversation-history retrieval, refresh restoration, tracking, candidate management, or another later-Goal capability.
+
+### Authoritative API Fixture
+
+```http
+POST /api/conversations/{conversationId}/messages
+Content-Type: application/json
+```
+
+Request:
+
+```json
+{
+  "question": "Does the candidate have AI Agent experience?"
+}
+```
+
+Successful response:
+
+```json
+{
+  "messageId": "message_003",
+  "content": "..."
+}
+```
+
+The response contains exactly the backend-generated message identifier and frontend-renderable text/Markdown content. Errors retain the existing safe `{ "code": "ERROR_CODE", "message": "..." }` envelope, with follow-up-specific validation copy.
+
+### Persistence and Failure Semantics
+
+- One follow-up exchange is atomic: verify the conversation, create and flush the `user` / `follow_up_question`, prepare the full ordered history including that question, call the Mock AI Service with the static résumé path and prepared context, create the `assistant` / `follow_up_answer`, and commit both messages together;
+- Unknown conversations store nothing and return a safe not-found response;
+- Invalid input, Mock AI failure, persistence failure, and unexpected failure expose no internal details;
+- Mock AI or persistence failure rolls back both messages so no orphaned question or answer remains;
+- The frontend keeps a failed question visible locally and retries it in context without appending a duplicate user message or allowing a concurrent submission.
 
 ### Outcome
 
@@ -342,10 +394,19 @@ A recruiter can ask supported follow-up questions within the same evaluation con
 
 ```text
 cd backend && uv run pytest
+cd backend && uv run mypy app
+cd backend && uv run ruff check .
 cd frontend && npm run test
 cd frontend && npm run type-check
+cd frontend && npm run lint
 cd frontend && npm run build
-Conversation smoke test: matching analysis followed by multiple questions
+API smoke test: initial matching analysis followed by at least two questions in the same conversation
+Persistence inspection: verify ordered roles, message types, conversation IDs, and content boundaries
+Failure smoke test: verify a failed follow-up is recoverable and creates no partial or duplicate persisted exchange
+Desktop browser check: anchored composer, independently scrolling history, multiple turns, inline processing/error/retry, and navigation preservation
+Compact browser check: composer, scrolling, controls, and error state remain operable without horizontal overflow
+Browser console check: no warnings or errors in the validated journey
+Specification review: compare implementation with every Goal 3 authoritative reference and record the conformance result
 ```
 
 ## Goal 4 — Résumé, Contact, and Feedback Actions
