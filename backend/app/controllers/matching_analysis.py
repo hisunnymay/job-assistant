@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -10,6 +9,7 @@ from app.ai.mock import MockAIService
 from app.api.errors import raise_api_error
 from app.db.session import get_db_session
 from app.repositories.conversations import ConversationRepository
+from app.resources.candidate_resume import get_candidate_resume_path
 from app.services.matching_analysis import (
     MatchingAnalysisPersistenceError,
     MatchingAnalysisService,
@@ -33,10 +33,6 @@ class MatchingAnalysisResponse(BaseModel):
 
 def get_ai_service() -> MatchingAIService:
     return MockAIService()
-
-
-def get_candidate_resume_path() -> Path:
-    return Path(__file__).resolve().parents[1] / "resources" / "resume" / "mei_chang_resume.pdf"
 
 
 def get_matching_analysis_service(

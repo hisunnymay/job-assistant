@@ -1,11 +1,12 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, within } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
 import { zhCN } from './content/zh-CN'
 import {
   AnalysisClientError,
   createAnalysisClient,
 } from './services/analysisClient'
+import { FeedbackClientError } from './services/feedbackClient'
 import { createMockAnalysisClient } from './services/mockAnalysisClient'
 
 function renderJourney(options?: { failFirstRequest?: boolean }) {
@@ -26,43 +27,73 @@ function submitExampleJobDescription() {
   )
 }
 
-describe('conversation matching journey', () => {
-  it('renders initial guidance as an assistant message above the JD composer', () => {
+async function openCompletedAnalysis() {
+  submitExampleJobDescription()
+  return screen.findByRole('article', {
+    name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
+  })
+}
+
+describe('Goal 4 recruiter workspace', () => {
+  beforeEach(() => {
+    window.history.replaceState({}, '', '/')
+  })
+
+  it('starts on a standalone entrance with the approved JD composer behavior', () => {
     renderJourney()
 
     expect(
       screen.getByRole('heading', { level: 1, name: zhCN.hero.title }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('article', {
-        name: `${zhCN.conversation.assistantName}：${zhCN.conversation.initialMessageLabel}`,
-      }),
-    ).toHaveTextContent(zhCN.guidance.title)
-    expect(screen.getByLabelText(zhCN.jobDescription.label)).toHaveValue('')
-  })
+      screen.queryByRole('navigation', { name: zhCN.navigation.ariaLabel }),
+    ).not.toBeInTheDocument()
 
-  it('distinguishes empty and too-short job descriptions', () => {
-    renderJourney()
-
-    fireEvent.click(
-      screen.getByRole('button', { name: zhCN.jobDescription.submit }),
-    )
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      zhCN.jobDescription.emptyError,
-    )
-
-    fireEvent.change(screen.getByLabelText(zhCN.jobDescription.label), {
-      target: { value: '只写了很短的职位要求' },
+    const input = screen.getByLabelText(zhCN.jobDescription.label)
+    const submit = screen.getByRole('button', {
+      name: zhCN.jobDescription.submit,
     })
-    fireEvent.click(
-      screen.getByRole('button', { name: zhCN.jobDescription.submit }),
-    )
+    expect(input).toHaveAttribute('maxlength', '6000')
+    expect(input).toHaveValue('')
+    expect(submit).toBeDisabled()
+    expect(screen.getByText('0 / 6000 字符')).toBeInTheDocument()
+
+    fireEvent.change(input, { target: { value: '只写了很短的职位要求' } })
     expect(screen.getByRole('alert')).toHaveTextContent(
       zhCN.jobDescription.shortError,
     )
+    expect(submit).toBeDisabled()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.jobDescription.useExample }),
+    )
+    expect(input).toHaveValue(zhCN.sampleJobDescription)
+    expect(submit).toBeEnabled()
   })
 
-  it('keeps the JD and loading state in one message timeline', () => {
+  it('supports direct résumé entry and workspace replacement navigation', () => {
+    window.history.replaceState({}, '', '/#resume')
+    renderJourney()
+
+    expect(
+      screen.getByRole('heading', { name: zhCN.resume.title }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: zhCN.navigation.resume }),
+    ).toHaveAttribute('aria-current', 'page')
+
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.navigation.contact }),
+    )
+    expect(
+      screen.getByRole('heading', { name: zhCN.contact.title }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: zhCN.resume.title }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('moves a valid JD into the three-item workspace and keeps loading in context', () => {
     renderJourney()
     submitExampleJobDescription()
 
@@ -77,26 +108,45 @@ describe('conversation matching journey', () => {
       }),
     ).toHaveTextContent(zhCN.loading.description)
     expect(
-      screen.queryByLabelText(zhCN.jobDescription.label),
-    ).not.toBeInTheDocument()
+      screen.getByRole('navigation', { name: zhCN.navigation.ariaLabel }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: zhCN.navigation.assistant }),
+    ).toHaveAttribute('aria-current', 'page')
+    expect(
+      screen.queryByRole('button', { name: zhCN.navigation.home }),
+    ).toBeInTheDocument()
   })
 
-  it('renders Markdown analysis as an assistant message with all evidence states', async () => {
+  it('renders backend Markdown without a frontend-owned analysis schema', async () => {
     renderJourney()
-    submitExampleJobDescription()
-
-    const analysisMessage = await screen.findByRole('article', {
-      name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
-    })
+    const analysisMessage = await openCompletedAnalysis()
 
     expect(analysisMessage).toHaveTextContent('有明确证据')
     expect(analysisMessage).toHaveTextContent('部分信息')
     expect(analysisMessage).toHaveTextContent('信息缺失')
     expect(analysisMessage).toHaveTextContent('简历证据')
-    expect(screen.getByText(zhCN.report.mockNoticeBody)).toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: zhCN.report.startOver }),
-    ).toBeEnabled()
+      within(analysisMessage).getByRole('button', {
+        name: zhCN.report.viewResume,
+      }),
+    ).toHaveAttribute('data-tooltip', zhCN.report.viewResume)
+    expect(
+      within(analysisMessage).getByRole('button', {
+        name: zhCN.report.contactCandidate,
+      }),
+    ).toHaveAttribute('data-tooltip', zhCN.report.contactCandidate)
+    expect(
+      within(analysisMessage).getByRole('button', {
+        name: zhCN.feedback.helpful,
+      }),
+    ).toHaveAttribute('data-tooltip', zhCN.feedback.helpful)
+    expect(
+      within(analysisMessage).getByRole('button', {
+        name: zhCN.feedback.notHelpful,
+      }),
+    ).toHaveAttribute('data-tooltip', zhCN.feedback.notHelpful)
+    expect(screen.getByLabelText(zhCN.followUp.label)).toBeDisabled()
   })
 
   it('keeps the submitted JD visible after failure and recovers in place', async () => {
@@ -121,14 +171,9 @@ describe('conversation matching journey', () => {
         name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
       }),
     ).toBeInTheDocument()
-    expect(
-      screen.queryByRole('alert', {
-        name: `${zhCN.conversation.assistantName}：${zhCN.failure.title}`,
-      }),
-    ).not.toBeInTheDocument()
   })
 
-  it('restores an editable composer when the backend rejects the request', async () => {
+  it('restores the standalone editable entrance when the API rejects the JD', async () => {
     const analyze = vi
       .fn()
       .mockRejectedValueOnce(
@@ -149,60 +194,20 @@ describe('conversation matching journey', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       zhCN.failure.invalidRequest,
     )
+    expect(
+      screen.queryByRole('navigation', { name: zhCN.navigation.ariaLabel }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', {
+        name: zhCN.navigation.returnToConversation,
+      }),
+    ).not.toBeInTheDocument()
     expect(screen.getByLabelText(zhCN.jobDescription.label)).toHaveValue(
       zhCN.sampleJobDescription,
     )
-    expect(
-      screen.queryByRole('button', { name: zhCN.failure.retry }),
-    ).not.toBeInTheDocument()
-
-    const correctedJobDescription = `${zhCN.sampleJobDescription} 补充岗位工作地点为北京。`
-    fireEvent.change(screen.getByLabelText(zhCN.jobDescription.label), {
-      target: { value: correctedJobDescription },
-    })
-    fireEvent.click(
-      screen.getByRole('button', { name: zhCN.jobDescription.submit }),
-    )
-
-    expect(
-      await screen.findByRole('article', {
-        name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
-      }),
-    ).toHaveTextContent('修改后生成的匹配分析')
-    expect(analyze).toHaveBeenLastCalledWith(correctedJobDescription)
   })
 
-  it('starts a new conversation without retaining previous messages', async () => {
-    window.scrollTo = vi.fn()
-    renderJourney()
-    submitExampleJobDescription()
-
-    await screen.findByRole('article', {
-      name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
-    })
-    fireEvent.click(
-      screen.getByRole('button', { name: zhCN.report.startOver }),
-    )
-
-    expect(screen.getByLabelText(zhCN.jobDescription.label)).toHaveValue('')
-    expect(
-      screen.queryByRole('article', {
-        name: `${zhCN.conversation.userName}：${zhCN.conversation.jobDescriptionMessageLabel}`,
-      }),
-    ).not.toBeInTheDocument()
-    expect(
-      screen.queryByRole('article', {
-        name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
-      }),
-    ).not.toBeInTheDocument()
-    expect(
-      screen.getByRole('article', {
-        name: `${zhCN.conversation.assistantName}：${zhCN.conversation.initialMessageLabel}`,
-      }),
-    ).toBeInTheDocument()
-  })
-
-  it('renders the matching response returned through the backend API client', async () => {
+  it('renders the matching response returned through the real API client boundary', async () => {
     const fetchImplementation = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -224,5 +229,215 @@ describe('conversation matching journey', () => {
       }),
     ).toHaveTextContent('后端返回的匹配分析')
     expect(fetchImplementation).toHaveBeenCalledOnce()
+  })
+
+  it('preserves the active analysis across Home, résumé, and contact views', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+    renderJourney()
+    const analysisMessage = await openCompletedAnalysis()
+
+    fireEvent.click(
+      within(analysisMessage).getByRole('button', {
+        name: zhCN.report.viewResume,
+      }),
+    )
+    expect(screen.getByTitle(zhCN.resume.previewTitle)).toHaveAttribute(
+      'src',
+      'http://localhost:8000/api/resume',
+    )
+    expect(
+      screen.getByRole('link', { name: zhCN.resume.download }),
+    ).toHaveAttribute('href', 'http://localhost:8000/api/resume?download=true')
+
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.navigation.contact }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: zhCN.contact.copyEmail }))
+    expect(writeText).toHaveBeenCalledWith(zhCN.contact.email)
+
+    fireEvent.change(screen.getByLabelText(zhCN.contact.recruiterNameLabel), {
+      target: { value: '张经理' },
+    })
+    expect(screen.getByLabelText(zhCN.contact.greetingLabel)).toHaveTextContent(
+      '您好梅唱，我是张经理。',
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.contact.copyGreeting }),
+    )
+    expect(writeText).toHaveBeenLastCalledWith(
+      expect.stringContaining('您好梅唱，我是张经理。'),
+    )
+    expect(screen.getByText(zhCN.contact.noAutoSend)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: zhCN.navigation.home }))
+    expect(
+      screen.queryByRole('navigation', { name: zhCN.navigation.ariaLabel }),
+    ).not.toBeInTheDocument()
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.navigation.returnToConversation }),
+    )
+    expect(
+      await screen.findByRole('article', {
+        name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('maps Helpful to rating 5 and locks duplicate feedback', async () => {
+    const submit = vi.fn().mockResolvedValue(undefined)
+    const analysisClient = createMockAnalysisClient({ delayMs: 0 })
+    render(<App analysisClient={analysisClient} feedbackClient={{ submit }} />)
+    await openCompletedAnalysis()
+
+    expect(
+      screen.queryByRole('dialog', {
+        name: zhCN.feedback.dialogTitle(5),
+      }),
+    ).not.toBeInTheDocument()
+    const helpful = screen.getByRole('button', { name: zhCN.feedback.helpful })
+    fireEvent.click(helpful)
+    expect(
+      screen.getByRole('dialog', {
+        name: zhCN.feedback.dialogTitle(5),
+      }),
+    ).toBeInTheDocument()
+    const submitFeedback = screen.getByRole('button', {
+      name: zhCN.feedback.submit,
+    })
+    expect(submitFeedback).toBeDisabled()
+    expect(
+      screen.getByText(zhCN.feedback.contributionRequired),
+    ).toBeInTheDocument()
+    const helpfulOption = screen.getByRole('button', {
+      name: `+ ${zhCN.feedback.predefinedOptions(5)[0]}`,
+    })
+    fireEvent.click(helpfulOption)
+    expect(helpfulOption).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(
+      screen.getByRole('button', { name: '+ 信息缺口标注清楚' }),
+    )
+    expect(submitFeedback).toBeEnabled()
+    fireEvent.change(screen.getByLabelText(zhCN.feedback.commentLabel), {
+      target: { value: '证据结构清楚。' },
+    })
+    fireEvent.click(submitFeedback)
+
+    expect(
+      await screen.findByText(zhCN.feedback.successDescription),
+    ).toBeInTheDocument()
+    expect(submit).toHaveBeenCalledOnce()
+    expect(submit).toHaveBeenCalledWith({
+      conversationId: 'conversation_mock_001',
+      messageId: 'message_mock_002',
+      rating: 5,
+      comment:
+        '选择项：证据清晰可核验；信息缺口标注清楚\n补充：证据结构清楚。',
+    })
+    expect(helpful).toHaveAttribute('aria-pressed', 'true')
+    expect(helpful).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: zhCN.feedback.notHelpful }),
+    ).toBeDisabled()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.navigation.resume }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.navigation.assistant }),
+    )
+    expect(
+      screen.getByRole('button', { name: zhCN.feedback.helpful }),
+    ).toBeDisabled()
+    expect(submit).toHaveBeenCalledOnce()
+  })
+
+  it('maps Not Helpful to rating 1', async () => {
+    const submit = vi.fn().mockResolvedValue(undefined)
+    const analysisClient = createMockAnalysisClient({ delayMs: 0 })
+    render(<App analysisClient={analysisClient} feedbackClient={{ submit }} />)
+    await openCompletedAnalysis()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.feedback.notHelpful }),
+    )
+    expect(
+      screen.getByRole('dialog', {
+        name: zhCN.feedback.dialogTitle(1),
+      }),
+    ).toBeInTheDocument()
+    const submitFeedback = screen.getByRole('button', {
+      name: zhCN.feedback.submit,
+    })
+    expect(submitFeedback).toBeDisabled()
+    fireEvent.click(
+      screen.getByRole('button', { name: '+ 遗漏关键岗位要求' }),
+    )
+    expect(submitFeedback).toBeEnabled()
+    fireEvent.click(submitFeedback)
+
+    await screen.findByText(zhCN.feedback.successDescription)
+    expect(submit).toHaveBeenCalledWith({
+      conversationId: 'conversation_mock_001',
+      messageId: 'message_mock_002',
+      rating: 1,
+      comment: '选择项：遗漏关键岗位要求',
+    })
+  })
+
+  it('accepts custom feedback but rejects whitespace-only input', async () => {
+    const submit = vi.fn().mockResolvedValue(undefined)
+    const analysisClient = createMockAnalysisClient({ delayMs: 0 })
+    render(<App analysisClient={analysisClient} feedbackClient={{ submit }} />)
+    await openCompletedAnalysis()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.feedback.notHelpful }),
+    )
+    const submitFeedback = screen.getByRole('button', {
+      name: zhCN.feedback.submit,
+    })
+    const comment = screen.getByLabelText(zhCN.feedback.commentLabel)
+
+    fireEvent.change(comment, { target: { value: '   ' } })
+    expect(submitFeedback).toBeDisabled()
+
+    fireEvent.change(comment, { target: { value: '需要更明确地对应岗位要求。' } })
+    expect(submitFeedback).toBeEnabled()
+    fireEvent.click(submitFeedback)
+
+    await screen.findByText(zhCN.feedback.successDescription)
+    expect(submit).toHaveBeenCalledWith({
+      conversationId: 'conversation_mock_001',
+      messageId: 'message_mock_002',
+      rating: 1,
+      comment: '补充：需要更明确地对应岗位要求。',
+    })
+  })
+
+  it('shows a recoverable inline error when feedback cannot be stored', async () => {
+    const submit = vi.fn().mockRejectedValue(
+      new FeedbackClientError(
+        'PERSISTENCE_ERROR',
+        '反馈暂时无法保存，请稍后重试。',
+        500,
+      ),
+    )
+    const analysisClient = createMockAnalysisClient({ delayMs: 0 })
+    render(<App analysisClient={analysisClient} feedbackClient={{ submit }} />)
+    await openCompletedAnalysis()
+
+    const helpful = screen.getByRole('button', { name: zhCN.feedback.helpful })
+    fireEvent.click(helpful)
+    fireEvent.click(
+      screen.getByRole('button', { name: '+ 证据清晰可核验' }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: zhCN.feedback.submit }))
+
+    expect(await screen.findByText(zhCN.feedback.submitError)).toBeInTheDocument()
+    expect(helpful).toBeEnabled()
   })
 })

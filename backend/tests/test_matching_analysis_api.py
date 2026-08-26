@@ -1,5 +1,3 @@
-from collections.abc import Generator
-
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -8,7 +6,6 @@ from sqlalchemy.orm import Session
 from app.ai.matching import AIServiceError, MatchingAIService
 from app.controllers.matching_analysis import get_ai_service, get_matching_analysis_service
 from app.db.models import Conversation, ConversationMessage
-from app.db.session import get_db_session
 from app.main import app
 from app.services.matching_analysis import MatchingAnalysisPersistenceError
 
@@ -16,17 +13,6 @@ VALID_JOB_DESCRIPTION = (
     "我们正在招聘一名 AI 产品经理，负责大模型产品需求分析、方案设计、研发落地和持续迭代，"
     "并能够清楚说明候选人经验与每项岗位要求之间的证据关系。"
 )
-
-
-@pytest.fixture
-def client(db_session: Session) -> Generator[TestClient, None, None]:
-    def override_db_session() -> Generator[Session, None, None]:
-        yield db_session
-
-    app.dependency_overrides[get_db_session] = override_db_session
-    with TestClient(app, raise_server_exceptions=False) as test_client:
-        yield test_client
-    app.dependency_overrides.clear()
 
 
 def test_matching_analysis_persists_conversation_and_messages(

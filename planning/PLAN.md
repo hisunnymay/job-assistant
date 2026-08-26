@@ -2,14 +2,18 @@
 
 ## Document Information
 
-- **Version:** v0.11
-- **Status:** Draft — Goal 2 Complete
+- **Version:** v0.15
+- **Status:** Draft — Goal 4 Complete
 - **Owner:** Mei Chang
-- **Last Updated:** 2026-08-25
+- **Last Updated:** 2026-08-26
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.15 — 2026-08-26:** Added the approved Goal 4 feedback refinement: contextual icon tooltips, rating-specific predefined reasons, and required qualitative input after a recruiter opens the feedback dialog, without changing the backend contract.
+- **v0.14 — 2026-08-26:** Completed Goal 4 reference UI alignment with the standalone entrance, three-view workspace, preserved conversation navigation, original résumé preview/download, non-sending contact copy flow, report-linked one-click feedback, and desktop/compact validation.
+- **v0.13 — 2026-08-26:** Reopened Goal 4 for implementation of the approved Frontend Technical Design v0.6 desktop reference UI while preserving the already completed résumé, contact, and feedback backend capabilities.
+- **v0.12 — 2026-08-25:** Completed Goal 4 with the approved résumé preview/download API, independent and contextual résumé/contact actions, dynamic non-sending greeting template, and report-linked feedback persistence.
 - **v0.11 — 2026-08-25:** Completed Goal 2 with the persisted matching-analysis API, deterministic backend Mock AI Service, PostgreSQL-backed conversation workflow, frontend HTTP integration, safe error contract, and end-to-end local validation.
 - **v0.10 — 2026-08-25:** Completed Goal 1A by realigning the frontend around a conversation message timeline and the authoritative text/Markdown matching-analysis response contract; Goal 2 is now ready.
 - **v0.9 — 2026-08-25:** Recorded Goal 0's user-provided actual implementation time as 21 minutes.
@@ -62,7 +66,7 @@ Before a Goal is marked complete, Codex must compare the implementation with tho
 - **Phase A — Demo with Mock AI:** In progress
 - **AI Design Gate:** Not ready; `docs/02_AI_System_Design.md` has not been created or finalized.
 - **Phase B — Real AI:** Deferred until the AI Design Gate is complete.
-- **Current coding readiness:** Goal 2 is complete. Goals 3 and 4 are ready to begin when requested.
+- **Current coding readiness:** Goal 4 is complete. Goal 3 is ready when requested; Goal 5 remains dependent on both Goals 3 and 4.
 
 ## 4. Pre-implementation Decisions
 
@@ -346,13 +350,30 @@ Conversation smoke test: matching analysis followed by multiple questions
 
 ## Goal 4 — Résumé, Contact, and Feedback Actions
 
-- **Status:** Not started
+- **Status:** Complete
 - **Depends on:** Goal 2
 - **Branch:** `goal/04-supporting-actions`
+- **Completed Functional Slice Time:** Approximately 15 minutes, based on the Codex Goal timer through implementation, automated validation, API and persistence smoke tests, browser checks, and documentation closeout on 2026-08-25. This historical time does not include the newly approved UI-alignment work.
+- **Reference UI Alignment Time:** Approximately 27 minutes, based on the Codex Goal timer through implementation, automated validation, API and persistence checks, desktop/compact browser validation, specification review, and documentation closeout on 2026-08-26.
+- **Feedback Interaction Refinement Time:** Approximately 8 minutes, based on the Codex Goal timer through document updates, implementation, automated validation, live persistence inspection, desktop/compact browser checks, and documentation closeout on 2026-08-26.
+
+### Post-completion Design Change
+
+The original functional slice completed résumé preview/download, contact, greeting copy, and report-linked feedback. Frontend Technical Design v0.6 subsequently approved a more specific desktop composition. Goal 4 was reopened for that visual and interaction alignment; the completed backend behavior remained valid and was not reimplemented or changed.
+
+### Authoritative References and Constraints
+
+- Product Requirement Document: F003 Matching Report, F004 Resume Preview, F006 Contact CTA, and F007 Report Feedback;
+- Frontend Technical Design v0.7: Sections 2.1–2.3, 3.3–3.7, 4.6–4.7, and 5.1–5.3;
+- Backend Technical Design: Section 5 `GET /api/resume` and `POST /api/feedback` contracts remain unchanged;
+- AI-generated matching content remains backend-provided text/Markdown; the frontend must not calculate evidence categories, counts, conclusions, or recommendations;
+- The same predefined static PDF remains the résumé preview/download source and future AI context;
+- Contact and greeting actions copy or expose information only and must not send a message automatically;
+- Helpful maps to feedback rating `5` and Not Helpful maps to rating `1`; after either action opens the dialog, at least one predefined reason or non-whitespace custom entry is required and is serialized through the existing `comment` field.
 
 ### Outcome
 
-Recruiters can review/download the fixed résumé, access the candidate contact action, and submit feedback associated with a matching report.
+Recruiters can move through the approved desktop entrance, matching, résumé, and contact experience; review/download the fixed résumé; access and copy candidate contact content; and submit message-linked feedback without leaving the evaluation context.
 
 ### Scope
 
@@ -364,7 +385,16 @@ Recruiters can review/download the fixed résumé, access the candidate contact 
 - Add the static contact CTA and recruiter-name greeting template;
 - Do not automatically send a message;
 - Implement `POST /api/feedback` and persist feedback against its conversation/message;
-- Add clear success and error feedback in the UI.
+- Add clear success and error feedback in the UI;
+- Align the Entrance View with the approved centered introduction, large 6,000-character JD input, example-fill action, character count, and disabled-until-valid analysis action;
+- Use the approved three-item workspace navigation for Job Matching, Resume Preview, and Contact Candidate, with the product brand acting as the Home control;
+- Keep one right-side workspace view active at a time and preserve the active conversation when moving between workspace views or Home;
+- Align the Conversation View with the submitted JD at the top, a vertically scrollable message area, contextual résumé/contact/helpful/not-helpful actions beneath the relevant AI reply, and the follow-up composer anchored at the bottom;
+- Align the Resume Preview View with the embedded original PDF, candidate name, and prominent download action;
+- Align the Contact View with separate email/phone cards and copy controls, optional recruiter name, greeting preview, and prominent copy-greeting action;
+- Apply the approved desktop visual direction and accessible icon interaction states without hard-coding the illustrative evidence or counts shown in the reference images.
+- Show a floating action-name label when a contextual icon receives pointer hover or keyboard focus;
+- Open a rating-specific modal for Helpful and Not Helpful, provide multi-select predefined reasons plus custom text, and keep Submit disabled until the recruiter supplies at least one of them.
 
 ### Completion Criteria
 
@@ -373,7 +403,18 @@ Recruiters can review/download the fixed résumé, access the candidate contact 
 - Contact information and greeting behavior are correct and do not send externally;
 - Valid feedback is persisted against the correct report context;
 - Invalid feedback returns the agreed safe error format;
-- Independent navigation to résumé and contact actions works.
+- Independent navigation to résumé and contact actions works;
+- Desktop entrance, matching, résumé, and contact views match the hierarchy and control placement in Frontend Technical Design Section 2.3;
+- The standalone Entrance View has no workspace sidebar, and the three workspace views share the approved persistent left navigation;
+- Navigation and Home transitions preserve the existing conversation unless a new analysis is intentionally submitted;
+- The Conversation View keeps its follow-up composer available while message content scrolls, without overlap or hidden primary actions;
+- Résumé, contact, Helpful, and Not Helpful actions are attached to the relevant AI reply and expose accessible names, keyboard focus, and visible selected/submission states;
+- Helpful and Not Helpful persist ratings `5` and `1` respectively against the correct conversation and message, with duplicate submission prevented;
+- Resume, contact, Helpful, and Not Helpful icons expose visible floating action-name labels on pointer hover and keyboard focus;
+- The feedback dialog provides rating-specific predefined reasons, supports multiple selections, and cannot submit without at least one selected reason or non-whitespace custom entry;
+- Selected reasons and custom text use the existing feedback `comment` field without changing the backend contract;
+- The frontend continues to render backend text/Markdown without introducing a frontend-owned AI-analysis schema;
+- The UI remains readable and operable at the agreed desktop demo viewport and a representative compact viewport.
 
 ### Validation
 
@@ -381,10 +422,15 @@ Recruiters can review/download the fixed résumé, access the candidate contact 
 cd backend && uv run pytest
 cd frontend && npm run test
 cd frontend && npm run type-check
+cd frontend && npm run lint
 cd frontend && npm run build
 File smoke test: GET /api/resume returns the expected PDF
-Feedback smoke test: POST /api/feedback persists the expected record
-Manual browser check: preview, download, contact, and feedback
+Feedback smoke test: Helpful and Not Helpful persist ratings 5 and 1 for the expected report message
+Manual browser check: entrance -> matching -> résumé -> matching -> contact -> matching, confirming conversation preservation
+Manual visual comparison: desktop entrance, matching, résumé, contact, reply actions, and bottom composer against Frontend Technical Design Section 2.3 references
+Compact viewport check: navigation, scrolling, form controls, PDF fallback/download, and copy/feedback states remain usable
+Feedback interaction check: icon hover/focus labels appear; both rating dialogs show the correct predefined reasons; empty submission is disabled; selected reasons/custom text enable submission
+Specification review: compare implementation against the Goal 4 authoritative references and record the result in the implementation log
 ```
 
 ## Goal 5 — Product Tracking and Deterministic AI Guardrails

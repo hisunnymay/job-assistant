@@ -30,14 +30,19 @@ def register_error_handlers(application: FastAPI) -> None:
 
     @application.exception_handler(RequestValidationError)
     async def handle_validation_error(
-        _request: Request,
+        request: Request,
         _error: RequestValidationError,
     ) -> JSONResponse:
+        message = (
+            "反馈格式无效，请检查评分和反馈内容。"
+            if request.url.path == "/api/feedback"
+            else "请求格式无效，请检查职位描述。"
+        )
         return JSONResponse(
             status_code=400,
             content={
                 "code": "INVALID_REQUEST",
-                "message": "请求格式无效，请检查职位描述。",
+                "message": message,
             },
         )
 
