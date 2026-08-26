@@ -5,6 +5,7 @@ interface JobDescriptionFormProps {
   value: string
   error?: string
   isSubmitting: boolean
+  canSubmit: boolean
   onChange(value: string): void
   onUseExample(): void
   onSubmit(event: FormEvent<HTMLFormElement>): void
@@ -14,6 +15,7 @@ export function JobDescriptionForm({
   value,
   error,
   isSubmitting,
+  canSubmit,
   onChange,
   onUseExample,
   onSubmit,
@@ -22,13 +24,24 @@ export function JobDescriptionForm({
 
   return (
     <form className="composer" onSubmit={onSubmit} noValidate>
-      <div className="composer-heading">
-        <div>
-          <h2>{zhCN.jobDescription.title}</h2>
-          <p>{zhCN.jobDescription.description}</p>
-        </div>
+      <label className="sr-only" htmlFor="job-description">
+        {zhCN.jobDescription.label}
+      </label>
+      <div className="composer-input-area">
+        <textarea
+          id="job-description"
+          name="jobDescription"
+          value={value}
+          placeholder={zhCN.jobDescription.placeholder}
+          rows={6}
+          maxLength={6000}
+          disabled={isSubmitting}
+          aria-invalid={Boolean(error)}
+          aria-describedby={errorId}
+          onChange={(event) => onChange(event.target.value)}
+        />
         <button
-          className="text-button"
+          className="text-button example-button"
           type="button"
           onClick={onUseExample}
           disabled={isSubmitting}
@@ -36,22 +49,6 @@ export function JobDescriptionForm({
           {zhCN.jobDescription.useExample}
         </button>
       </div>
-
-      <label className="sr-only" htmlFor="job-description">
-        {zhCN.jobDescription.label}
-      </label>
-      <textarea
-        id="job-description"
-        name="jobDescription"
-        value={value}
-        placeholder={zhCN.jobDescription.placeholder}
-        rows={6}
-        maxLength={6000}
-        disabled={isSubmitting}
-        aria-invalid={Boolean(error)}
-        aria-describedby={errorId}
-        onChange={(event) => onChange(event.target.value)}
-      />
 
       <div className="composer-footer">
         <div className="form-meta">
@@ -63,7 +60,11 @@ export function JobDescriptionForm({
           ) : null}
         </div>
 
-        <button className="primary-button" type="submit" disabled={isSubmitting}>
+        <button
+          className="primary-button"
+          type="submit"
+          disabled={isSubmitting || !canSubmit}
+        >
           {isSubmitting
             ? zhCN.jobDescription.submitting
             : zhCN.jobDescription.submit}

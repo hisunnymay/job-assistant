@@ -1,11 +1,18 @@
 import { useState, type FormEvent } from 'react'
+import { ContactPanel } from './components/ContactPanel'
 import { ConversationMessage } from './components/ConversationMessage'
+import { FeedbackPanel } from './components/FeedbackPanel'
+import { Icon } from './components/Icon'
 import { JobDescriptionForm } from './components/JobDescriptionForm'
+import { ResumePanel } from './components/ResumePanel'
+import { appConfig } from './config/env'
 import { zhCN } from './content/zh-CN'
 import {
   AnalysisClientError,
   createAnalysisClient,
 } from './services/analysisClient'
+import { createFeedbackClient } from './services/feedbackClient'
+import type { FeedbackClient } from './types/feedback'
 import type {
   AnalysisClient,
   ConversationMessage as ConversationMessageData,
@@ -13,34 +20,52 @@ import type {
 import './styles.css'
 
 type JourneyState = 'ready' | 'loading' | 'success' | 'failure'
+type WorkspaceView = 'home' | 'conversation' | 'resume' | 'contact'
 
 const minimumJobDescriptionLength = 40
 const defaultAnalysisClient = createAnalysisClient()
-
-const initialGuidanceMessage: ConversationMessageData = {
-  id: 'initial-guidance',
-  role: 'assistant',
-  messageType: 'initial_guidance',
-  content: zhCN.guidance.content,
-}
+const defaultFeedbackClient = createFeedbackClient()
+const resumeUrl = `${appConfig.apiBaseUrl.replace(/\/$/, '')}/api/resume`
 
 interface AppProps {
   analysisClient?: AnalysisClient
+  feedbackClient?: FeedbackClient
 }
 
-export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
+function getInitialView(): WorkspaceView {
+  if (window.location.hash === '#resume') {
+    return 'resume'
+  }
+
+  if (window.location.hash === '#contact') {
+    return 'contact'
+  }
+
+  return 'home'
+}
+
+export function App({
+  analysisClient = defaultAnalysisClient,
+  feedbackClient = defaultFeedbackClient,
+}: AppProps) {
   const [jobDescription, setJobDescription] = useState('')
   const [submittedJobDescription, setSubmittedJobDescription] = useState('')
   const [fieldError, setFieldError] = useState<string>()
   const [journeyState, setJourneyState] = useState<JourneyState>('ready')
+  const [activeView, setActiveView] = useState<WorkspaceView>(getInitialView)
   const [failureDescription, setFailureDescription] = useState<string>(
     zhCN.failure.description,
   )
   const [canRetryFailure, setCanRetryFailure] = useState(true)
-  const [messages, setMessages] = useState<ConversationMessageData[]>([
-    initialGuidanceMessage,
-  ])
+  const [messages, setMessages] = useState<ConversationMessageData[]>([])
   const [conversationId, setConversationId] = useState<string>()
+  const [matchingMessageId, setMatchingMessageId] = useState<string>()
+  const [submittedFeedbackRating, setSubmittedFeedbackRating] = useState<1 | 5>()
+
+  const normalizedJobDescription = jobDescription.trim()
+  const hasActiveConversation = Boolean(submittedJobDescription)
+  const canSubmitJobDescription =
+    normalizedJobDescription.length >= minimumJobDescriptionLength
 
   function validateJobDescription(value: string): string | undefined {
     if (!value) {
@@ -55,7 +80,7 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
   }
 
   async function requestAnalysis(
-    normalizedJobDescription: string,
+    description: string,
     appendJobDescription: boolean,
   ) {
     if (appendJobDescription) {
@@ -63,15 +88,13 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
         id: 'submitted-job-description',
         role: 'user',
         messageType: 'job_description',
-        content: normalizedJobDescription,
+        content: description,
       }
 
-      setMessages((currentMessages) => [
-        ...currentMessages,
-        jobDescriptionMessage,
-      ])
-      setSubmittedJobDescription(normalizedJobDescription)
+      setMessages([jobDescriptionMessage])
+      setSubmittedJobDescription(description)
       setJobDescription('')
+      setSubmittedFeedbackRating(undefined)
     }
 
     setJourneyState('loading')
@@ -79,7 +102,7 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
     setCanRetryFailure(true)
 
     try {
-      const response = await analysisClient.analyze(normalizedJobDescription)
+      const response = await analysisClient.analyze(description)
       const analysisMessage: ConversationMessageData = {
         id: response.messageId,
         role: 'assistant',
@@ -88,17 +111,21 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
       }
 
       setConversationId(response.conversationId)
-      setMessages((currentMessages) => [
-        ...currentMessages,
-        analysisMessage,
-      ])
+      setMatchingMessageId(response.messageId)
+      setMessages((currentMessages) => [...currentMessages, analysisMessage])
       setJourneyState('success')
     } catch (error) {
       if (error instanceof AnalysisClientError) {
         if (error.code === 'INVALID_REQUEST') {
           setFailureDescription(zhCN.failure.invalidRequest)
-          setJobDescription(normalizedJobDescription)
+          setJobDescription(description)
+          setFieldError(zhCN.failure.invalidRequest)
           setCanRetryFailure(false)
+          setSubmittedJobDescription('')
+          setMessages([])
+          setConversationId(undefined)
+          setMatchingMessageId(undefined)
+          setActiveView('home')
         } else if (error.code === 'AI_SERVICE_UNAVAILABLE') {
           setFailureDescription(zhCN.failure.aiUnavailable)
         }
@@ -109,7 +136,6 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const normalizedJobDescription = jobDescription.trim()
     const validationError = validateJobDescription(normalizedJobDescription)
 
     if (validationError) {
@@ -120,14 +146,18 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
     setFieldError(undefined)
     setFailureDescription(zhCN.failure.description)
     setCanRetryFailure(true)
+    setActiveView('conversation')
     void requestAnalysis(normalizedJobDescription, true)
   }
 
   function handleChange(value: string) {
     setJobDescription(value)
-    if (fieldError) {
-      setFieldError(undefined)
-    }
+    const normalizedValue = value.trim()
+    setFieldError(
+      normalizedValue && normalizedValue.length < minimumJobDescriptionLength
+        ? zhCN.jobDescription.shortError
+        : undefined,
+    )
   }
 
   function handleUseExample() {
@@ -139,115 +169,163 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
     void requestAnalysis(submittedJobDescription, false)
   }
 
-  function handleStartOver() {
-    setJobDescription('')
-    setSubmittedJobDescription('')
-    setFieldError(undefined)
-    setJourneyState('ready')
-    setMessages([initialGuidanceMessage])
-    setConversationId(undefined)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+  function showJobMatching() {
+    setActiveView(hasActiveConversation ? 'conversation' : 'home')
+  }
+
+  if (activeView === 'home') {
+    return (
+      <main className="entrance-page" id="main-content">
+        <section className="entrance-view" aria-labelledby="entrance-title">
+          <header className="entrance-intro">
+            <h1 id="entrance-title">{zhCN.hero.title}</h1>
+            <p>{zhCN.hero.introduction}</p>
+          </header>
+
+          {hasActiveConversation ? (
+            <button
+              className="return-conversation-button"
+              type="button"
+              onClick={() => setActiveView('conversation')}
+            >
+              {zhCN.navigation.returnToConversation}
+            </button>
+          ) : null}
+
+          <JobDescriptionForm
+            value={jobDescription}
+            error={fieldError}
+            isSubmitting={journeyState === 'loading'}
+            canSubmit={canSubmitJobDescription}
+            onChange={handleChange}
+            onUseExample={handleUseExample}
+            onSubmit={handleSubmit}
+          />
+        </section>
+      </main>
+    )
   }
 
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <a className="brand" href="#main-content" aria-label={zhCN.appName}>
-          <span className="brand-mark" aria-hidden="true">
-            {zhCN.brandMark}
-          </span>
-          <span>
-            <strong>{zhCN.appName}</strong>
-            <small>{zhCN.navigationLabel}</small>
-          </span>
-        </a>
-        <span className="demo-chip">{zhCN.demoChip}</span>
-      </header>
-
-      <main id="main-content">
-        <header className="workspace-intro">
-          <p className="eyebrow">{zhCN.hero.eyebrow}</p>
-          <h1>{zhCN.hero.title}</h1>
-          <p>{zhCN.hero.introduction}</p>
-        </header>
-
-        <section
-          className="conversation-shell"
-          aria-labelledby="conversation-title"
-          data-conversation-id={conversationId}
+    <div className="workspace-shell">
+      <aside className="sidebar">
+        <button
+          className="brand"
+          type="button"
+          aria-label={zhCN.navigation.home}
+          onClick={() => setActiveView('home')}
         >
-          <header className="conversation-header">
-            <div>
-              <h2 id="conversation-title">{zhCN.conversation.title}</h2>
-              <p>{zhCN.conversation.description}</p>
-            </div>
-            <span className="ready-status">
-              <span aria-hidden="true" />
-              {zhCN.conversation.ready}
-            </span>
-          </header>
+          {zhCN.appName}
+        </button>
+        <nav className="sidebar-nav" aria-label={zhCN.navigation.ariaLabel}>
+          <button
+            type="button"
+            aria-label={zhCN.navigation.assistant}
+            aria-current={activeView === 'conversation' ? 'page' : undefined}
+            onClick={showJobMatching}
+          >
+            <Icon name="briefcase" />
+            <span>{zhCN.navigation.assistant}</span>
+          </button>
+          <button
+            type="button"
+            aria-label={zhCN.navigation.resume}
+            aria-current={activeView === 'resume' ? 'page' : undefined}
+            onClick={() => setActiveView('resume')}
+          >
+            <Icon name="file" />
+            <span>{zhCN.navigation.resume}</span>
+          </button>
+          <button
+            type="button"
+            aria-label={zhCN.navigation.contact}
+            aria-current={activeView === 'contact' ? 'page' : undefined}
+            onClick={() => setActiveView('contact')}
+          >
+            <Icon name="user" />
+            <span>{zhCN.navigation.contact}</span>
+          </button>
+        </nav>
+      </aside>
 
-          <ol className="message-list" aria-live="polite">
-            {messages.map((message) => (
-              <ConversationMessage
-                key={message.id}
-                message={message}
-                isMockAnalysis={message.messageType === 'matching_analysis'}
-                onStartOver={
-                  message.messageType === 'matching_analysis'
-                    ? handleStartOver
-                    : undefined
-                }
-              />
-            ))}
+      <main className="workspace-main" id="main-content">
+        {activeView === 'conversation' ? (
+          <section
+            className="conversation-view"
+            aria-label={zhCN.conversation.title}
+            data-conversation-id={conversationId}
+          >
+            <div className="conversation-scroll">
+              <ol className="message-list" aria-live="polite">
+                {messages.map((message) => (
+                  <ConversationMessage
+                    key={message.id}
+                    message={message}
+                    actions={
+                      message.messageType === 'matching_analysis' ? (
+                        <div className="report-actions">
+                          <button
+                            className="icon-action"
+                            type="button"
+                            data-tooltip={zhCN.report.viewResume}
+                            aria-label={zhCN.report.viewResume}
+                            onClick={() => setActiveView('resume')}
+                          >
+                            <Icon name="file" />
+                          </button>
+                          <button
+                            className="icon-action"
+                            type="button"
+                            data-tooltip={zhCN.report.contactCandidate}
+                            aria-label={zhCN.report.contactCandidate}
+                            onClick={() => setActiveView('contact')}
+                          >
+                            <Icon name="user" />
+                          </button>
+                          {conversationId && matchingMessageId ? (
+                            <FeedbackPanel
+                              conversationId={conversationId}
+                              messageId={matchingMessageId}
+                              feedbackClient={feedbackClient}
+                              submittedRating={submittedFeedbackRating}
+                              onSubmitted={setSubmittedFeedbackRating}
+                            />
+                          ) : null}
+                        </div>
+                      ) : undefined
+                    }
+                  />
+                ))}
 
-            {journeyState === 'loading' ? (
-              <li className="message-row message-row-assistant">
-                <article
-                  className="message message-assistant status-message"
-                  aria-label={`${zhCN.conversation.assistantName}：${zhCN.loading.title}`}
-                  role="status"
-                >
-                  <div className="message-avatar" aria-hidden="true">
-                    {zhCN.conversation.assistantAvatar}
-                  </div>
-                  <div className="message-column">
-                    <div className="message-meta">
-                      <strong>{zhCN.conversation.assistantName}</strong>
-                    </div>
-                    <div className="message-bubble loading-bubble">
+                {journeyState === 'loading' ? (
+                  <li className="message-row message-row-assistant">
+                    <article
+                      className="status-message loading-message"
+                      aria-label={`${zhCN.conversation.assistantName}：${zhCN.loading.title}`}
+                      role="status"
+                    >
                       <span className="typing-indicator" aria-hidden="true">
                         <i />
                         <i />
                         <i />
                       </span>
                       <div>
-                        <h3>{zhCN.loading.title}</h3>
+                        <h2>{zhCN.loading.title}</h2>
                         <p>{zhCN.loading.description}</p>
                       </div>
-                    </div>
-                  </div>
-                </article>
-              </li>
-            ) : null}
+                    </article>
+                  </li>
+                ) : null}
 
-            {journeyState === 'failure' ? (
-              <li className="message-row message-row-assistant">
-                <article
-                  className="message message-assistant status-message"
-                  aria-label={`${zhCN.conversation.assistantName}：${zhCN.failure.title}`}
-                  role="alert"
-                >
-                  <div className="message-avatar" aria-hidden="true">
-                    {zhCN.conversation.assistantAvatar}
-                  </div>
-                  <div className="message-column">
-                    <div className="message-meta">
-                      <strong>{zhCN.conversation.assistantName}</strong>
-                    </div>
-                    <div className="message-bubble failure-bubble">
+                {journeyState === 'failure' ? (
+                  <li className="message-row message-row-assistant">
+                    <article
+                      className="status-message failure-message"
+                      aria-label={`${zhCN.conversation.assistantName}：${zhCN.failure.title}`}
+                      role="alert"
+                    >
                       <div>
-                        <h3>{zhCN.failure.title}</h3>
+                        <h2>{zhCN.failure.title}</h2>
                         <p>{failureDescription}</p>
                       </div>
                       {canRetryFailure ? (
@@ -259,25 +337,47 @@ export function App({ analysisClient = defaultAnalysisClient }: AppProps) {
                           {zhCN.failure.retry}
                         </button>
                       ) : null}
-                    </div>
-                  </div>
-                </article>
-              </li>
-            ) : null}
-          </ol>
+                    </article>
+                  </li>
+                ) : null}
+              </ol>
+            </div>
 
-          {journeyState === 'ready' ||
-          (journeyState === 'failure' && !canRetryFailure) ? (
-            <JobDescriptionForm
-              value={jobDescription}
-              error={fieldError}
-              isSubmitting={false}
-              onChange={handleChange}
-              onUseExample={handleUseExample}
-              onSubmit={handleSubmit}
-            />
-          ) : null}
-        </section>
+            <form
+              className="follow-up-composer"
+              aria-describedby="follow-up-unavailable"
+              onSubmit={(event) => event.preventDefault()}
+            >
+              <label className="sr-only" htmlFor="follow-up-question">
+                {zhCN.followUp.label}
+              </label>
+              <input
+                id="follow-up-question"
+                type="text"
+                placeholder={zhCN.followUp.placeholder}
+                disabled
+              />
+              <button type="submit" disabled>
+                {zhCN.followUp.send}
+              </button>
+              <span className="sr-only" id="follow-up-unavailable">
+                {zhCN.followUp.unavailable}
+              </span>
+            </form>
+          </section>
+        ) : null}
+
+        {activeView === 'resume' ? (
+          <section className="workspace-view resume-view" aria-label={zhCN.resume.title}>
+            <ResumePanel resumeUrl={resumeUrl} />
+          </section>
+        ) : null}
+
+        {activeView === 'contact' ? (
+          <section className="workspace-view contact-view" aria-label={zhCN.contact.title}>
+            <ContactPanel />
+          </section>
+        ) : null}
       </main>
     </div>
   )
