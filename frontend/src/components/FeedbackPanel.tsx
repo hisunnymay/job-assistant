@@ -13,11 +13,11 @@ function serializeFeedbackComment(
   comment: string,
 ) {
   return [
-    selectedOptions.length > 0
-      ? `${zhCN.feedback.selectedReasonsPrefix}${selectedOptions.join('；')}`
-      : '',
     comment.trim()
       ? `${zhCN.feedback.customFeedbackPrefix}${comment.trim()}`
+      : '',
+    selectedOptions.length > 0
+      ? `${zhCN.feedback.selectedReasonsPrefix}${selectedOptions.join('；')}`
       : '',
   ]
     .filter(Boolean)
