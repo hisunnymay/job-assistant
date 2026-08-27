@@ -6,7 +6,7 @@
 | --- | --- |
 | Document Name | AI Job Fit Assistant AI System Design |
 | Document Type | AI System Design |
-| Version | v1.1 |
+| Version | v1.4 |
 | Status | Final |
 | Last Updated | 2026-08-27 |
 | Related Documents | Product Requirement Document, Frontend Technical Design, Backend Technical Design, AI System Strategy Comparison, Implementation Plan |
@@ -15,6 +15,9 @@
 
 | Version | Date | Change | Reason |
 | --- | --- | --- | --- |
+| v1.4 | 2026-08-27 | Distinguished invalid-structured-output correction retries from transient provider retries and defined the bounded Mini compatibility check. | Improve second-attempt recovery without weakening validation or leaking raw output, while measuring whether the lower-latency model is viable before any default-model decision. |
+| v1.3 | 2026-08-27 | Replaced runtime direct-PDF input with the user-verified fixed résumé Markdown while retaining the paired PDF for recruiter preview/download, strict internal output, and unchanged public contracts. | For the fixed-candidate MVP, sending the verified text avoids repeated document parsing and creates a simpler latency and reliability path without adding runtime extraction or upload scope. |
+| v1.2 | 2026-08-27 | Corrected the Ark document-input integration to use the Responses API with inline Base64 `input_file`, Responses structured output, and thinking disabled while preserving the direct-PDF and public-contract boundaries. | Provider clarification established that PDF document input is documented on Ark's Responses API rather than Chat Completions. |
 | v1.1 | 2026-08-27 | Completed the internal output schemas and invariants, unified retry accounting, added workflow failure branches, required provider-compatibility validation, and clarified evaluation-gate sequencing. | Resolve implementation ambiguity without changing product scope, persistence ownership, or public API contracts. |
 | v1.0 | 2026-08-27 | Finalized the initial real-AI architecture, provider, model, direct-PDF approach, structured output, validation, retry, and tracing decisions. | Open the real-AI planning stage after the Mock-AI demo. |
 
@@ -61,13 +64,14 @@ LLM Provider
 - **LLM provider:** Volcengine Ark
 - **Model:** `doubao-seed-2-1-pro-260628`
 - **AI integration boundary:** Backend AI Service
-- **Primary provider integration approach:** LangChain `ChatOpenAI` through Ark's OpenAI-compatible API
-- **Fallback provider integration approach:** Use the Volcengine Ark Python SDK only if a required Ark-specific capability cannot be used correctly through the OpenAI-compatible path
-- **Resume input approach:** Pass the original predefined PDF directly to the model
-- **MVP PDF transport:** `file_data` using Base64-encoded PDF content
-- **Backend PDF extraction:** Not required
+- **Primary provider integration approach:** LangChain `ChatOpenAI` with `use_responses_api = true` through Ark's OpenAI-compatible Responses API
+- **Fallback provider integration approach:** Use the Volcengine Ark Python SDK only if a required Responses API capability cannot be represented correctly through `ChatOpenAI`
+- **Resume input approach:** Send the user-verified static `mei_chang_resume.md` resource as model text context
+- **Recruiter artifact:** Retain the paired fixed `mei_chang_resume.pdf` for preview/download
+- **Backend PDF extraction:** None at request time; the user supplies and verifies the fixed Markdown resource
 - **RAG:** Not required for the MVP
-- **Structured output:** `response_format.type = json_schema` with `strict = true`
+- **Structured output:** Responses API `text.format.type = json_schema` with `strict = true`
+- **Thinking mode:** Explicitly disabled for the strict structured matching workflow
 
 Goal 7 must expose the selected integration through validated backend settings such as `ARK_API_KEY`, `ARK_BASE_URL`, `ARK_MODEL`, and a finite request-timeout setting. Only the API key is secret; no provider setting or credential is exposed to the frontend or committed with a real value.
 
@@ -81,19 +85,19 @@ LangGraph
 = workflow and state orchestration
 ```
 
-Ark exposes an OpenAI-compatible Chat Completions API. `ChatOpenAI` should be configured with the API base URL rather than the full operation URL:
+Ark exposes an OpenAI-compatible Responses API. `ChatOpenAI` should be configured with the API base URL and `use_responses_api = true` rather than the full operation URL:
 
 ```text
 Base URL
 https://ark.cn-beijing.volces.com/api/v3
 
-Chat Completions operation
-https://ark.cn-beijing.volces.com/api/v3/chat/completions
+Responses operation
+https://ark.cn-beijing.volces.com/api/v3/responses
 ```
 
-The preferred implementation is to keep the LangChain-facing model interface standard and configure the Ark base URL, API key, and model ID. If Ark-specific file or structured-output behavior is not represented correctly through that compatibility layer, the implementation may use the native Volcengine Ark Python SDK inside the same AI Service boundary without changing the frontend, backend API contracts, or LangGraph workflow design.
+The preferred implementation keeps the LangChain-facing model interface standard and configures the Ark base URL, API key, model ID, and Responses API mode. LangChain converts the fixed résumé and dynamic workflow content to Responses API `input_text` and the strict schema to `text.format`. If an Ark-specific Responses API behavior is not represented correctly through that compatibility layer, the implementation may use the native Volcengine Ark Python SDK inside the same AI Service boundary without changing the frontend, backend API contracts, or LangGraph workflow design.
 
-The selected model `doubao-seed-2-1-pro-260628` is selected on the basis that it supports direct PDF input, `json_schema` structured output with `strict = true`, and using both capabilities in the same Chat Completions request. Goal 7 must verify that exact combination with the repository's fixed PDF and production-shaped schemas through the primary `ChatOpenAI` path before the adapter is considered complete. If the compatibility path fails, use the native Ark SDK fallback; if both paths fail, stop and request a design decision rather than adding extraction or changing the public API.
+Goal 7 must verify the exact fixed Markdown plus strict production-shaped schemas through the primary `ChatOpenAI` Responses path with `doubao-seed-2-1-pro-260628` before the corrected adapter is considered complete. If that client path cannot represent a required Responses capability, use the native Ark SDK fallback; if both paths fail, stop and request a design decision rather than weakening validation, adding request-time extraction, streaming, or a public-API change.
 
 The AI design should remain provider-replaceable behind the backend AI Service boundary.
 
@@ -101,21 +105,19 @@ The AI design should remain provider-replaceable behind the backend AI Service b
 
 ### 3.1 Candidate Source
 
-The only factual candidate source for the MVP is the predefined candidate resume PDF.
+The MVP candidate resource is one approved, fixed pair: the recruiter-visible PDF and the user-verified Markdown used at runtime by the AI Service. The Markdown is the only candidate-fact input sent to the model and must not be edited independently without repeating user verification and updating its approved digest.
 
 ```text
-Predefined Resume PDF
+User-verified Resume Markdown
         ↓
-LangChain / Volcengine Ark PDF Input
+LangChain / Volcengine Ark Text Input
         ↓
 Matching or Follow-up Workflow
 ```
 
-The original PDF is passed to Volcengine Ark in a provider-supported file format.
+The original `mei_chang_resume.pdf` remains the preview/download artifact and is not sent to Ark. The AI Service loads the exact UTF-8 `mei_chang_resume.md`, verifies its fixed filename and SHA-256 before any provider call, places the stable résumé text before dynamic JD or conversation text, and sends text-only Responses input. This creates no provider file resource.
 
-The approved Ark transport accepts direct PDF input through `file_data`, `file_id`, or `file_url`, subject to the Goal 7 compatibility gate for the exact model and client path. For the MVP's fixed two-page résumé, `file_data` is selected because it avoids introducing a separate file-upload lifecycle. The request includes the stable filename `mei_chang_resume.pdf` and a `data:application/pdf;base64,...` value; it does not create a provider-side file resource.
-
-No separate candidate text source, backend extraction pipeline, or RAG knowledge base is required for the MVP.
+No request-time extraction pipeline, provider-managed file lifecycle, résumé upload/management, or RAG knowledge base is required for the MVP.
 
 ### 3.2 Matching Analysis
 
@@ -123,7 +125,7 @@ Input:
 
 ```text
 - jobDescription
-- candidateResumePdf
+- candidateResumeMarkdown
 ```
 
 Internal structured output:
@@ -148,7 +150,7 @@ MatchingAnalysisResult
 
 `importance` is derived only from priority language in the job description. Use `unspecified` when the job description does not establish whether a requirement is required or preferred; the model must not invent priority.
 
-Each `EvidenceItem` must contain a short, faithful résumé excerpt or close factual paraphrase and a recruiter-checkable locator such as page plus visible section heading. A source reference is not evidence by itself and must not point to a previous AI message.
+Each `EvidenceItem` must contain a short, faithful résumé excerpt or close factual paraphrase and a recruiter-checkable locator using a visible heading from the approved Markdown. A source reference is not evidence by itself and must not point to a previous AI message or invent a PDF page number that is absent from the model input.
 
 Matching-result invariants:
 
@@ -159,6 +161,8 @@ Matching-result invariants:
 
 The AI returns structured meaning internally. The Pydantic model enforces these cross-field invariants after provider-level schema validation.
 
+Before deterministic Markdown rendering, every provider-controlled string is normalized to one line and Markdown control characters are escaped. This prevents model text from creating headings, links, images, HTML-like content, or other presentation structure beyond the renderer-owned template. The strict schema and source-reference whitelist remain the semantic validation boundary.
+
 The result is validated and then rendered into Markdown for the existing frontend/backend API.
 
 ### 3.3 Follow-up Question
@@ -167,7 +171,7 @@ Input:
 
 ```text
 - currentQuestion
-- candidateResumePdf
+- candidateResumeMarkdown
 - conversationHistory
 ```
 
@@ -214,7 +218,7 @@ The MVP uses two core AI workflows.
 ```text
 Job Description
 +
-Candidate Resume PDF
+Candidate Resume Markdown
         ↓
 Generate Structured Matching Analysis
         ↓
@@ -237,7 +241,7 @@ The first version uses **one primary LLM attempt** for:
 ```text
 Current Question
 +
-Candidate Resume PDF
+Candidate Resume Markdown
 +
 Conversation History
         ↓
@@ -292,8 +296,8 @@ LangGraph persistence/checkpointing is not required for the MVP.
 ### Evidence Rules
 
 ```text
-Candidate Resume PDF
-= factual candidate source of truth
+User-verified Candidate Resume Markdown
+= runtime factual candidate source paired with the recruiter-visible PDF
 
 Conversation History
 = interaction context
@@ -318,7 +322,7 @@ The selected model uses structured response output.
 Preferred response mode:
 
 ```text
-response_format.type = json_schema
+text.format.type = json_schema
 strict = true
 ```
 
@@ -356,10 +360,16 @@ The MVP uses one unified retry budget for each matching or follow-up execution:
 - Retryable conditions: a transient connection/timeout failure, a provider rate-limit or temporary-service failure, or an invalid structured result;
 - Non-retryable conditions: authentication/authorization failure, invalid request or unsupported-model/capability error, safety refusal, and any other permanent provider error;
 - Library-level automatic retries must be disabled so they cannot multiply the workflow budget;
-- Each provider attempt uses a finite backend-configured timeout. Goal 7 must validate the timeout against the fixed PDF and deployment gateway before release;
+- Each provider attempt uses a finite backend-configured timeout. Goal 7 must validate the timeout against the fixed Markdown and deployment gateway before release;
 - Exhaustion returns the existing safe AI-processing error. It must not persist an assistant message or expose raw provider details.
 
+If and only if the first provider result fails parsing, strict schema validation, or Section 3 invariant validation, the second request adds one short generic correction instruction telling the model to return a complete result that satisfies the already supplied JSON Schema and field rules. The correction must not include the raw first response, validation exception text, field-level internal diagnostics, secrets, or user content beyond the original request. The original strict schema, invariant checks, source-heading whitelist, and model inputs remain unchanged.
+
+When the first attempt instead fails because of an approved transient network, timeout, rate-limit, or temporary-service condition, the second attempt reuses the original request without the structured-output correction. Permanent failures do not retry. These branches share the same two-attempt ceiling; no failure sequence can create a third call.
+
 A second provider call is a retry, not another workflow stage. No evaluator loop, background queue, or distributed retry infrastructure is added for the MVP.
+
+Goal 7A may run one matching analysis and one follow-up with `doubao-seed-2-0-mini-260428`, after deterministic tests pass and the user separately approves up to four provider calls and their cost. The run must use the same fixed Markdown, prompts, strict schemas, invariants, source rules, thinking setting, and public API path as the Pro baseline. Its privacy-safe record contains only model/client identifiers, first-attempt validity, retry occurrence, total duration, schema/source and prohibited-behavior rule results, and a comparison with the 34.28-second Pro baseline. It must not contain the résumé, job description, question, prompt, raw provider payload/response, or generated Markdown. The result does not change the configured default model or `.env` without a separate user decision.
 
 ## 7. Backend Integration
 
@@ -540,14 +550,15 @@ Model
 
 Integration
 → LangChain ChatOpenAI
-→ Ark OpenAI-compatible API
+→ use_responses_api=true
+→ Ark OpenAI-compatible Responses API
 
 Native Ark SDK
 → fallback only
 
 Resume input
-→ direct PDF
-→ file_data for MVP
+→ user-verified fixed Markdown
+→ text-only Responses input
 
 Structured output
 → json_schema + strict=true
@@ -561,13 +572,14 @@ Invalid-output retry
 → no stacked client retries
 
 Compatibility gate
-→ fixed repository PDF
+→ fixed repository Markdown and approved SHA-256
 → production-shaped matching and follow-up schemas
-→ primary ChatOpenAI path first
+→ primary ChatOpenAI Responses path first
 → native Ark SDK fallback only if required
 
 Model parameters
-→ provider defaults initially
+→ thinking disabled for strict structured matching
+→ other provider defaults initially
 
 Logging
 → backend structured logs

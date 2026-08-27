@@ -7,7 +7,7 @@
 | ----------------- | -------------------------------------------------------------------------------------- |
 | Document Name     | AI Job Fit Assistant Frontend Technical Design                                         |
 | Document Type     | Frontend Technical Design                                                              |
-| Version           | v0.9                                                                                   |
+| Version           | v1.0                                                                                   |
 | Status            | Finalized                                                                              |
 | Last Updated      | 2026-08-27                                                                             |
 | Related Documents | Product Requirement Document, Lightweight AI Design Decision, Backend Technical Design |
@@ -17,6 +17,7 @@
 
 | Version | Date | Change | Reason |
 | --- | --- | --- | --- |
+| v1.0 | 2026-08-27 | Added the static example-report mode and truthful elapsed-time presentation for matching and follow-up requests. | Provide immediate report value and accurate synchronous-AI waiting feedback without new APIs, fake progress, or frontend AI reasoning. |
 | v0.9 | 2026-08-27 | Distinguished permanent tracking rejections from retryable delivery failures in the bounded browser queue. | Prevent one invalid event from blocking later valid analytics events while retaining transient failures for retry. |
 | v0.8 | 2026-08-27 | Defined centralized delivery, privacy-safe event payloads, pseudonymous session identity, and a bounded retry queue for all six S001 tracking events. | Ensure frontend tracking supports aggregate, cross-session MVP metric evaluation without blocking the recruiter journey. |
 | v0.7 | 2026-08-26 | Required a meaningful feedback contribution after a recruiter selects Helpful or Not Helpful, added rating-specific predefined reasons, and required visible hover/focus labels for contextual icon actions. | Reduce empty feedback submissions and make compact icon actions easier to understand without changing the feedback API or the PRD's voluntary initiation rule. |
@@ -121,7 +122,8 @@ The Entrance View uses the full available desktop canvas and does not display th
 ```text
 Entrance View
 ├── Product Introduction
-└── Job Description Input
+├── Job Description Input
+└── Immediate Example Report Action
 
 Job Assistant Workspace
 ├── Persistent Left Navigation
@@ -166,9 +168,10 @@ It includes:
 
 - A brief explanation of the product and fixed-candidate scope;
 - Job description input;
+- A distinct “立即查看示例报告” action;
 - A clear action to begin analysis.
 
-Submitting a valid job description transitions the right workspace to the Conversation View.
+Submitting a valid job description transitions the right workspace to the Conversation View. Opening the example action transitions immediately to the same Conversation View and report renderer using checked static Markdown; it does not submit the example job description to the backend.
 
 #### Conversation View
 
@@ -325,6 +328,12 @@ Available actions:
 - Submit Feedback;
 - Ask Follow-up Questions through the conversation input.
 
+#### Example Report Mode
+
+The example report uses the fixed candidate, the existing example job description, and a human-checked static Markdown resource. It is visibly labelled “示例报告” and is rendered through the same `ConversationMessage` and Markdown path as a formal matching report. The frontend must not call the analysis or follow-up clients, synthesize report reasoning, create a Conversation identifier, submit feedback, or emit `matching_report_generated` when the example is opened.
+
+The example report may retain résumé and contact actions. Feedback is unavailable because there is no persisted report. The follow-up composer is replaced or disabled with a clear invitation to return Home, submit the recruiter's own job description, and generate a formal report before asking questions.
+
 
 
 ### 3.4 Resume Preview
@@ -460,6 +469,10 @@ The frontend should provide:
 - Processing status during AI generation;
 - Clear feedback while waiting for backend responses;
 - Result display after processing completes.
+
+For both initial matching generation and follow-up generation, the visible status states `通常需要约 30–60 秒` and shows `已等待 N 秒`, starting at zero and updating from actual frontend elapsed time. After the elapsed value exceeds 60 seconds, it additionally states that complex roles may take longer. It must not show a percentage, name an unconfirmed backend stage, or imply progress the frontend cannot observe.
+
+Each request owns one timer lifecycle. Success, failure, a retry restart, navigation away from the Conversation View, and component unmount stop the active interval and reset its elapsed value. Returning to an active result must not resurrect an old timer. The loading container retains `role="status"`; the elapsed display must avoid unnecessarily re-announcing the whole status every second to assistive technology.
 
 
 

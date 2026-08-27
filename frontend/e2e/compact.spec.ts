@@ -4,7 +4,25 @@ import { zhCN } from '../src/content/zh-CN'
 test('keeps the compact recruiter journey readable and keyboard operable', async ({
   page,
 }) => {
-  await page.goto('/#resume')
+  await page.goto('/')
+  await page
+    .getByRole('button', { name: zhCN.jobDescription.viewExampleReport })
+    .click()
+  await expect(
+    page.getByRole('article', {
+      name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
+    }),
+  ).toContainText(zhCN.report.exampleModeLabel)
+  await expect(
+    page.getByRole('heading', { name: zhCN.report.exampleFollowUpTitle }),
+  ).toBeVisible()
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+
+  await page.getByRole('button', { name: zhCN.navigation.resume }).click()
   await expect(page.getByRole('heading', { name: zhCN.resume.title })).toBeVisible()
   await expect(page.getByRole('navigation', { name: zhCN.navigation.ariaLabel })).toBeVisible()
   expect(

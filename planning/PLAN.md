@@ -2,14 +2,20 @@
 
 ## Document Information
 
-- **Version:** v0.27
-- **Status:** Draft — AI Design Gate Complete; Goal 7 Ready
+- **Version:** v0.33
+- **Status:** Draft — Goal 7A Complete; Goal 8 Ready
 - **Owner:** Mei Chang
 - **Last Updated:** 2026-08-27
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.33 — 2026-08-27:** Completed Goal 7A with the provider-free static example, truthful waiting timer, differentiated safe retry behavior, Bugbot fixes, full regression/conformance validation, and a privacy-safe Mini run that was materially faster but retained the Pro default pending broader evidence-calibration evaluation.
+- **v0.32 — 2026-08-27:** Started Goal 7A with a provider-free static example report, truthful elapsed waiting states, invalid-output-only correction retries, and a separately authorized Mini matching/follow-up compatibility comparison that cannot change the default model automatically.
+- **v0.31 — 2026-08-27:** Completed the verified-text Goal 7 correction with fixed-resource integrity and source-reference guardrails, text-only stable-prefix Ark transport, Pro matching/follow-up live validation in 34.28 seconds with two first-attempt successes, Bugbot fixes, and full regression/conformance closeout.
+- **v0.30 — 2026-08-27:** Reopened Goal 7 to use the user-verified fixed résumé Markdown as runtime AI context while retaining the paired PDF for recruiter preview/download, strict internal output, bounded retries, and unchanged public contracts.
+- **v0.29 — 2026-08-27:** Completed Goal 7 through the corrected Ark Responses API path with fixed-PDF strict output, bounded retries, preserved contracts and persistence semantics, live matching/follow-up validation, independent review fixes, full regression/privacy checks, and implementation-log closeout.
+- **v0.28 — 2026-08-27:** Corrected Goal 7 to use Ark's documented Responses API for inline PDF input and strict structured output, with thinking disabled and all direct-PDF, non-streaming, retry, privacy, persistence, and public-contract boundaries preserved.
 - **v0.27 — 2026-08-27:** Completed the AI Design Gate and made Goals 7–9 implementation-ready from AI System Design v1.1 and Backend Technical Design v0.6, including exact authority, configuration, internal contracts, retry/failure semantics, live-provider/evaluation commands, release gates, and external prerequisites.
 - **v0.26 — 2026-08-27:** Completed Goal 6 with isolated Playwright journeys, recoverable error coverage, provider-neutral Docker demo packaging, gateway-level Basic Auth, clean-start smoke validation, independent Bugbot review, and specification-conformance closeout.
 - **v0.25 — 2026-08-27:** Started Goal 6 with the approved provider-neutral single-host Docker target, desktop and compact Chrome accessibility scope, Nginx Basic Auth gateway, Playwright end-to-end coverage, clean-setup validation, and independent-review requirements.
@@ -77,9 +83,9 @@ Before a Goal is marked complete, Codex must compare the implementation with tho
 ## 3. Plan Status
 
 - **Phase A — Demo with Mock AI:** Complete
-- **AI Design Gate:** Complete through AI System Design v1.1 and Backend Technical Design v0.6.
-- **Phase B — Real AI:** Ready to begin with Goal 7.
-- **Current coding readiness:** Goals 0–6 are complete with no unresolved conformance mismatch. Goal 7 is implementation-ready; its live compatibility check and completion require a user-supplied Ark API key. Goals 8 and 9 are fully scoped and become executable through their stated dependency and external-input gates.
+- **AI Design Gate:** Complete through AI System Design v1.3 and Backend Technical Design v0.8.
+- **Phase B — Real AI:** Goals 7 and 7A are complete through the verified-text Pro path and bounded Mini compatibility check; Goal 8 is next and retains its separate provider-call approval gate.
+- **Current coding readiness:** Goals 0–7A are complete. Goal 8 is fully scoped and ready; Goal 9 becomes executable after Goal 8 and its deployment decisions.
 
 ## 4. Pre-implementation Decisions
 
@@ -98,30 +104,29 @@ These are agreed project inputs, not a coding Goal.
 - **Backend validation:** Ruff, mypy, pytest, and FastAPI `TestClient`.
 - **End-to-end validation:** Playwright, introduced when Goal 6 requires full-journey coverage.
 
-### Candidate Résumé PDF
+### Fixed Candidate Résumé Resource
 
-- **Status:** Confirmed and verified.
-- **Repository location:** `backend/app/resources/resume/mei_chang_resume.pdf`.
-- **SHA-256:** `20a4d191dcc675b67a55da4296c2200cf2ceed1b3deb9aca4fbdf9e5e8cb08bd`.
-- The file is an unencrypted, two-page A4 PDF and renders correctly.
-- Use this exact, unmodified file for recruiter preview/download and later AI context. Do not add backend extraction or preprocessing.
+- **Status:** Confirmed; the Markdown was supplied and verified by the user.
+- **Recruiter preview/download:** `backend/app/resources/resume/mei_chang_resume.pdf`, SHA-256 `20a4d191dcc675b67a55da4296c2200cf2ceed1b3deb9aca4fbdf9e5e8cb08bd`.
+- **Runtime AI context:** `backend/app/resources/resume/mei_chang_resume.md`, SHA-256 `9e1db40802663dd49fc5ece9637a7b386f3f7a7dcc552bdc7444ae1cf17e1c04`.
+- Treat both files as one approved fixed resource. Do not add request-time extraction/preprocessing, résumé upload/management, or independently edit either representation without renewed verification and digest updates.
 
 Already finalized:
 
 - Frontend: React + TypeScript + Vite;
 - Backend: Python + FastAPI;
 - Demo AI: deterministic mock behind the AI Service boundary;
-- Real AI: Volcengine Ark model `doubao-seed-2-1-pro-260628` through LangChain `ChatOpenAI` and an execution-local LangGraph workflow, with the native Ark Python SDK allowed only as the approved compatibility fallback.
+- Real AI: Volcengine Ark model `doubao-seed-2-1-pro-260628` through LangChain `ChatOpenAI` in Responses API mode and an execution-local LangGraph workflow, with the native Ark Python SDK allowed only as the approved compatibility fallback.
 
 ### Real-AI Implementation Decisions
 
 - Use one AI Service implementation for both matching and follow-up protocols. Keep `MockAIService` for deterministic automated tests and explicit Mock-mode runs.
 - Select the adapter through validated backend configuration: `AI_PROVIDER=mock|ark`, `ARK_API_KEY`, `ARK_BASE_URL`, `ARK_MODEL`, and a positive finite `ARK_REQUEST_TIMEOUT_SECONDS` value. Use `https://ark.cn-beijing.volces.com/api/v3` and `doubao-seed-2-1-pro-260628` as the approved Ark defaults.
-- Send the exact fixed résumé as `mei_chang_resume.pdf` with a `data:application/pdf;base64,...` `file_data` value. Do not add provider-side file lifecycle, backend extraction, preprocessing, RAG, or a required résumé text mirror.
-- Use internal strict `json_schema` output backed by the Pydantic schemas and cross-field invariants in AI System Design Section 3. Render only validated results into the unchanged public text/Markdown `content` field.
+- Send the exact user-verified `mei_chang_resume.md` as a stable UTF-8 `input_text` block before dynamic job-description or conversation content. Verify its approved filename and SHA-256 before every provider execution. The paired PDF remains the recruiter preview/download source.
+- Use Ark's Responses API with text-only input and the internal strict `json_schema` through `text.format`. Explicitly disable thinking, keep the request non-streaming, validate with the Pydantic schemas and cross-field invariants in AI System Design Section 3, and render only validated results into the unchanged public text/Markdown `content` field.
 - Use one unified budget of two provider attempts total. Disable library retries; allow the second attempt only for an approved transient failure or invalid structured result. Preserve existing atomic rollback and completed-identical-follow-up replay semantics.
 - Keep prompts, provider payloads, raw provider responses, résumé/JD/question content, secrets, and internal errors out of persistence and production logs. Generate and log only privacy-safe correlation and execution metadata.
-- Treat the exact PDF-plus-strict-schema provider combination as a Goal 7 completion gate, not as permission to alter the public API if compatibility fails.
+- Treat the exact fixed-Markdown-plus-strict-schema provider combination as a Goal 7 completion gate, not as permission to alter the public API if compatibility fails.
 
 ### Standard Validation Commands
 
@@ -668,10 +673,10 @@ Clean-environment setup and smoke test
 
 **Status: Complete.** Phase B may begin with Goal 7 because:
 
-- `docs/02_AI_System_Design.md` v1.1 is finalized and authoritative for the real-AI implementation;
-- Backend Technical Design v0.6 aligns the selected provider/framework, internal schemas, validation, retry, transaction, and public-contract boundaries;
+- `docs/02_AI_System_Design.md` v1.3 is finalized and authoritative for the real-AI implementation;
+- Backend Technical Design v0.8 aligns the selected provider/framework, text-only Responses transport, internal schemas, validation, retry, transaction, and public-contract boundaries;
 - Volcengine Ark, `doubao-seed-2-1-pro-260628`, LangChain `ChatOpenAI`, and execution-local LangGraph orchestration are selected;
-- Direct fixed-PDF `file_data`, strict internal `json_schema`, Pydantic invariants, Markdown rendering, and two-attempt retry behavior are defined;
+- Fixed verified-Markdown `input_text`, strict internal `json_schema`, Pydantic invariants, Markdown rendering, and two-attempt retry behavior are defined;
 - The evaluation matrix categories and zero-tolerance release guardrails are defined. Goal 8 intentionally sets graded numerical thresholds after recording a baseline;
 - Required configuration names and secret-handling rules are known.
 
@@ -681,13 +686,13 @@ The following are external execution inputs, not unresolved design decisions:
 - Goal 8 live run count and expected provider cost must be approved before the baseline/tuning calls are made;
 - Hosting provider, domain, HTTPS termination, and China-network accessibility must be selected and approved before Goal 9 can complete live deployment validation.
 
-If the primary `ChatOpenAI` path cannot use the fixed PDF and strict schema together, try the approved native Ark SDK fallback inside the same AI Service boundary. If that also fails, stop and request a design decision instead of adding extraction, weakening the schema silently, or changing the public API.
+If the primary `ChatOpenAI` Responses path cannot use the fixed Markdown and strict schema together, try the approved native Ark SDK fallback inside the same AI Service boundary. If that also fails, stop and request a design decision instead of adding a provider file lifecycle, streaming, extraction, upload scope, weakening the schema silently, or changing the public API.
 
 # Phase B — Real AI
 
 ## Goal 7 — Real AI Provider Integration
 
-- **Status:** Ready to implement; live completion requires `ARK_API_KEY`
+- **Status:** Complete
 - **Depends on:** Goal 6 and AI Design Gate
 - **Branch:** `goal/07-real-ai-integration`
 
@@ -702,15 +707,15 @@ If the primary `ChatOpenAI` path cannot use the fixed PDF and strict schema toge
 
 - Product Requirement Document F001, F003, and F005;
 - Lightweight AI Design Decision Sections 1.2–1.4 and 2.2;
-- AI System Design v1.1 Sections 2–7 and 10–11;
-- Backend Technical Design v0.6 Sections 2.2, 3.2, 4.1–4.2, 5–6, 7.4, and 7.6;
+- AI System Design v1.3 Sections 2–7 and 10–11;
+- Backend Technical Design v0.8 Sections 2.2, 3.2, 4.1–4.2, 5–6, 7.4, and 7.6;
 - `AGENTS.md` architecture, prohibitions, conformance, documentation, and Git rules.
 
 Non-negotiable constraints:
 
 - Keep Controller → Service → AI Service / Repository boundaries. Provider selection and provider calls must not move into controllers or the frontend;
 - Keep the Service Layer as conversation-context and transaction owner. The AI Service must not load or persist conversations;
-- Keep the exact fixed PDF, SHA-256, and direct `file_data` path. No extraction, text mirror, preprocessing, provider-managed upload lifecycle, or RAG;
+- Keep the exact fixed PDF for preview/download and the exact user-verified Markdown, filename, and SHA-256 for runtime AI context. No request-time extraction/preprocessing, provider-managed upload lifecycle, upload/management feature, or RAG;
 - Keep strict output internal. The frontend continues to receive text/Markdown only and must not reason over a report schema;
 - Preserve completed-identical-follow-up replay, atomic matching rollback, and atomic follow-up rollback across both provider attempts;
 - Disable client-library retries and enforce two provider attempts total across invalid output and transient failures;
@@ -758,7 +763,7 @@ Provider or validation exhaustion remains a safe `503` response using the existi
 
 ### Implementation Scope and Named Files
 
-- Add and lock compatible `langchain`, `langgraph`, and `langchain-openai` runtime dependencies in `backend/pyproject.toml` and `backend/uv.lock`. Do not add LangSmith as a production dependency. Add the native Ark SDK only if the primary compatibility test proves it is required;
+- Add and lock compatible `langchain`, `langgraph`, and `langchain-openai` runtime dependencies in `backend/pyproject.toml` and `backend/uv.lock`. Do not add LangSmith as a production dependency. Add the native Ark SDK only if the primary Responses compatibility test proves it is required;
 - Extend `backend/app/core/config.py`, `backend/.env.example`, `deploy/demo.env.example`, and `compose.demo.yaml` with `AI_PROVIDER`, Ark settings, and a finite request timeout. Real values remain uncommitted;
 - Keep the existing protocols in `backend/app/ai/matching.py` and `backend/app/ai/follow_up.py`;
 - Add the smallest cohesive real-AI modules under `backend/app/ai/`: Pydantic schemas/invariants, prompts, Markdown rendering, the execution-local LangGraph workflow, the Ark adapter, and one provider factory/composition dependency. A native adapter module is conditional on proven need;
@@ -773,17 +778,17 @@ Provider or validation exhaustion remains a safe `503` response using the existi
 1. Add locked dependencies and validated configuration with Mock mode as the local/test default and explicit `AI_PROVIDER=ark` for real runs;
 2. Implement and unit-test `EvidenceItem`, `MatchingAnalysisResult`, and `FollowUpResult`, including every cross-field invariant and strict-schema restriction;
 3. Implement deterministic Markdown renderers and golden tests for all matching statuses and follow-up answerability states;
-4. Implement the Ark `ChatOpenAI` payload using `mei_chang_resume.pdf`, `data:application/pdf;base64,...`, strict `json_schema`, provider defaults, privacy-safe correlation metadata, and disabled client retries;
+4. Implement the Ark `ChatOpenAI` Responses payload using the verified `mei_chang_resume.md` as stable UTF-8 `input_text` before dynamic content, strict `text.format` `json_schema`, thinking disabled, non-streaming execution, privacy-safe correlation metadata, and disabled client retries;
 5. Implement the LangGraph generate → validate → render/error flow with one shared two-attempt budget;
 6. Wire the configured adapter through dependency composition without changing Service or Controller contracts;
 7. Add fake-client tests for payloads, retries, non-retryable errors, validation exhaustion, safe logging, atomic rollback, and replay behavior;
-8. Run the live `ChatOpenAI` matching and follow-up compatibility/API test. Add the native Ark SDK only if this primary path fails for an Ark-specific capability, and record the evidence;
+8. Run the live `ChatOpenAI` Responses matching and follow-up compatibility/API test. Add the native Ark SDK only if this primary path fails to represent an Ark-specific Responses capability, and record the evidence;
 9. Run full validation, specification conformance, an independent read-only review, and the implementation-log closeout.
 
 ### Completion Criteria
 
 - The configured Ark adapter implements both existing AI Service protocols and is selected outside controllers;
-- The primary `ChatOpenAI` path, or the documented native fallback if proven necessary, successfully processes the exact fixed PDF and strict matching and follow-up schemas;
+- The primary `ChatOpenAI` Responses path, or the documented native fallback if proven necessary, successfully processes the exact fixed Markdown and strict matching and follow-up schemas;
 - Pydantic rejects every invalid enum, empty required value, extra field, and matching/follow-up cross-field violation defined in AI System Design Section 3;
 - Valid internal results render to safe, non-empty Markdown without leaking internal field names or provider metadata;
 - Fake-client tests prove exactly one attempt on success/permanent failure and at most two total attempts on an approved transient or invalid-output retry;
@@ -814,9 +819,79 @@ Specification-conformance review against every Goal 7 reference and constraint
 
 The live command reads `ARK_API_KEY` and other Ark settings from the uncommitted environment. It must fail clearly when credentials are missing, skip during normal test runs, avoid printing generated content, and clean any temporary database records.
 
+- **Actual Implementation Time:** Approximately 15 minutes of active resumed work for the verified-text correction, based on the current implementation and validation command timestamps. Time waiting for the user-provided Markdown, Bugbot-fix approval, and live-call approval is excluded; the blocked Codex Goal timer did not resume reliably and was not used as the measurement source.
+
+## Goal 7A — Example Report, Truthful Waiting State, and Mini Validation
+
+- **Status:** Complete
+- **Depends on:** Goal 7
+- **Branch:** `goal/07a-example-wait-mini`
+- **Actual Implementation Time:** 35 minutes 42 seconds measured by the Codex Goal timer at closeout, excluding the user approval boundary where separable.
+
+### Authoritative References and Constraints
+
+- Product Requirement Document v0.6 F003 and F005;
+- AI System Design v1.4 Sections 3, 6, 8, and 10;
+- Frontend Technical Design v1.0 Sections 2.2, 3.2–3.5, and 4.2–4.3;
+- Backend Technical Design v0.9 Sections 4.1–4.2, 5, 6.3, 7.4, and 7.6;
+- `AGENTS.md` architecture, prohibitions, conformance, documentation, and Git rules.
+
+Non-negotiable constraints:
+
+- Keep the fixed PDF only for preview/download and the verified Markdown as the only runtime candidate input;
+- Keep the existing public matching and follow-up APIs and text/Markdown response contract unchanged;
+- Keep strict schemas, cross-field invariants, and the approved Markdown source-heading whitelist unchanged;
+- Keep two provider attempts total. Only an invalid first structured result adds a generic correction instruction; a transient retry repeats the original request;
+- Do not add streaming, a third call, frontend AI reasoning, résumé upload/management, raw provider content in records, or an automatic model/default `.env` change.
+
+### Outcome
+
+Recruiters can inspect a checked static report immediately without provider, persistence, feedback, follow-up, or generated-report tracking side effects. Formal matching and follow-up requests show truthful elapsed seconds and extended-wait guidance. Invalid-output retries receive a safe generic correction while transient retries remain unchanged. A bounded, separately authorized Mini run produces a privacy-safe comparison with the 34.28-second Pro baseline.
+
+### Implementation Sequence
+
+1. Save the human-checked example report as static Markdown and render it through the existing formal report component path;
+2. Add the Home entry, example label, no-follow-up guidance, and tests proving no analysis/follow-up/tracking call or Conversation identifier is created;
+3. Add a reusable request-lifecycle timer for matching and follow-up loading, including 30–60-second guidance, real elapsed seconds, the post-60-second note, accessibility behavior, cleanup, and reset tests;
+4. Propagate a privacy-safe retry reason inside the execution-local AI workflow so the Ark request builder appends the generic correction only after invalid structured output;
+5. Add request-shape and retry-branch tests proving strict validation is unchanged, transient retries are identical, invalid retries contain no raw output/exception/sensitive detail, permanent failures do not retry, and no path exceeds two calls;
+6. Escape provider-controlled Markdown fields, keep user-facing AI failures provider-neutral, and align the prepared Nginx gateway timeout with the bounded two-attempt backend workflow;
+7. Run all deterministic backend, frontend, E2E, type-check, lint, build, privacy, gateway, and conformance validation;
+8. Run Bugbot review, fix confirmed in-scope findings, and repeat affected validation;
+9. Ask the user for explicit approval for `doubao-seed-2-0-mini-260428`, one matching plus one follow-up, at most four provider calls and their account-billed cost;
+10. If approved, run the same production-shaped live path and save a privacy-safe result under `history/evaluation_runs/`; do not change defaults or `.env`;
+11. Close the implementation log with validation, comparison, limitations, conformance, and a suggested commit message without committing.
+
+### Completion Criteria
+
+- The example report is visibly labelled, immediately rendered from checked static Markdown, and creates no provider call, Conversation, feedback action, follow-up request, or `matching_report_generated` event;
+- Matching and follow-up loading show `通常需要约 30–60 秒`, `已等待 N 秒`, and the post-60-second note without percentages or unverifiable stages, and timers stop/reset across all terminal and navigation paths;
+- Invalid structured output adds only the approved generic correction on attempt two; transient attempt two is request-equivalent to attempt one; strict schemas/source rules remain unchanged; all paths stay within two provider calls;
+- The separately authorized Mini run records first-attempt validity, retry use, total duration, schema/source legality, prohibited behavior checks, and speed comparison without sensitive or raw generated content;
+- Backend, frontend, E2E, type-check, lint, build, `git diff --check`, Bugbot review, and specification-conformance review pass;
+- `history/implementation_logs/goal-07a-example-wait-mini.md` records work, validation, deviations, remaining issues, and the no-default-model-change decision.
+
+### Validation
+
+```text
+cd backend && uv run pytest
+cd backend && uv run mypy app tests
+cd backend && uv run ruff check .
+cd frontend && npm run test
+cd frontend && npm run type-check
+cd frontend && npm run lint
+cd frontend && npm run build
+cd frontend && npm run test:e2e
+git diff --check
+Bugbot review
+Specification-conformance review against every Goal 7A reference and constraint
+```
+
+The live Mini command and exact privacy-safe output path are finalized before the approval request. It must use the uncommitted Ark key, explicit `ARK_MODEL=doubao-seed-2-0-mini-260428`, the same matching/follow-up inputs and strict paths used for Pro, and a hard maximum of four provider calls. Online execution remains outside deterministic test commands.
+
 ## Goal 8 — AI Evaluation and Behavior Tuning
 
-- **Status:** Implementation-ready after Goal 7
+- **Status:** Ready; live execution requires provider-call count and cost approval
 - **Depends on:** Goal 7
 - **Branch:** `goal/08-ai-evaluation`
 
@@ -832,7 +907,7 @@ The live command reads `ARK_API_KEY` and other Ark settings from the uncommitted
 
 - Product Requirement Document F003 and F005;
 - Lightweight AI Design Decision Sections 1.3–1.4;
-- AI System Design v1.1 Sections 3, 5–6, and 8–11;
+- AI System Design v1.3 Sections 3, 5–6, and 8–11;
 - Backend Technical Design Sections 6 and 7.4–7.6;
 - Goal 5 provider-neutral guardrail fixtures;
 - `AGENTS.md` scope, evidence, logging, document-update, and conformance rules.
@@ -846,7 +921,7 @@ Versioned, repeatable real-AI evaluations establish the baseline, guide a bounde
 - Preserve `backend/evals/goal_05_guardrail_cases.json` as the deterministic Mock-era fixture;
 - Add `backend/evals/goal_08_real_ai_cases.json` with a versioned schema and at least one matching or follow-up case for every AI System Design Section 8 category;
 - Each case identifies `caseId`, workflow, input or context fixture, expected status/answerability, required or allowed résumé evidence anchors, forbidden claims, and applicable hard-guardrail checks;
-- Curated evidence anchors are evaluation labels only. They must not become runtime résumé context or a required résumé text mirror;
+- Curated evidence anchors are evaluation labels only. They do not replace or modify the approved runtime résumé Markdown;
 - Add a typed, tested runner under `backend/evals/` executable as `python -m evals.run_real_ai_evals`;
 - Store privacy-safe result artifacts at `history/evaluation_runs/goal-08-baseline.json` and `history/evaluation_runs/goal-08-final.json`. Artifacts contain case IDs, model/client path, prompt/schema hashes, attempts, latency, rule results, metrics, and failure categories—but no résumé/JD/question text, prompt, provider payload, or generated response;
 - Create `history/implementation_logs/goal-08-ai-evaluation.md` at closeout.
@@ -927,7 +1002,7 @@ Specification-conformance review against every Goal 8 reference and approved thr
 ### Authoritative References and Constraints
 
 - Product Requirement Document core journey, F001–F008, S001, privacy, and MVP risks;
-- AI System Design v1.1 Sections 6, 8, and 10–11;
+- AI System Design v1.3 Sections 6, 8, and 10–11;
 - Frontend Technical Design Sections 4.1–4.7 and 5;
 - Backend Technical Design Sections 4.2, 5–6, and 7.1–7.6;
 - Goal 8 approved thresholds and final evaluation artifact;
@@ -1000,10 +1075,11 @@ The smoke script reads Basic Auth credentials from environment variables, prints
 
 ## Phase B Readiness Summary
 
-- **Goal 7:** Ready to code now. A valid `ARK_API_KEY` and Ark model access are the only external requirements for its mandatory live completion test.
-- **Goal 8:** Fully specified and ready after Goal 7. It contains an intentional baseline → threshold approval → bounded tuning → final-evaluation checkpoint; provider-call cost approval is required before live runs.
+- **Goal 7:** Complete through the validated verified-Markdown Ark Responses API path with the Pro model and no native SDK fallback required.
+- **Goal 7A:** Complete with the static example, truthful waiting states, correction-only structured retry, full validation, and a privacy-safe Mini comparison; the Pro default remains unchanged because broader evidence-calibration evaluation is still required.
+- **Goal 8:** Fully specified and ready. It contains an intentional baseline → threshold approval → bounded tuning → final-evaluation checkpoint; provider-call cost approval is required before live runs.
 - **Goal 9:** Fully specified for implementation and local release-candidate validation after Goal 8. Live recruiter-release completion additionally requires an approved hosting target, HTTPS/domain decision, deployment permission, and intended-network accessibility evidence.
-- No unresolved product, architecture, schema, retry, persistence, API, or evaluation-design decision blocks starting Goal 7. Missing secret values and future deployment choices are external inputs and must never be guessed or committed.
+- No unresolved product, architecture, schema, retry, persistence, or API decision remains from Goals 7 or 7A. Goal 8 provider-call approval and future deployment choices are external inputs and must never be guessed or committed.
 
 ## Supporting References
 

@@ -21,6 +21,7 @@ test('completes the primary recruiter journey through the real backend', async (
   page,
 }) => {
   const acceptedTrackingEvents: string[] = []
+  let matchingAnalysisRequests = 0
   let activeTrackingRequests = 0
   const acceptedCount = (eventName: string) =>
     acceptedTrackingEvents.filter((acceptedEvent) => acceptedEvent === eventName)
@@ -65,6 +66,12 @@ test('completes the primary recruiter journey through the real backend', async (
       })
   }
   page.on('request', (request) => {
+    if (
+      request.method() === 'POST' &&
+      request.url().endsWith('/api/matching-analysis')
+    ) {
+      matchingAnalysisRequests += 1
+    }
     if (isTrackingRequest(request)) {
       activeTrackingRequests += 1
     }
@@ -91,6 +98,31 @@ test('completes the primary recruiter journey through the real backend', async (
   await expect(
     page.getByRole('heading', { level: 1, name: zhCN.hero.title }),
   ).toBeVisible()
+
+  await page
+    .getByRole('button', { name: zhCN.jobDescription.viewExampleReport })
+    .click()
+  const exampleReport = page.getByRole('article', {
+    name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
+  })
+  await expect(exampleReport).toContainText(zhCN.report.exampleModeLabel)
+  await expect(page.getByLabel(zhCN.followUp.label)).toHaveCount(0)
+  await expect(
+    page.getByRole('heading', { name: zhCN.report.exampleFollowUpTitle }),
+  ).toBeVisible()
+  expect(matchingAnalysisRequests).toBe(0)
+  await expectAcceptedTrackingCounts({
+    page_visit: 1,
+    job_description_submitted: 0,
+    matching_report_generated: 0,
+    resume_previewed: 0,
+    contact_cta_clicked: 0,
+    feedback_submitted: 0,
+  })
+  await page
+    .getByRole('button', { name: zhCN.report.submitOwnJobDescription })
+    .click()
+
   await page.getByRole('button', { name: zhCN.jobDescription.useExample }).click()
   await expectAcceptedTrackingCounts({
     page_visit: 1,
@@ -101,6 +133,7 @@ test('completes the primary recruiter journey through the real backend', async (
     feedback_submitted: 0,
   })
   await page.getByRole('button', { name: zhCN.jobDescription.submit }).click()
+  expect(matchingAnalysisRequests).toBe(1)
 
   const matchingReport = page.getByRole('article', {
     name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,

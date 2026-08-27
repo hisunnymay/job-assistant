@@ -8,6 +8,7 @@ interface JobDescriptionFormProps {
   canSubmit: boolean
   onChange(value: string): void
   onUseExample(): void
+  onViewExampleReport(): void
   onSubmit(event: FormEvent<HTMLFormElement>): void
 }
 
@@ -18,6 +19,7 @@ export function JobDescriptionForm({
   canSubmit,
   onChange,
   onUseExample,
+  onViewExampleReport,
   onSubmit,
 }: JobDescriptionFormProps) {
   const errorId = error ? 'job-description-error' : undefined
@@ -51,6 +53,14 @@ export function JobDescriptionForm({
       </div>
 
       <div className="composer-footer">
+        <button
+          className="secondary-button example-report-button"
+          type="button"
+          onClick={onViewExampleReport}
+          disabled={isSubmitting}
+        >
+          {zhCN.jobDescription.viewExampleReport}
+        </button>
         <div className="form-meta">
           <span>{zhCN.jobDescription.characterCount(value.length)}</span>
           {error ? (
