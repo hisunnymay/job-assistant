@@ -2,6 +2,7 @@
 
 ## Version Log
 
+- **v0.5 — 2026-08-27:** Recognized AI System Design v1.1 as the authority for real-AI implementation and aligned the AI Service validation, internal structured-output, and retry rules without changing public APIs.
 - **v0.4 — 2026-08-25:** Added goal-level requirements traceability and specification-conformance rules after Goal 1 passed functional validation but diverged from the finalized conversation-workspace design.
 - **v0.3 — 2026-08-25:** Added the goal-level Git workflow: one short-lived branch per coding Goal, authorized local commits, protected unrelated changes, and explicit approval for push, merge, and pull requests.
 - **v0.2 — 2026-08-25:** Simplified the initial guide and aligned technology, document authority, project prohibitions, agent workflow, implementation records, and document-update rules.
@@ -14,6 +15,7 @@ Build a Chinese-language, one-week MVP that helps a recruiter evaluate how the f
 
 - `docs/01_Product_Requirement_Document.md` owns product scope, behavior, priorities, and acceptance criteria.
 - `docs/03_Lightweight_AI_Design_Decision.md` owns AI inputs, outputs, capabilities, and limitations.
+- `docs/02_AI_System_Design.md` owns real-AI provider/model selection, provider integration, internal AI schemas and invariants, execution-local AI workflow, AI-response validation and retry, and AI evaluation strategy. It must operate within the capability boundaries defined by `docs/03_Lightweight_AI_Design_Decision.md`.
 - `docs/04_Frontend_Technical_Design.md` owns recruiter experience, UI behavior, frontend state, and presentation responsibilities.
 - `docs/05_Backend_Technical_Design.md` owns backend architecture, persistence, workflows, AI integration, and API contracts. Section 5 is the authoritative MVP API contract.
 - `planning/PLAN.md`, when created, owns goal order, task details, completion criteria, validation commands, dependencies, and status. It does not override `docs/`.
@@ -26,6 +28,7 @@ This file provides operating rules and must not override the documents above. If
 - Implement only the approved PRD MVP scope.
 - Use React, TypeScript, and Vite for the frontend; use Python and FastAPI for the backend.
 - During the Demo phase, keep AI behavior mocked behind the AI Service boundary. Do not select or integrate a real AI provider or framework before the AI System Design is agreed.
+- During the Real-AI phase, implement the provider only through the AI Service and follow `docs/02_AI_System_Design.md`; do not change public API contracts, persistence ownership, or frontend behavior to accommodate provider details.
 - Choose the simplest implementation that completes the requested vertical slice.
 - Preserve module and layer boundaries without adding abstractions that have no current use.
 - Keep the AI provider replaceable behind the AI Service boundary.
@@ -51,7 +54,7 @@ API Access Protection -> Controller -> Service -> AI Service / Repository
 - The frontend owns interaction and presentation; it must not implement AI reasoning or backend workflows.
 - Controllers own HTTP handling and basic request validation; they must not contain business logic, access persistence directly, or call AI providers.
 - Services own business workflows and conversation context and coordinate the AI Service and repositories.
-- The AI Service owns provider-specific handling and basic response validation; it must not load or persist conversations directly.
+- The AI Service owns provider-specific handling, approved internal-schema and invariant validation, and rendering validated results to the public text/Markdown contract; it must not load or persist conversations directly.
 - Repositories hide persistence details from the rest of the application.
 
 ## Prohibited Changes
@@ -63,7 +66,7 @@ API Access Protection -> Controller -> Service -> AI Service / Repository
 - Do not expose or persist raw prompts, raw provider responses, provider-specific payloads, secrets, or internal errors.
 - Do not place AI reasoning or business workflow in the frontend or controller, and do not let the AI Service access persistence directly.
 - Do not introduce microservices, distributed or event-driven infrastructure, multiple databases, complex retry systems, or speculative scaling work.
-- Do not add streaming AI output or strict structured AI output unless the relevant design is updated and approved.
+- Do not add streaming AI output. Strict structured output is permitted only inside the AI Service as defined by `docs/02_AI_System_Design.md`; do not expose it as a new frontend/backend API contract without separately approved design updates.
 
 ## Implementation Records
 

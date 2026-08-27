@@ -6,17 +6,18 @@
 | --- | --- |
 | Document Name | AI Job Fit Assistant Backend Technical Design |
 | Document Type | Backend Technical Design |
-| Version | v0.5 |
+| Version | v0.6 |
 | Status | Finalized |
 | Owner | Mei Chang |
 | Last Updated | 2026-08-27 |
-| Related Documents | Project Alignment Document, Product Requirement Document, Lightweight AI Design Decision, Frontend Technical Design |
+| Related Documents | Project Alignment Document, Product Requirement Document, Lightweight AI Design Decision, AI System Design, Frontend Technical Design |
 
 
 ## Version Log
 
 | Version | Date | Change | Reason |
 | --- | --- | --- | --- |
+| v0.6 | 2026-08-27 | Aligned the AI Service with AI System Design v1.1: selected Ark/LangChain/LangGraph integration, direct-PDF internal structured output, semantic validation, and a unified two-attempt retry budget; repaired the error-envelope Markdown fence. | Make the real-AI backend decisions authoritative and keep the document renderable while preserving persistence ownership and Section 5 API contracts. |
 | v0.5 | 2026-08-27 | Selected a provider-neutral single-host Docker demo target with Nginx Basic Auth protecting the deployed UI and APIs. | Prepare a reproducible demo without adding user accounts, changing application API contracts, or deploying before approval. |
 | v0.4 | 2026-08-27 | Added an internal request fingerprint for deletion-safe idempotent replay and restricted conversion to the generated-report session cohort. | Preserve the event contract after `ON DELETE SET NULL` and prevent contact-only sessions from inflating the MVP conversion metric. |
 | v0.3 | 2026-08-27 | Selected a custom centralized tracking API and persistent User Behavior Event model, including privacy, idempotency, and retention rules. | Make S001 data queryable across sessions for MVP success metric evaluation. |
@@ -218,7 +219,8 @@ Responsibilities:
 
 - Prepare AI requests;
 - Call external AI providers;
-- Handle AI responses;
+- Validate provider responses against the approved internal schemas and invariants;
+- Render validated internal results into the existing text/Markdown message contract;
 - Hide AI implementation details.
 
 The backend should not tightly couple business logic to a specific AI provider.
@@ -629,6 +631,8 @@ API errors should use a consistent frontend-facing format:
   "code": "ERROR_CODE",
   "message": "User-friendly error message"
 }
+```
+
 Frontend may map error `code` values to localized user-facing messages; backend `message` should not be the sole source for UI localization.
 
 Potential error categories:
@@ -980,7 +984,7 @@ Previous Follow-up Answers
 
 ## 6.3 AI Response Handling
 
-The AI Service performs basic validation before returning AI-generated content to the Service Layer.
+The AI Service performs provider-response parsing, strict internal-schema validation, cross-field invariant validation, and Markdown rendering before returning AI-generated content to the Service Layer. The internal schemas are defined by AI System Design v1.1 and do not change the Section 5 public response contracts.
 
 ### Successful Response
 
@@ -989,7 +993,11 @@ AI Provider returns response
 
 ↓
 
-AI Service performs basic validation
+AI Service validates structured result
+
+↓
+
+AI Service renders text/Markdown
 
 ↓
 
@@ -1000,17 +1008,19 @@ Service Layer stores AI Response as Conversation Message
 Return response to frontend
 ```
 
-Basic validation should confirm that:
+Validation should confirm that:
 
 - A response was successfully returned;
 - The response is not empty;
-- The response is in a frontend-renderable format.
+- The response matches the approved strict internal schema;
+- The matching or follow-up cross-field invariants hold;
+- The validated result can be rendered into frontend-renderable text/Markdown.
 
-The backend does not evaluate whether the AI conclusion itself is correct or high quality.
+Runtime validation checks structure and deterministic internal consistency. It does not prove that model evidence is factually grounded or that a conclusion is high quality; those properties are measured by the approved AI evaluation set before release.
 
 ### Invalid AI Response
 
-If the AI response is missing or unusable:
+If the AI response is missing, unusable, or violates the approved schema or invariants, the AI Service applies the Section 7.6 retry decision. After the retry budget is exhausted:
 
 ```text
 Invalid AI Response
@@ -1032,11 +1042,13 @@ Diagnostic logs should contain enough information to investigate the failure wit
 
 ### AI Provider Failure
 
-If the external AI provider fails or times out:
+If the external AI provider fails or times out, the AI Service applies the Section 7.6 retry decision. After a non-retryable failure or retry exhaustion:
 
 - Do not store an AI response message;
 - Log the failure for debugging;
 - Return a user-friendly error to the frontend.
+
+The Service Layer preserves the existing atomic transaction semantics while the AI Service performs its bounded attempts. A failed matching execution commits neither its new Conversation nor its messages. A failed follow-up commits neither its new question nor answer. Provider retry behavior must not bypass the existing completed-identical-follow-up replay rule or create duplicate messages.
 
 ### Storage
 
@@ -1046,9 +1058,9 @@ For the MVP:
 - Do not store raw AI provider responses;
 - Do not store provider-specific request or response payloads.
 
-# 7. Unresolved Decisions
+# 7. Deployment and Implementation Decisions
 
-The following implementation decisions are intentionally deferred until development or deployment.
+The following decisions are either finalized for the MVP or explicitly deferred to deployment. Each subsection states its current decision.
 
 ## 7.1 Deployment Strategy
 
@@ -1100,15 +1112,15 @@ The database should prioritize simple setup, development speed, and compatibilit
 
 Decision:
 
-Deferred until implementation.
+Use Volcengine Ark with model `doubao-seed-2-1-pro-260628` behind the existing AI Service boundary. The primary integration uses LangChain `ChatOpenAI` with Ark's OpenAI-compatible base URL. LangGraph owns temporary per-execution generation, validation, retry, and Markdown-rendering orchestration; it does not own or checkpoint persistent conversation state.
 
-The backend AI Service abstraction should allow the MVP to use different implementations, such as:
+The AI Service supplies the exact predefined PDF through Base64 `file_data`, requests the strict internal Pydantic-backed schema defined in AI System Design v1.1, validates the result and its cross-field invariants, and renders text/Markdown for the unchanged Section 5 APIs. Backend PDF extraction, a résumé text mirror, RAG, and a frontend-visible structured-report contract remain outside the MVP.
 
-- OpenAI API;
-- Dify workflow;
-- Other compatible AI providers.
+Goal 7 must first exercise the fixed repository PDF and production-shaped matching and follow-up schemas through the primary `ChatOpenAI` path. If an Ark-specific PDF or strict-schema capability is not represented correctly, the Volcengine Ark Python SDK may be used inside the same AI Service and LangGraph boundary. If neither path supports the approved combination, stop for a design decision rather than changing the public API or adding extraction.
 
-Changing the AI provider should not require major changes to backend business logic or frontend APIs.
+Provider configuration is validated by backend settings. The Ark API key remains a backend-only secret; base URL, model ID, and finite request timeout remain backend configuration. No real secret is committed, logged, persisted, or returned to the frontend.
+
+Changing the provider must remain isolated to the AI Service and must not require changes to business workflows, persistence ownership, or frontend APIs.
 
 ---
 
@@ -1147,11 +1159,14 @@ The report must handle a zero denominator without returning an invalid numeric v
 ## 7.6 AI Retry Strategy
 Decision:
 
-Deferred until implementation.
+Use one unified budget of at most two provider attempts per matching-analysis or follow-up execution: one initial attempt and at most one retry.
 
-The MVP may either:
+The single retry may be used for:
 
-- Return an error immediately when an AI request fails; or
-- Perform a limited automatic retry for transient provider failures.
+- A transient connection or timeout failure;
+- Provider rate limiting or temporary service unavailability;
+- A response that fails the approved schema or cross-field invariant validation.
 
-The implementation should avoid complex retry infrastructure.
+Do not retry authentication/authorization failure, invalid request, unsupported-model/capability error, safety refusal, or another permanent provider error. Disable library-level automatic retries so client behavior cannot multiply the workflow budget. Every attempt uses a finite backend-configured timeout, and Goal 7 must validate that timeout with the fixed PDF and gateway configuration.
+
+After a non-retryable failure or retry exhaustion, the AI Service returns the existing safe AI-processing failure to the Service Layer. It must not persist an assistant message, expose raw provider details, or add background queues, evaluator loops, distributed retry infrastructure, or a new API contract.
