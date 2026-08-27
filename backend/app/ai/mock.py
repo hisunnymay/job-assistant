@@ -238,10 +238,13 @@ class MockAIService:
     def generate_matching_analysis(
         self,
         *,
-        resume_path: Path,
+        resume_context_path: Path,
         job_description: str,
     ) -> str:
-        if not resume_path.is_file() or resume_path.suffix.lower() != ".pdf":
+        if (
+            not resume_context_path.is_file()
+            or resume_context_path.suffix.lower() != ".md"
+        ):
             raise AIServiceError("The configured candidate resume is unavailable")
         if not job_description:
             raise AIServiceError("The job description is unavailable")
@@ -251,10 +254,13 @@ class MockAIService:
     def answer_follow_up(
         self,
         *,
-        resume_path: Path,
+        resume_context_path: Path,
         conversation_history: tuple[FollowUpContextMessage, ...],
     ) -> str:
-        if not resume_path.is_file() or resume_path.suffix.lower() != ".pdf":
+        if (
+            not resume_context_path.is_file()
+            or resume_context_path.suffix.lower() != ".md"
+        ):
             raise AIServiceError("The configured candidate resume is unavailable")
         if not conversation_history:
             raise AIServiceError("The conversation history is unavailable")

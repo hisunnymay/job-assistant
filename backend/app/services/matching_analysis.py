@@ -39,11 +39,11 @@ class MatchingAnalysisService:
         self,
         repository: MatchingAnalysisRepository,
         ai_service: MatchingAIService,
-        resume_path: Path,
+        resume_context_path: Path,
     ) -> None:
         self._repository = repository
         self._ai_service = ai_service
-        self._resume_path = resume_path
+        self._resume_context_path = resume_context_path
 
     def generate(self, job_description: str) -> MatchingAnalysisResult:
         conversation_id = f"conversation_{uuid4().hex}"
@@ -59,7 +59,7 @@ class MatchingAnalysisService:
             self._repository.add_conversation(Conversation(id=conversation_id))
             self._repository.add_message(job_description_message)
             content = self._ai_service.generate_matching_analysis(
-                resume_path=self._resume_path,
+                resume_context_path=self._resume_context_path,
                 job_description=job_description,
             )
             analysis_message = ConversationMessage(

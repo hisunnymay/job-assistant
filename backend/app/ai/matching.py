@@ -10,6 +10,6 @@ class MatchingAIService(Protocol):
     def generate_matching_analysis(
         self,
         *,
-        resume_path: Path,
+        resume_context_path: Path,
         job_description: str,
     ) -> str: ...

@@ -190,16 +190,16 @@ def test_mock_follow_up_redirects_each_prohibited_scope(
 
 class RecordingFollowUpAIService:
     def __init__(self) -> None:
-        self.resume_paths: list[Path] = []
+        self.resume_context_paths: list[Path] = []
         self.histories: list[tuple[FollowUpContextMessage, ...]] = []
 
     def answer_follow_up(
         self,
         *,
-        resume_path: Path,
+        resume_context_path: Path,
         conversation_history: tuple[FollowUpContextMessage, ...],
     ) -> str:
-        self.resume_paths.append(resume_path)
+        self.resume_context_paths.append(resume_context_path)
         self.histories.append(conversation_history)
         return f"# 回答 {len(self.histories)}"
 
@@ -226,8 +226,11 @@ def test_service_supplies_static_resume_and_full_ordered_history(
 
     assert first_response.status_code == 200
     assert second_response.status_code == 200
-    assert len(recording_ai.resume_paths) == 2
-    assert all(path.is_file() and path.suffix == ".pdf" for path in recording_ai.resume_paths)
+    assert len(recording_ai.resume_context_paths) == 2
+    assert all(
+        path.is_file() and path.suffix == ".md"
+        for path in recording_ai.resume_context_paths
+    )
     assert [message.message_type for message in recording_ai.histories[0]] == [
         "job_description",
         "matching_analysis",

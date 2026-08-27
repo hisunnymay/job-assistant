@@ -6,6 +6,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine, delete, text
 from sqlalchemy.orm import Session
 
+from app.ai.dependencies import get_ai_service
+from app.ai.mock import MockAIService
 from app.core.config import get_settings
 from app.db.base import Base
 from app.db.models import Conversation, ConversationMessage, Feedback, UserBehaviorEvent
@@ -52,11 +54,16 @@ def db_session(database_engine: Engine) -> Generator[Session, None, None]:
 
 
 @pytest.fixture
-def client(db_session: Session) -> Generator[TestClient, None, None]:
+def client(
+    db_session: Session,
+    request: pytest.FixtureRequest,
+) -> Generator[TestClient, None, None]:
     def override_db_session() -> Generator[Session, None, None]:
         yield db_session
 
     app.dependency_overrides[get_db_session] = override_db_session
+    if request.node.get_closest_marker("live_ark") is None:
+        app.dependency_overrides[get_ai_service] = MockAIService
     with TestClient(app, raise_server_exceptions=False) as test_client:
         yield test_client
     app.dependency_overrides.clear()

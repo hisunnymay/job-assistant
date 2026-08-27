@@ -1,8 +1,15 @@
 from hashlib import sha256
+from typing import get_args
 
 from fastapi.testclient import TestClient
 
-EXPECTED_RESUME_SHA256 = "20a4d191dcc675b67a55da4296c2200cf2ceed1b3deb9aca4fbdf9e5e8cb08bd"
+from app.ai.schemas import ResumeSourceReference
+from app.resources.candidate_resume import (
+    CANDIDATE_RESUME_CONTEXT_SHA256,
+    CANDIDATE_RESUME_PDF_SHA256,
+    get_candidate_resume_context_path,
+    get_candidate_resume_path,
+)
 
 
 def test_resume_preview_returns_the_approved_pdf(client: TestClient) -> None:
@@ -11,7 +18,7 @@ def test_resume_preview_returns_the_approved_pdf(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/pdf"
     assert response.headers["content-disposition"].startswith("inline;")
-    assert sha256(response.content).hexdigest() == EXPECTED_RESUME_SHA256
+    assert sha256(response.content).hexdigest() == CANDIDATE_RESUME_PDF_SHA256
 
 
 def test_resume_download_returns_the_same_approved_pdf(client: TestClient) -> None:
@@ -20,4 +27,26 @@ def test_resume_download_returns_the_same_approved_pdf(client: TestClient) -> No
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/pdf"
     assert response.headers["content-disposition"].startswith("attachment;")
-    assert sha256(response.content).hexdigest() == EXPECTED_RESUME_SHA256
+    assert sha256(response.content).hexdigest() == CANDIDATE_RESUME_PDF_SHA256
+
+
+def test_fixed_resume_pair_has_approved_names_digests_and_utf8_context() -> None:
+    resume_path = get_candidate_resume_path()
+    context_path = get_candidate_resume_context_path()
+
+    assert resume_path.name == "mei_chang_resume.pdf"
+    assert context_path.name == "mei_chang_resume.md"
+    assert sha256(resume_path.read_bytes()).hexdigest() == CANDIDATE_RESUME_PDF_SHA256
+    assert sha256(context_path.read_bytes()).hexdigest() == CANDIDATE_RESUME_CONTEXT_SHA256
+    assert context_path.read_text(encoding="utf-8").strip()
+
+
+def test_evidence_source_references_match_visible_resume_headings() -> None:
+    headings = {
+        line.lstrip("#").strip()
+        for line in get_candidate_resume_context_path().read_text(encoding="utf-8").splitlines()
+        if line.startswith("#")
+    }
+    headings.remove("梅唱")
+
+    assert set(get_args(ResumeSourceReference)) == headings

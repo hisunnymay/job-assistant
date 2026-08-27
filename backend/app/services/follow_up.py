@@ -47,11 +47,11 @@ class FollowUpService:
         self,
         repository: FollowUpRepository,
         ai_service: FollowUpAIService,
-        resume_path: Path,
+        resume_context_path: Path,
     ) -> None:
         self._repository = repository
         self._ai_service = ai_service
-        self._resume_path = resume_path
+        self._resume_context_path = resume_context_path
 
     def answer(self, *, conversation_id: str, question: str) -> FollowUpResult:
         try:
@@ -93,7 +93,7 @@ class FollowUpService:
                 for message in persisted_messages
             )
             content = self._ai_service.answer_follow_up(
-                resume_path=self._resume_path,
+                resume_context_path=self._resume_context_path,
                 conversation_history=conversation_history,
             )
             answer_message = ConversationMessage(

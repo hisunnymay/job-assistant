@@ -4,12 +4,12 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
+from app.ai.dependencies import get_ai_service
 from app.ai.matching import MatchingAIService
-from app.ai.mock import MockAIService
 from app.api.errors import raise_api_error
 from app.db.session import get_db_session
 from app.repositories.conversations import ConversationRepository
-from app.resources.candidate_resume import get_candidate_resume_path
+from app.resources.candidate_resume import get_candidate_resume_context_path
 from app.services.matching_analysis import (
     MatchingAnalysisPersistenceError,
     MatchingAnalysisService,
@@ -17,6 +17,7 @@ from app.services.matching_analysis import (
 )
 
 router = APIRouter(prefix="/api", tags=["matching-analysis"])
+get_matching_ai_service = get_ai_service
 
 
 class MatchingAnalysisRequest(BaseModel):
@@ -31,18 +32,14 @@ class MatchingAnalysisResponse(BaseModel):
     content: str
 
 
-def get_ai_service() -> MatchingAIService:
-    return MockAIService()
-
-
 def get_matching_analysis_service(
     session: Annotated[Session, Depends(get_db_session)],
-    ai_service: Annotated[MatchingAIService, Depends(get_ai_service)],
+    ai_service: Annotated[MatchingAIService, Depends(get_matching_ai_service)],
 ) -> MatchingAnalysisService:
     return MatchingAnalysisService(
         repository=ConversationRepository(session),
         ai_service=ai_service,
-        resume_path=get_candidate_resume_path(),
+        resume_context_path=get_candidate_resume_context_path(),
     )
 
 

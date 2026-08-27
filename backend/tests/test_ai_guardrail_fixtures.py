@@ -31,8 +31,8 @@ class GuardrailFixtureSet(TypedDict):
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_PATH = BACKEND_ROOT / "evals" / "goal_05_guardrail_cases.json"
-RESUME_PATH = (
-    BACKEND_ROOT / "app" / "resources" / "resume" / "mei_chang_resume.pdf"
+RESUME_CONTEXT_PATH = (
+    BACKEND_ROOT / "app" / "resources" / "resume" / "mei_chang_resume.md"
 )
 FIXTURES = cast(
     GuardrailFixtureSet,
@@ -75,7 +75,7 @@ def test_guardrail_fixture_schema_is_versioned_and_complete() -> None:
 )
 def test_matching_report_guardrail_case(case: MatchingReportCase) -> None:
     content = MockAIService().generate_matching_analysis(
-        resume_path=RESUME_PATH,
+        resume_context_path=RESUME_CONTEXT_PATH,
         job_description=case["jobDescription"],
     )
 
@@ -90,11 +90,11 @@ def test_matching_report_guardrail_case(case: MatchingReportCase) -> None:
 def test_follow_up_guardrail_case(case: FollowUpCase) -> None:
     ai_service = MockAIService()
     matching_report = ai_service.generate_matching_analysis(
-        resume_path=RESUME_PATH,
+        resume_context_path=RESUME_CONTEXT_PATH,
         job_description=FIXTURES["baseJobDescription"],
     )
     content = ai_service.answer_follow_up(
-        resume_path=RESUME_PATH,
+        resume_context_path=RESUME_CONTEXT_PATH,
         conversation_history=(
             FollowUpContextMessage(
                 role="user",
