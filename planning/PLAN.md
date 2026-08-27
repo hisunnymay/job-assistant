@@ -2,14 +2,16 @@
 
 ## Document Information
 
-- **Version:** v0.24
-- **Status:** Draft — Goal 5 Complete
+- **Version:** v0.26
+- **Status:** Draft — Goal 6 Complete
 - **Owner:** Mei Chang
 - **Last Updated:** 2026-08-27
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.26 — 2026-08-27:** Completed Goal 6 with isolated Playwright journeys, recoverable error coverage, provider-neutral Docker demo packaging, gateway-level Basic Auth, clean-start smoke validation, independent Bugbot review, and specification-conformance closeout.
+- **v0.25 — 2026-08-27:** Started Goal 6 with the approved provider-neutral single-host Docker target, desktop and compact Chrome accessibility scope, Nginx Basic Auth gateway, Playwright end-to-end coverage, clean-setup validation, and independent-review requirements.
 - **v0.24 — 2026-08-27:** Closed the Goal 5 Bugbot findings with permanent-rejection queue handling, generated-report conversion cohorts, deletion-safe event replay fingerprints, additive local schema upgrade, and corrected AI-design readiness language.
 - **v0.23 — 2026-08-27:** Completed the corrected Goal 5 with centralized PostgreSQL event persistence, idempotent tracking delivery, a bounded frontend retry queue, internal aggregate reporting, 90-day cleanup, privacy enforcement, and full guardrail/conformance validation.
 - **v0.22 — 2026-08-27:** Reopened Goal 5 because browser-local events cannot support S001's required centralized, cross-session MVP metric evaluation; replaced the local-only decision with a privacy-safe backend tracking contract, idempotent delivery, retention, and aggregate validation requirements while preserving the completed AI guardrail work.
@@ -72,10 +74,10 @@ Before a Goal is marked complete, Codex must compare the implementation with tho
 
 ## 3. Plan Status
 
-- **Phase A — Demo with Mock AI:** In progress
+- **Phase A — Demo with Mock AI:** Complete
 - **AI Design Gate:** Not ready; `docs/02_AI_System_Design.md` has not been created or finalized.
 - **Phase B — Real AI:** Deferred until the AI Design Gate is complete.
-- **Current coding readiness:** Goals 3, 4, and the corrected Goal 5 are complete with no unresolved conformance mismatch. Goal 6 is ready for its hosting, accessibility, and API access-protection entry decisions when requested.
+- **Current coding readiness:** Goals 0–6 are complete with no unresolved conformance mismatch. Phase B remains blocked by the AI Design Gate.
 
 ## 4. Pre-implementation Decisions
 
@@ -597,14 +599,15 @@ Specification review: compare implementation against every Goal 5 authoritative 
 
 ## Goal 6 — Demo Validation, Review, and Readiness
 
-- **Status:** Not started
+- **Status:** Complete
 - **Depends on:** Goals 0–5
 - **Branch:** `goal/06-demo-readiness`
+- **Actual Implementation Time:** Approximately 20 minutes of active work after the entry decisions were approved, measured across implementation, deterministic validation, clean Docker smoke testing, independent review, fixes, and closeout; approval-wait time is excluded.
 
 ### Entry Decisions
 
-- Confirm the Demo hosting target and accessibility needs;
-- Confirm the required API access-protection mechanism;
+- Prepare a provider-neutral single-host Docker Compose demo without deploying it; validate the recruiter UI in Chrome at desktop `1536×1024` and compact `390×844` viewports, including keyboard-accessible interaction;
+- Protect the deployed demo UI and APIs together through Nginx HTTP Basic Auth. Keep local development unprotected and do not add user accounts or change the application API contracts;
 - Do not deploy, push, merge, or create external resources without explicit approval.
 
 ### Outcome

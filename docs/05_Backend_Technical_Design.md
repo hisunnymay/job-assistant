@@ -6,7 +6,7 @@
 | --- | --- |
 | Document Name | AI Job Fit Assistant Backend Technical Design |
 | Document Type | Backend Technical Design |
-| Version | v0.4 |
+| Version | v0.5 |
 | Status | Finalized |
 | Owner | Mei Chang |
 | Last Updated | 2026-08-27 |
@@ -17,8 +17,9 @@
 
 | Version | Date | Change | Reason |
 | --- | --- | --- | --- |
-| v0.3 | 2026-08-27 | Selected a custom centralized tracking API and persistent User Behavior Event model, including privacy, idempotency, and retention rules. | Make S001 data queryable across sessions for MVP success metric evaluation. |
+| v0.5 | 2026-08-27 | Selected a provider-neutral single-host Docker demo target with Nginx Basic Auth protecting the deployed UI and APIs. | Prepare a reproducible demo without adding user accounts, changing application API contracts, or deploying before approval. |
 | v0.4 | 2026-08-27 | Added an internal request fingerprint for deletion-safe idempotent replay and restricted conversion to the generated-report session cohort. | Preserve the event contract after `ON DELETE SET NULL` and prevent contact-only sessions from inflating the MVP conversion metric. |
+| v0.3 | 2026-08-27 | Selected a custom centralized tracking API and persistent User Behavior Event model, including privacy, idempotency, and retention rules. | Make S001 data queryable across sessions for MVP success metric evaluation. |
 | v0.2 | 2026-08-25 | Finalized the backend design and selected Python with FastAPI. | Establish the backend implementation baseline before planning. |
 
 
@@ -1053,7 +1054,9 @@ The following implementation decisions are intentionally deferred until developm
 
 Decision:
 
-Deferred until implementation.
+Prepare a provider-neutral single-host Docker Compose deployment bundle for the Demo phase. The bundle contains PostgreSQL, the FastAPI backend, the built React frontend, and an Nginx gateway. It is preparation only and must not be deployed without explicit approval.
+
+The gateway exposes one browser origin, serves the frontend, and proxies backend routes internally. HTTPS termination and the actual hosting provider remain deployment-time choices because the intended recruiters' network accessibility, domain, and hosting account are not yet confirmed.
 
 Considerations:
 
@@ -1068,15 +1071,11 @@ Considerations:
 
 Decision:
 
-API access protection is required, but the exact mechanism is deferred.
+Use Nginx HTTP Basic Auth at the single public gateway for the deployed Demo. The gateway protects both the frontend and backend routes before requests reach the application. Credentials are supplied through an uncommitted password file and must not be stored in the repository.
 
-Possible approaches include:
+Local development remains unprotected. This protection does not add user accounts, application authentication, permission management, browser-visible API keys, or changes to the Section 5 API contracts.
 
-- Lightweight API key;
-- Short-lived access token;
-- Gateway or hosting-level protection.
-
-The final approach depends on the frontend/backend deployment architecture and required security level.
+This mechanism is appropriate only for the bounded recruiter Demo. A broader production release would require a separate security decision.
 
 ---
 

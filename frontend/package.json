@@ -9,8 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:e2e": "bash ./scripts/run-e2e.sh",
     "test:watch": "vitest",
-    "type-check": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json"
+    "type-check": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.e2e.json"
   },
   "dependencies": {
     "react": "^19.2.8",
@@ -19,8 +20,10 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
+    "@types/node": "^26.4.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
     "@vitejs/plugin-react": "^6.1.0",

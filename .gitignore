@@ -13,4 +13,9 @@ dist/
 build/
 coverage/
 htmlcov/
+playwright-report/
+test-results/
 *.log
+deploy/demo.env
+deploy/secrets/*
+!deploy/secrets/.gitkeep

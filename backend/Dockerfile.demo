@@ -1,0 +1,15 @@
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
+WORKDIR /app
+
+COPY backend/pyproject.toml backend/uv.lock ./
+RUN uv sync --frozen --no-dev
+
+COPY backend/app ./app
+
+EXPOSE 8000
+
+CMD ["sh", "-c", "uv run python -m app.db.init_db && exec uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"]
