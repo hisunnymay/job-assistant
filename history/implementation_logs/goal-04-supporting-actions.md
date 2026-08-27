@@ -2,6 +2,8 @@
 
 ## Version Log
 
+- **v1.8 — 2026-08-27:** Placed custom feedback before predefined reasons in newly serialized comments so database grids show the recruiter-written detail first.
+- **v1.7 — 2026-08-27:** Recorded live-database verification of custom feedback persistence and added real-browser coverage for the complete serialized comment.
 - **v1.6 — 2026-08-26:** Recorded the Bugbot corrective fixes for retry-safe feedback persistence and serialized-comment length enforcement, with regression coverage and full revalidation.
 - **v1.5 — 2026-08-26:** Recorded the approved required-feedback interaction, predefined reason options, contextual icon tooltips, document updates, and validation.
 - **v1.4 — 2026-08-26:** Recorded the requested conversation-density, sidebar-width, feedback-dialog, and icon refinements with automated and browser validation.
@@ -72,6 +74,19 @@
 - Added frontend regression coverage that combines a predefined reason with oversized custom input and confirms the final submitted comment is exactly 2,000 characters.
 - `cd backend && uv run pytest` passed with 16 tests; `uv run mypy app tests` and `uv run ruff check .` passed.
 - `cd frontend && npm run test` passed with 5 files and 21 tests; type-check, lint, and production build passed with 183 transformed modules.
+
+### v1.7 Custom Feedback Persistence Verification
+
+- Inspected the live development database through the same connection used by the running backend and confirmed that recent feedback rows contain both the selected-reason line and the custom `补充：...` line in the existing `comment` column.
+- Identified that the serialized comment intentionally contains a newline, so a database grid that renders only the first line can make the custom text appear absent even though it is stored.
+- Added real-backend Playwright coverage that enters a predefined reason and custom feedback, then verifies that the outgoing request contains both parts. No application behavior, schema, or API contract changed.
+- `cd backend && uv run pytest` passed with 66 tests. The full Docker-backed Playwright suite passed 5 tests across desktop and compact Chromium.
+
+### v1.8 Custom Feedback Display Order
+
+- Reordered new combined comments to persist `补充：...` on the first line and `选择项：...` on the second line, making recruiter-written feedback visible in database grids that show only the first line.
+- Preserved custom-only and selected-reason-only submissions, the 2,000-character serialized limit, and the existing `POST /api/feedback` contract and database schema. Existing rows are unchanged.
+- `cd frontend && npm run test` passed with 7 files and 46 tests; type-check, lint, and production build passed with 186 transformed modules. The full Docker-backed Playwright suite passed 5 tests across desktop and compact Chromium.
 
 ## Specification-Conformance Review
 

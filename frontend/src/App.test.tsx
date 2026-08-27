@@ -559,7 +559,7 @@ describe('Goal 4 recruiter workspace', () => {
       messageId: 'message_mock_002',
       rating: 5,
       comment:
-        '选择项：证据清晰可核验；信息缺口标注清楚\n补充：证据结构清楚。',
+        '补充：证据结构清楚。\n选择项：证据清晰可核验；信息缺口标注清楚',
     })
     expect(helpful).toHaveAttribute('aria-pressed', 'true')
     expect(helpful).toBeDisabled()
@@ -654,8 +654,10 @@ describe('Goal 4 recruiter workspace', () => {
     const option = zhCN.feedback.predefinedOptions(5)[0]
     fireEvent.click(screen.getByRole('button', { name: `+ ${option}` }))
     const comment = screen.getByLabelText(zhCN.feedback.commentLabel)
-    const reservedText = `${zhCN.feedback.selectedReasonsPrefix}${option}\n${zhCN.feedback.customFeedbackPrefix}`
-    const expectedCustomLimit = 2000 - reservedText.length
+    const customPrefix = zhCN.feedback.customFeedbackPrefix
+    const selectedReasons = `${zhCN.feedback.selectedReasonsPrefix}${option}`
+    const expectedCustomLimit =
+      2000 - customPrefix.length - 1 - selectedReasons.length
     expect(comment).toHaveAttribute('maxlength', String(expectedCustomLimit))
 
     fireEvent.change(comment, { target: { value: '测'.repeat(2000) } })
@@ -665,7 +667,9 @@ describe('Goal 4 recruiter workspace', () => {
     await screen.findByText(zhCN.feedback.successDescription)
     const submittedComment = submit.mock.calls[0][0].comment
     expect(submittedComment).toHaveLength(2000)
-    expect(submittedComment).toBe(`${reservedText}${'测'.repeat(expectedCustomLimit)}`)
+    expect(submittedComment).toBe(
+      `${customPrefix}${'测'.repeat(expectedCustomLimit)}\n${selectedReasons}`,
+    )
   })
 
   it('shows a recoverable inline error when feedback cannot be stored', async () => {

@@ -139,7 +139,20 @@ test('completes the primary recruiter journey through the real backend', async (
   await page
     .getByRole('button', { name: `+ ${zhCN.feedback.predefinedOptions(5)[0]}` })
     .click()
+  await page
+    .getByLabel(zhCN.feedback.commentLabel)
+    .fill('希望增加岗位要求逐项对照。')
+  const feedbackRequestPromise = page.waitForRequest(
+    (request) =>
+      request.method() === 'POST' && request.url().endsWith('/api/feedback'),
+  )
   await page.getByRole('button', { name: zhCN.feedback.submit }).click()
+  const feedbackRequest = await feedbackRequestPromise
+  expect(feedbackRequest.postDataJSON()).toMatchObject({
+    rating: 5,
+    comment:
+      '补充：希望增加岗位要求逐项对照。\n选择项：证据清晰可核验',
+  })
   await expect(page.getByText(zhCN.feedback.successDescription)).toBeVisible()
   await expectAcceptedTrackingCounts({
     page_visit: 1,
