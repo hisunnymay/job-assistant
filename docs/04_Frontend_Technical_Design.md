@@ -7,9 +7,9 @@
 | ----------------- | -------------------------------------------------------------------------------------- |
 | Document Name     | AI Job Fit Assistant Frontend Technical Design                                         |
 | Document Type     | Frontend Technical Design                                                              |
-| Version           | v0.7                                                                                   |
+| Version           | v0.9                                                                                   |
 | Status            | Finalized                                                                              |
-| Last Updated      | 2026-08-26                                                                             |
+| Last Updated      | 2026-08-27                                                                             |
 | Related Documents | Product Requirement Document, Lightweight AI Design Decision, Backend Technical Design |
 
 
@@ -17,6 +17,8 @@
 
 | Version | Date | Change | Reason |
 | --- | --- | --- | --- |
+| v0.9 | 2026-08-27 | Distinguished permanent tracking rejections from retryable delivery failures in the bounded browser queue. | Prevent one invalid event from blocking later valid analytics events while retaining transient failures for retry. |
+| v0.8 | 2026-08-27 | Defined centralized delivery, privacy-safe event payloads, pseudonymous session identity, and a bounded retry queue for all six S001 tracking events. | Ensure frontend tracking supports aggregate, cross-session MVP metric evaluation without blocking the recruiter journey. |
 | v0.7 | 2026-08-26 | Required a meaningful feedback contribution after a recruiter selects Helpful or Not Helpful, added rating-specific predefined reasons, and required visible hover/focus labels for contextual icon actions. | Reduce empty feedback submissions and make compact icon actions easier to understand without changing the feedback API or the PRD's voluntary initiation rule. |
 | v0.6 | 2026-08-26 | Approved the supplied desktop reference UI: standalone entrance, three-item workspace navigation, scrollable matching conversation with bottom input and contextual actions, PDF preview, and contact-copy layout. | Convert the reviewed visual direction into implementation requirements while preserving the existing MVP scope and API contracts. |
 | v0.5 | 2026-08-25 | Added the approved entrance page and persistent left-navigation workspace with mutually exclusive conversation, résumé, and contact views. | Align the finalized frontend behavior with the reviewed UI demonstration before implementation. |
@@ -474,15 +476,39 @@ Errors should be displayed clearly without exposing unnecessary technical detail
 
 ### 4.4 User Behavior Tracking
 
-Frontend should provide tracking events for:
+The frontend owns detecting the six S001 interaction boundaries:
 
 - Page visits;
 - Job description submission;
+- Matching report generation after a successful backend response;
 - Resume preview click;
 - Contact CTA click;
-- Feedback submission.
+- Feedback submission after successful persistence.
 
-Tracking implementation details are not defined in MVP.
+Each event sent to `POST /api/tracking-events` contains only:
+
+- `eventId`: a stable client-generated identifier used for idempotent delivery;
+- `eventName`: one of the six approved S001 event names;
+- `sessionId`: a pseudonymous identifier for the current browser-tab session;
+- `occurredAt`: the client-side interaction timestamp;
+- `conversationId`: optional and included only after the backend has created the relevant Conversation.
+
+The frontend must never add job descriptions, resume content, follow-up questions, feedback reasons or comments, candidate contact data, prompts, provider payloads, or other user-entered content to a tracking event.
+
+The tracking session is separate from Conversation state. The frontend creates or restores the random `sessionId` from `sessionStorage`, allowing page visits and job-description submissions to be measured before a Conversation exists.
+
+Central backend persistence is the authoritative source for analytics. Browser storage may contain only a pending-delivery queue of at most 100 privacy-safe events that have not yet been acknowledged by the backend. The tracking client should:
+
+- Queue an event before attempting delivery;
+- Retry pending events on application startup and when another tracking event occurs;
+- Remove an event after successful backend acknowledgement;
+- Discard events rejected with permanent `400`, `404`, or `409` contract errors so they cannot block later valid events;
+- Retain network failures, `408`, `425`, `429`, malformed success responses, and `5xx` failures for retry;
+- Reuse the same `eventId` for retries so the backend can prevent duplicates;
+- Discard the oldest pending event if adding a new event would exceed the 100-event limit;
+- Treat tracking as best-effort and never block navigation, matching, resume preview, contact actions, or feedback completion when delivery fails.
+
+The local queue is a delivery mechanism, not an analytics store. Product evaluation must use centrally persisted events rather than reading individual browsers.
 
 ### 4.5 Future Improvements
 

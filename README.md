@@ -4,7 +4,7 @@ A Chinese-language MVP that helps recruiters compare a job description with a pr
 
 ## Project Status
 
-Goal 4 provides the integrated matching journey plus approved résumé preview/download, static candidate contact actions, and report-linked feedback persistence. Matching reports still use the deterministic backend Mock AI Service; no real AI provider or API key is used during this Demo phase.
+Goal 5 provides the integrated recruiter journey, centralized privacy-safe product tracking, an internal aggregate metrics report, 90-day tracking retention, and deterministic AI guardrail fixtures. Matching reports still use the deterministic backend Mock AI Service; no real AI provider or API key is used during this Demo phase.
 
 ## Repository Structure
 
@@ -45,7 +45,7 @@ uv run python -m app.db.init_db
 uv run uvicorn app.main:app --reload
 ```
 
-The health endpoint is available at `http://localhost:8000/health`. Goal 4 uses `POST /api/matching-analysis`, `GET /api/resume`, and `POST /api/feedback` on the same backend origin.
+The health endpoint is available at `http://localhost:8000/health`. The MVP uses `POST /api/matching-analysis`, `POST /api/conversations/{conversationId}/messages`, `GET /api/resume`, `POST /api/feedback`, and `POST /api/tracking-events` on the same backend origin.
 
 In another terminal, run the frontend:
 
@@ -86,6 +86,26 @@ cd backend
 uv run python -m app.db.init_db
 ```
 
+## Tracking Metrics and Retention
+
+Run the internal aggregate report from `backend/` with an inclusive start and exclusive end timestamp:
+
+```bash
+uv run python -m app.commands.tracking_report \
+  --start 2026-08-01T00:00:00Z \
+  --end 2026-09-01T00:00:00Z
+```
+
+The JSON result contains total and distinct-session counts for all six S001 events and the distinct-session Contact Conversion Rate. It contains no job description, résumé, feedback, contact, prompt, IP-address, or user-agent content.
+
+Delete events older than the approved 90-day retention period:
+
+```bash
+uv run python -m app.commands.cleanup_tracking_events
+```
+
+Both commands use the backend's configured `DATABASE_URL`. The metrics command is an internal evaluator tool; the MVP does not expose event-level analytics or a recruiter-facing Dashboard.
+
 ## Active Documents
 
 - [Product Requirement Document](docs/01_Product_Requirement_Document.md)
@@ -101,5 +121,6 @@ uv run python -m app.db.init_db
 - [Goal 0 Implementation Record](history/implementation_logs/goal-00-project-scaffold.md)
 - [Goal 2 Implementation Record](history/implementation_logs/goal-02-matching-vertical-slice.md)
 - [Goal 4 Implementation Record](history/implementation_logs/goal-04-supporting-actions.md)
+- [Goal 5 Implementation Record](history/implementation_logs/goal-05-tracking-and-guardrails.md)
 
 Read `AGENTS.md` before implementation. Implement only the explicitly requested Goal from `planning/PLAN.md`.
