@@ -4,9 +4,11 @@ import { ConversationMessage } from './components/ConversationMessage'
 import { FeedbackPanel } from './components/FeedbackPanel'
 import { Icon } from './components/Icon'
 import { JobDescriptionForm } from './components/JobDescriptionForm'
+import { LoadingStatus } from './components/LoadingStatus'
 import { ResumePanel } from './components/ResumePanel'
 import { appConfig } from './config/env'
 import { zhCN } from './content/zh-CN'
+import exampleReportMarkdown from './content/example-report.md?raw'
 import {
   AnalysisClientError,
   createAnalysisClient,
@@ -33,6 +35,7 @@ import './styles.css'
 type JourneyState = 'ready' | 'loading' | 'success' | 'failure'
 type FollowUpState = 'idle' | 'loading' | 'failure'
 type WorkspaceView = 'home' | 'conversation' | 'resume' | 'contact'
+type ConversationMode = 'formal' | 'example' | null
 
 interface FailedFollowUp {
   messageId: string
@@ -88,6 +91,7 @@ export function App({
   const [submittedJobDescription, setSubmittedJobDescription] = useState('')
   const [fieldError, setFieldError] = useState<string>()
   const [journeyState, setJourneyState] = useState<JourneyState>('ready')
+  const [conversationMode, setConversationMode] = useState<ConversationMode>(null)
   const [activeView, setActiveView] = useState<WorkspaceView>(getInitialView)
   const [failureDescription, setFailureDescription] = useState<string>(
     zhCN.failure.description,
@@ -109,10 +113,13 @@ export function App({
 
   const normalizedJobDescription = jobDescription.trim()
   const normalizedFollowUpQuestion = followUpQuestion.trim()
-  const hasActiveConversation = Boolean(submittedJobDescription)
+  const hasActiveConversation = conversationMode !== null
   const canSubmitJobDescription =
     normalizedJobDescription.length >= minimumJobDescriptionLength
-  const canAskFollowUp = Boolean(conversationId) && journeyState === 'success'
+  const canAskFollowUp =
+    conversationMode === 'formal' &&
+    Boolean(conversationId) &&
+    journeyState === 'success'
   const canSubmitFollowUp =
     canAskFollowUp &&
     followUpState === 'idle' &&
@@ -158,6 +165,7 @@ export function App({
       }
 
       setMessages([jobDescriptionMessage])
+      setConversationMode('formal')
       setSubmittedJobDescription(description)
       setJobDescription('')
       setSubmittedFeedbackRating(undefined)
@@ -199,6 +207,7 @@ export function App({
           setFieldError(zhCN.failure.invalidRequest)
           setCanRetryFailure(false)
           setSubmittedJobDescription('')
+          setConversationMode(null)
           setMessages([])
           setConversationId(undefined)
           activeConversationIdRef.current = undefined
@@ -242,6 +251,37 @@ export function App({
   function handleUseExample() {
     setJobDescription(zhCN.sampleJobDescription)
     setFieldError(undefined)
+  }
+
+  function handleViewExampleReport() {
+    const exampleMessages: ConversationMessageData[] = [
+      {
+        id: 'example-job-description',
+        role: 'user',
+        messageType: 'job_description',
+        content: zhCN.sampleJobDescription,
+      },
+      {
+        id: 'example-matching-report',
+        role: 'assistant',
+        messageType: 'matching_analysis',
+        content: exampleReportMarkdown,
+      },
+    ]
+
+    setConversationMode('example')
+    setMessages(exampleMessages)
+    setSubmittedJobDescription('')
+    setConversationId(undefined)
+    activeConversationIdRef.current = undefined
+    setMatchingMessageId(undefined)
+    setSubmittedFeedbackRating(undefined)
+    setJourneyState('success')
+    setFollowUpQuestion('')
+    setFollowUpState('idle')
+    setFollowUpError(undefined)
+    setFailedFollowUp(undefined)
+    setActiveView('conversation')
   }
 
   function handleRetry() {
@@ -406,6 +446,7 @@ export function App({
             canSubmit={canSubmitJobDescription}
             onChange={handleChange}
             onUseExample={handleUseExample}
+            onViewExampleReport={handleViewExampleReport}
             onSubmit={handleSubmit}
           />
         </section>
@@ -461,6 +502,7 @@ export function App({
             className="conversation-view"
             aria-label={zhCN.conversation.title}
             data-conversation-id={conversationId}
+            data-conversation-mode={conversationMode ?? undefined}
           >
             <div className="conversation-scroll" ref={conversationScrollRef}>
               <ol className="message-list" aria-live="polite">
@@ -506,21 +548,7 @@ export function App({
 
                 {journeyState === 'loading' ? (
                   <li className="message-row message-row-assistant">
-                    <article
-                      className="status-message loading-message"
-                      aria-label={`${zhCN.conversation.assistantName}：${zhCN.loading.title}`}
-                      role="status"
-                    >
-                      <span className="typing-indicator" aria-hidden="true">
-                        <i />
-                        <i />
-                        <i />
-                      </span>
-                      <div>
-                        <h2>{zhCN.loading.title}</h2>
-                        <p>{zhCN.loading.description}</p>
-                      </div>
-                    </article>
+                    <LoadingStatus title={zhCN.loading.title} />
                   </li>
                 ) : null}
 
@@ -550,21 +578,10 @@ export function App({
 
                 {followUpState === 'loading' ? (
                   <li className="message-row message-row-assistant">
-                    <article
-                      className="status-message loading-message follow-up-status-message"
-                      aria-label={`${zhCN.conversation.assistantName}：${zhCN.followUp.loadingTitle}`}
-                      role="status"
-                    >
-                      <span className="typing-indicator" aria-hidden="true">
-                        <i />
-                        <i />
-                        <i />
-                      </span>
-                      <div>
-                        <h2>{zhCN.followUp.loadingTitle}</h2>
-                        <p>{zhCN.followUp.loadingDescription}</p>
-                      </div>
-                    </article>
+                    <LoadingStatus
+                      title={zhCN.followUp.loadingTitle}
+                      className="follow-up-status-message"
+                    />
                   </li>
                 ) : null}
 
@@ -594,6 +611,21 @@ export function App({
               </ol>
             </div>
 
+            {conversationMode === 'example' ? (
+              <section className="example-follow-up-notice" aria-labelledby="example-follow-up-title">
+                <div>
+                  <h2 id="example-follow-up-title">{zhCN.report.exampleFollowUpTitle}</h2>
+                  <p>{zhCN.report.exampleFollowUpDescription}</p>
+                </div>
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={() => setActiveView('home')}
+                >
+                  {zhCN.report.submitOwnJobDescription}
+                </button>
+              </section>
+            ) : (
             <form
               className="follow-up-composer"
               aria-describedby={
@@ -639,6 +671,7 @@ export function App({
                 </span>
               ) : null}
             </form>
+            )}
           </section>
         ) : null}
 

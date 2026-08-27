@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { StrictMode } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
 import { zhCN } from './content/zh-CN'
 import {
@@ -11,6 +11,7 @@ import { FeedbackClientError } from './services/feedbackClient'
 import { FollowUpClientError } from './services/followUpClient'
 import { createMockAnalysisClient } from './services/mockAnalysisClient'
 import type { FollowUpClient } from './types/followUp'
+import type { AnalysisClient } from './types/matching'
 import type { TrackingClient } from './types/tracking'
 
 function renderJourney(options?: {
@@ -53,6 +54,10 @@ describe('Goal 4 recruiter workspace', () => {
     window.history.replaceState({}, '', '/')
   })
 
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('starts on a standalone entrance with the approved JD composer behavior', () => {
     renderJourney()
 
@@ -71,6 +76,11 @@ describe('Goal 4 recruiter workspace', () => {
     expect(input).toHaveValue('')
     expect(submit).toBeDisabled()
     expect(screen.getByText('0 / 6000 字符')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', {
+        name: zhCN.jobDescription.viewExampleReport,
+      }),
+    ).toBeEnabled()
 
     fireEvent.change(input, { target: { value: '只写了很短的职位要求' } })
     expect(screen.getByRole('alert')).toHaveTextContent(
@@ -83,6 +93,56 @@ describe('Goal 4 recruiter workspace', () => {
     )
     expect(input).toHaveValue(zhCN.sampleJobDescription)
     expect(submit).toBeEnabled()
+  })
+
+  it('opens the checked example instantly without provider, persistence, feedback, follow-up, or generated-report tracking', () => {
+    const analyze = vi.fn<AnalysisClient['analyze']>()
+    const ask = vi.fn<FollowUpClient['ask']>()
+    const track = vi.fn()
+    render(
+      <App
+        analysisClient={{ analyze }}
+        followUpClient={{ ask }}
+        trackingClient={{ track }}
+      />,
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: zhCN.jobDescription.viewExampleReport,
+      }),
+    )
+
+    const report = screen.getByRole('article', {
+      name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
+    })
+    expect(report).toHaveTextContent(zhCN.report.exampleModeLabel)
+    expect(report).toHaveTextContent('产品上线后的量化业务结果')
+    expect(
+      screen.getByRole('region', { name: zhCN.conversation.title }),
+    ).toHaveAttribute('data-conversation-mode', 'example')
+    expect(
+      screen.getByRole('region', { name: zhCN.conversation.title }),
+    ).not.toHaveAttribute('data-conversation-id')
+    expect(screen.queryByLabelText(zhCN.followUp.label)).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: zhCN.report.exampleFollowUpTitle }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: zhCN.feedback.helpful }),
+    ).not.toBeInTheDocument()
+    expect(analyze).not.toHaveBeenCalled()
+    expect(ask).not.toHaveBeenCalled()
+    expect(track.mock.calls).toEqual([['page_visit', undefined]])
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: zhCN.report.submitOwnJobDescription,
+      }),
+    )
+    expect(
+      screen.getByRole('heading', { level: 1, name: zhCN.hero.title }),
+    ).toBeInTheDocument()
   })
 
   it('supports direct résumé entry and workspace replacement navigation', () => {
@@ -120,7 +180,8 @@ describe('Goal 4 recruiter workspace', () => {
       screen.getByRole('status', {
         name: `${zhCN.conversation.assistantName}：${zhCN.loading.title}`,
       }),
-    ).toHaveTextContent(zhCN.loading.description)
+    ).toHaveTextContent(zhCN.loading.typicalDuration)
+    expect(screen.getByText(zhCN.loading.elapsed(0))).toBeInTheDocument()
     expect(
       screen.getByRole('navigation', { name: zhCN.navigation.ariaLabel }),
     ).toBeInTheDocument()
@@ -209,7 +270,8 @@ describe('Goal 4 recruiter workspace', () => {
       screen.getByRole('status', {
         name: `${zhCN.conversation.assistantName}：${zhCN.followUp.loadingTitle}`,
       }),
-    ).toHaveTextContent(zhCN.followUp.loadingDescription)
+    ).toHaveTextContent(zhCN.loading.typicalDuration)
+    expect(screen.getByText(zhCN.loading.elapsed(0))).toBeInTheDocument()
     expect(followUpInput).toBeDisabled()
     expect(ask).toHaveBeenCalledOnce()
     expect(ask).toHaveBeenCalledWith(
@@ -283,6 +345,57 @@ describe('Goal 4 recruiter workspace', () => {
     ).toHaveLength(1)
     expect(ask).toHaveBeenCalledTimes(2)
     expect(ask.mock.calls[0]).toEqual(ask.mock.calls[1])
+  })
+
+  it('stops and resets the matching timer when leaving and returning to an active request', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-27T00:00:00Z'))
+    let resolveAnalysis:
+      | ((value: {
+          conversationId: string
+          messageId: string
+          content: string
+        }) => void)
+      | undefined
+    const analyze = vi.fn(
+      () =>
+        new Promise<{
+          conversationId: string
+          messageId: string
+          content: string
+        }>((resolve) => {
+          resolveAnalysis = resolve
+        }),
+    )
+    render(<App analysisClient={{ analyze }} trackingClient={{ track: vi.fn() }} />)
+    submitExampleJobDescription()
+
+    act(() => {
+      vi.advanceTimersByTime(5_000)
+    })
+    expect(screen.getByText(zhCN.loading.elapsed(5))).toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.navigation.resume }),
+    )
+    expect(screen.queryByText(zhCN.loading.elapsed(5))).not.toBeInTheDocument()
+    expect(vi.getTimerCount()).toBe(0)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.navigation.assistant }),
+    )
+    expect(screen.getByText(zhCN.loading.elapsed(0))).toBeInTheDocument()
+
+    await act(async () => {
+      resolveAnalysis?.({
+        conversationId: 'conversation_timer',
+        messageId: 'message_timer',
+        content: '# 完成',
+      })
+    })
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(vi.getTimerCount()).toBe(0)
+    vi.useRealTimers()
   })
 
   it('prevents concurrent follow-ups and preserves multiple turns in order', async () => {

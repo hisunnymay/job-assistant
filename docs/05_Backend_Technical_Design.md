@@ -6,7 +6,7 @@
 | --- | --- |
 | Document Name | AI Job Fit Assistant Backend Technical Design |
 | Document Type | Backend Technical Design |
-| Version | v0.6 |
+| Version | v0.9 |
 | Status | Finalized |
 | Owner | Mei Chang |
 | Last Updated | 2026-08-27 |
@@ -17,6 +17,9 @@
 
 | Version | Date | Change | Reason |
 | --- | --- | --- | --- |
+| v0.9 | 2026-08-27 | Defined separate second-attempt request behavior for invalid structured results and transient provider failures, safe Markdown rendering, a bounded gateway timeout, and a privacy-safe Mini validation record. | Improve strict-output recovery and end-to-end request safety without changing the public API, retry ceiling, persistence ownership, or default model. |
+| v0.8 | 2026-08-27 | Replaced request-time PDF input with the user-verified fixed résumé Markdown as AI context while retaining the paired PDF for recruiter preview/download. | The fixed-candidate MVP can avoid repeated document parsing and use a simpler, more reliable text-only provider path without changing public APIs or adding upload scope. |
+| v0.7 | 2026-08-27 | Corrected the real-AI transport to Ark's Responses API with inline Base64 PDF input, strict Responses structured output, and thinking disabled. | Provider clarification established the documented PDF endpoint while preserving the approved AI Service, persistence, and public API boundaries. |
 | v0.6 | 2026-08-27 | Aligned the AI Service with AI System Design v1.1: selected Ark/LangChain/LangGraph integration, direct-PDF internal structured output, semantic validation, and a unified two-attempt retry budget; repaired the error-envelope Markdown fence. | Make the real-AI backend decisions authoritative and keep the document renderable while preserving persistence ownership and Section 5 API contracts. |
 | v0.5 | 2026-08-27 | Selected a provider-neutral single-host Docker demo target with Nginx Basic Auth protecting the deployed UI and APIs. | Prepare a reproducible demo without adding user accounts, changing application API contracts, or deploying before approval. |
 | v0.4 | 2026-08-27 | Added an internal request fingerprint for deletion-safe idempotent replay and restricted conversion to the generated-report session cohort. | Preserve the event contract after `ON DELETE SET NULL` and prevent contact-only sessions from inflating the MVP conversion metric. |
@@ -470,16 +473,14 @@ MVP persistent data:
 
 ### Candidate Resume Resource
 
-The predefined candidate resume is maintained as a static PDF resource rather than persistent business data.
+The predefined candidate résumé is maintained as one approved static resource pair rather than persistent business data:
 
-For the MVP, the same resume file is used for:
+- `mei_chang_resume.pdf` is the recruiter preview/download artifact;
+- The user-verified `mei_chang_resume.md` is the AI runtime context.
 
-- Recruiter preview and download;
-- AI processing as candidate context.
+The AI Service verifies the approved Markdown filename and SHA-256 before sending its UTF-8 text to the selected provider. The PDF and Markdown must not be edited independently; replacing either artifact requires renewed verification and digest updates.
 
-The AI Service is responsible for providing the resume to the selected AI provider in a supported format.
-
-Backend-side resume text extraction or preprocessing is not required for the MVP.
+Request-time PDF extraction or preprocessing, résumé upload/management, and independently editable candidate data remain outside the MVP.
 
 ### Repository Strategy
 
@@ -984,7 +985,7 @@ Previous Follow-up Answers
 
 ## 6.3 AI Response Handling
 
-The AI Service performs provider-response parsing, strict internal-schema validation, cross-field invariant validation, and Markdown rendering before returning AI-generated content to the Service Layer. The internal schemas are defined by AI System Design v1.1 and do not change the Section 5 public response contracts.
+The AI Service performs provider-response parsing, strict internal-schema validation, cross-field invariant validation, and Markdown rendering before returning AI-generated content to the Service Layer. The internal schemas are defined by AI System Design v1.3 and do not change the Section 5 public response contracts.
 
 ### Successful Response
 
@@ -1020,7 +1021,7 @@ Runtime validation checks structure and deterministic internal consistency. It d
 
 ### Invalid AI Response
 
-If the AI response is missing, unusable, or violates the approved schema or invariants, the AI Service applies the Section 7.6 retry decision. After the retry budget is exhausted:
+If the first AI response is missing, unusable, or violates the approved schema or invariants, the AI Service applies the Section 7.6 invalid-output retry behavior. After the retry budget is exhausted:
 
 ```text
 Invalid AI Response
@@ -1063,6 +1064,8 @@ For the MVP:
 The following decisions are either finalized for the MVP or explicitly deferred to deployment. Each subsection states its current decision.
 
 ## 7.1 Deployment Strategy
+
+For the default 180-second provider-attempt timeout and two-attempt application ceiling, the prepared Nginx demo gateway uses a finite 400-second upstream read/send timeout. This prevents the gateway from returning a 60-second timeout while the bounded backend workflow is still active. Goal 9 must revalidate this value if the provider timeout or release gateway changes.
 
 Decision:
 
@@ -1112,11 +1115,11 @@ The database should prioritize simple setup, development speed, and compatibilit
 
 Decision:
 
-Use Volcengine Ark with model `doubao-seed-2-1-pro-260628` behind the existing AI Service boundary. The primary integration uses LangChain `ChatOpenAI` with Ark's OpenAI-compatible base URL. LangGraph owns temporary per-execution generation, validation, retry, and Markdown-rendering orchestration; it does not own or checkpoint persistent conversation state.
+Use Volcengine Ark with model `doubao-seed-2-1-pro-260628` behind the existing AI Service boundary. The primary integration uses LangChain `ChatOpenAI` with Ark's OpenAI-compatible base URL and `use_responses_api = true`. LangGraph owns temporary per-execution generation, validation, retry, and Markdown-rendering orchestration; it does not own or checkpoint persistent conversation state.
 
-The AI Service supplies the exact predefined PDF through Base64 `file_data`, requests the strict internal Pydantic-backed schema defined in AI System Design v1.1, validates the result and its cross-field invariants, and renders text/Markdown for the unchanged Section 5 APIs. Backend PDF extraction, a résumé text mirror, RAG, and a frontend-visible structured-report contract remain outside the MVP.
+The AI Service verifies and supplies the exact user-approved `mei_chang_resume.md` as a stable UTF-8 `input_text` block before dynamic job-description or conversation content. It requests the strict internal Pydantic-backed schema defined in AI System Design v1.3 through `text.format`, explicitly disables thinking, validates the result and its cross-field invariants, and renders text/Markdown for the unchanged Section 5 APIs. The paired PDF remains the recruiter preview/download artifact. Provider-managed file upload, streaming, request-time PDF extraction or preprocessing, RAG, and a frontend-visible structured-report contract remain outside the MVP.
 
-Goal 7 must first exercise the fixed repository PDF and production-shaped matching and follow-up schemas through the primary `ChatOpenAI` path. If an Ark-specific PDF or strict-schema capability is not represented correctly, the Volcengine Ark Python SDK may be used inside the same AI Service and LangGraph boundary. If neither path supports the approved combination, stop for a design decision rather than changing the public API or adding extraction.
+Goal 7 must exercise the fixed repository Markdown and production-shaped matching and follow-up schemas through the primary `ChatOpenAI` Responses path. If an Ark-specific Responses capability is not represented correctly, the Volcengine Ark Python SDK may be used inside the same AI Service and LangGraph boundary. If neither path supports the approved combination, stop for a design decision rather than changing the public API, adding a provider file lifecycle, streaming, extraction, or upload scope.
 
 Provider configuration is validated by backend settings. The Ark API key remains a backend-only secret; base URL, model ID, and finite request timeout remain backend configuration. No real secret is committed, logged, persisted, or returned to the frontend.
 
@@ -1167,6 +1170,13 @@ The single retry may be used for:
 - Provider rate limiting or temporary service unavailability;
 - A response that fails the approved schema or cross-field invariant validation.
 
-Do not retry authentication/authorization failure, invalid request, unsupported-model/capability error, safety refusal, or another permanent provider error. Disable library-level automatic retries so client behavior cannot multiply the workflow budget. Every attempt uses a finite backend-configured timeout, and Goal 7 must validate that timeout with the fixed PDF and gateway configuration.
+The AI Service distinguishes the second request by the first failure category:
+
+- After invalid structured output, rebuild the original request with one short, generic correction instruction requiring a complete result that follows the already supplied strict schema and field rules;
+- After a transient provider failure, resend the original request unchanged and do not add the correction instruction.
+
+The correction instruction must not contain or quote the raw response, validation exception, field-level diagnostics, secret, prompt, résumé, job description, or follow-up text beyond what is already present in the original request. The strict schema, Pydantic invariants, approved Markdown source-heading whitelist, request correlation ID, and two-attempt ceiling remain unchanged.
+
+Do not retry authentication/authorization failure, invalid request, unsupported-model/capability error, safety refusal, or another permanent provider error. Disable library-level automatic retries so client behavior cannot multiply the workflow budget. Every attempt uses a finite backend-configured timeout, and Goal 7 must validate that timeout with the fixed Markdown context and gateway configuration.
 
 After a non-retryable failure or retry exhaustion, the AI Service returns the existing safe AI-processing failure to the Service Layer. It must not persist an assistant message, expose raw provider details, or add background queues, evaluator loops, distributed retry infrastructure, or a new API contract.

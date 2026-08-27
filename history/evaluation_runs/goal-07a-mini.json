@@ -1,0 +1,56 @@
+{
+  "goal": "7A",
+  "executedAt": "2026-08-27T12:30:25.747303+00:00",
+  "model": "doubao-seed-2-0-mini-260428",
+  "clientPath": "LangChain ChatOpenAI Responses API",
+  "providerCallLimit": 4,
+  "providerCallsUsed": 2,
+  "firstAttemptSuccessRate": 1.0,
+  "workflows": [
+    {
+      "workflow": "matching",
+      "firstAttemptSucceeded": true,
+      "providerAttempts": 1,
+      "structuredRetryTriggered": false,
+      "retryReason": null,
+      "durationSeconds": 6.49,
+      "schemaValid": true,
+      "sourceReferencesLegal": true,
+      "prohibitedBehaviorDetected": false
+    },
+    {
+      "workflow": "follow_up",
+      "firstAttemptSucceeded": true,
+      "providerAttempts": 1,
+      "structuredRetryTriggered": false,
+      "retryReason": null,
+      "durationSeconds": 4.58,
+      "schemaValid": true,
+      "sourceReferencesLegal": true,
+      "prohibitedBehaviorDetected": false
+    }
+  ],
+  "workflowDurationSeconds": 11.07,
+  "totalDurationSeconds": 11.26,
+  "proBaselineSeconds": 34.28,
+  "durationDeltaSeconds": -23.02,
+  "atLeast20PercentFasterThanPro": true,
+  "manualGroundingReview": {
+    "status": "passed",
+    "inventedEvidenceDetected": false,
+    "candidateScoringDetected": false,
+    "hiringRecommendationDetected": false,
+    "futurePerformancePredictionDetected": false,
+    "notes": "All candidate claims and source headings were checked against the approved fixed Markdown resume."
+  },
+  "defaultModelChanged": false,
+  "environmentFileChanged": false,
+  "privacy": {
+    "containsResume": false,
+    "containsJobDescription": false,
+    "containsQuestion": false,
+    "containsPrompt": false,
+    "containsProviderPayloadOrRawResponse": false,
+    "containsGeneratedMarkdown": false
+  }
+}

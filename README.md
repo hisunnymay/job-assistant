@@ -4,7 +4,7 @@ A Chinese-language MVP that helps recruiters compare a job description with a pr
 
 ## Project Status
 
-Goal 6 provides a validated recruiter journey, automated browser coverage, and a provider-neutral single-host Docker demo bundle protected by gateway-level HTTP Basic Authentication. Matching reports still use the deterministic backend Mock AI Service; no real AI provider or API key is used during this Demo phase.
+Goal 7 adds a validated Volcengine Ark adapter behind the existing backend AI Service boundary while keeping the deterministic Mock AI Service as the local and automated-test default. The public matching and follow-up APIs remain unchanged. The paired PDF remains the recruiter preview/download artifact; the user-verified fixed Markdown is the runtime AI context. The corrected matching-plus-follow-up path passed the opt-in live test with `doubao-seed-2-1-pro-260628`; real runs require an uncommitted `ARK_API_KEY` with access to the configured model.
 
 ## Repository Structure
 
@@ -23,9 +23,10 @@ job-assistant/
 
 - Node.js supported by the current Vite release and npm;
 - [uv](https://docs.astral.sh/uv/) for Python 3.12 and backend dependencies;
-- Docker with Compose for the recommended local PostgreSQL setup.
+- Docker with Compose for the recommended local PostgreSQL setup;
+- A Volcengine Ark API key only for explicit real-AI runs.
 
-No AI provider or API key is required during the Demo phase.
+No AI provider account or API key is required for Mock mode or normal automated tests.
 
 ## Local Setup
 
@@ -58,6 +59,28 @@ npm run dev
 
 Vite prints the local frontend URL when it starts.
 
+## AI Provider Modes
+
+Mock mode is the safe default in `backend/.env.example`:
+
+```dotenv
+AI_PROVIDER=mock
+```
+
+For an explicit real-AI run, keep the key only in the ignored `backend/.env` file or the process environment and configure:
+
+```dotenv
+AI_PROVIDER=ark
+ARK_API_KEY=replace-with-an-uncommitted-key
+ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+ARK_MODEL=doubao-seed-2-1-pro-260628
+ARK_REQUEST_TIMEOUT_SECONDS=180
+```
+
+The Ark adapter uses the Responses API to send the user-verified `mei_chang_resume.md` as a stable UTF-8 text block before dynamic job or conversation content. It verifies the approved filename and SHA-256 before the provider call, requests strict internal JSON Schema through `text.format`, explicitly disables model thinking, validates the result with Pydantic, and renders only Markdown into the existing API `content` field. The request remains non-streaming. The API key is backend-only and must never be added to frontend variables, Compose build arguments, source control, logs, or persisted application data.
+
+The primary `ChatOpenAI(use_responses_api=True)` path is covered by deterministic transport tests for the `/responses` endpoint, exact verified Markdown text, stable-before-dynamic ordering, strict schema, Ark thinking setting, correlation header, disabled library retries, and bounded workflow retries. The Pro live test completed matching plus follow-up in 34.28 seconds with two first-attempt provider successes, so no native Ark SDK fallback was added. Because provider access and service behavior can vary by account and deployment, rerun the opt-in test when validating another Ark environment. A sanitized integration reference is available at `history/provider_research/ark-responses-api.md`.
+
 ## Validation
 
 Frontend:
@@ -78,9 +101,34 @@ Backend:
 ```bash
 cd backend
 uv run pytest
-uv run mypy app
+uv run mypy app tests
 uv run ruff check .
 ```
+
+Opt-in live Ark compatibility and public-API test:
+
+```bash
+cd backend
+RUN_LIVE_ARK_TESTS=1 AI_PROVIDER=ark \
+  uv run pytest -m live_ark tests/live/test_ark_integration.py
+```
+
+The live test is skipped during normal `pytest` runs. With `RUN_LIVE_ARK_TESTS=1`, missing Ark credentials fail configuration clearly. The test does not print submitted or generated content, and its isolated database records are removed by the test fixture.
+
+After all deterministic Goal 7A validation passes and the user separately approves at most four provider calls and their account-billed cost, run the Mini comparison with an explicit process-only model override:
+
+```bash
+cd backend
+RUN_LIVE_ARK_TESTS=1 \
+RUN_GOAL_7A_MINI_VALIDATION=1 \
+AI_PROVIDER=ark \
+ARK_MODEL=doubao-seed-2-0-mini-260428 \
+GOAL_7A_RESULT_PATH=../history/evaluation_runs/goal-07a-mini.json \
+GOAL_7A_REVIEW_PATH=/tmp/goal-07a-mini-review.json \
+uv run pytest -m live_ark tests/live/test_ark_integration.py
+```
+
+This performs one matching analysis and one follow-up through the same strict public-API path as Pro, with no more than four provider attempts. The repository result contains only privacy-safe model, attempt, duration, validation, rule, and baseline-comparison fields. The temporary review file contains the user-facing Markdown only for the required grounding review and must be removed after that review. The command does not edit `.env` or change the configured default model.
 
 Database initialization:
 
@@ -98,6 +146,7 @@ From the repository root:
 ```bash
 cp deploy/demo.env.example deploy/demo.env
 # Replace POSTGRES_PASSWORD with a long URL-safe random value.
+# Keep AI_PROVIDER=mock, or set Ark variables only in the ignored deploy/demo.env.
 DEMO_USERNAME=demo DEMO_PASSWORD='choose-a-separate-demo-password' \
   bash scripts/prepare-demo-auth.sh
 docker compose --env-file deploy/demo.env -f compose.demo.yaml up --build --wait

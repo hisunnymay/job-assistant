@@ -84,6 +84,41 @@ test('shows a safe analysis failure and recovers on retry', async ({ page }) => 
   ).toContainText('有明确证据')
 })
 
+test('shows truthful elapsed waiting state while analysis is pending', async ({
+  page,
+}) => {
+  let releaseRequest: (() => void) | undefined
+  const requestGate = new Promise<void>((resolve) => {
+    releaseRequest = resolve
+  })
+  await page.route('**/api/matching-analysis', async (route) => {
+    await requestGate
+    await route.continue()
+  })
+
+  await page.goto('/')
+  await page.getByRole('button', { name: zhCN.jobDescription.useExample }).click()
+  await page.getByRole('button', { name: zhCN.jobDescription.submit }).click()
+
+  const loading = page.getByRole('status', {
+    name: `${zhCN.conversation.assistantName}：${zhCN.loading.title}`,
+  })
+  await expect(loading).toContainText(zhCN.loading.typicalDuration)
+  await expect(loading).toContainText(zhCN.loading.elapsed(0))
+  await expect(loading).not.toContainText('%')
+  await expect(loading).not.toContainText(zhCN.loading.extendedWait)
+  await page.waitForTimeout(1_100)
+  await expect(loading).toContainText(zhCN.loading.elapsed(1))
+
+  releaseRequest?.()
+  await expect(
+    page.getByRole('article', {
+      name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
+    }),
+  ).toBeVisible()
+  await expect(loading).toHaveCount(0)
+})
+
 test('keeps feedback recoverable after a storage failure', async ({ page }) => {
   const matchingReport = await openMatchingReport(page)
   await expect(matchingReport).toContainText('有明确证据')

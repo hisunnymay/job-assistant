@@ -28,6 +28,7 @@ export default defineConfig({
       cwd: backendDirectory,
       env: {
         APP_ENV: 'test',
+        AI_PROVIDER: 'mock',
         DATABASE_URL: databaseUrl,
         FRONTEND_ORIGIN: frontendUrl,
       },

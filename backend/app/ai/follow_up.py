@@ -14,6 +14,6 @@ class FollowUpAIService(Protocol):
     def answer_follow_up(
         self,
         *,
-        resume_path: Path,
+        resume_context_path: Path,
         conversation_history: tuple[FollowUpContextMessage, ...],
     ) -> str: ...

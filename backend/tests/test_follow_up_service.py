@@ -15,10 +15,10 @@ class StaticFollowUpAIService:
     def answer_follow_up(
         self,
         *,
-        resume_path: Path,
+        resume_context_path: Path,
         conversation_history: tuple[FollowUpContextMessage, ...],
     ) -> str:
-        assert resume_path.is_file()
+        assert resume_context_path.is_file()
         assert conversation_history[-1].message_type == "follow_up_question"
         return "# 不应被持久化的回答"
 
@@ -54,17 +54,17 @@ def test_answer_persistence_failure_rolls_back_the_whole_exchange(
         ]
     )
     db_session.commit()
-    resume_path = (
+    resume_context_path = (
         Path(__file__).resolve().parents[1]
         / "app"
         / "resources"
         / "resume"
-        / "mei_chang_resume.pdf"
+        / "mei_chang_resume.md"
     )
     service = FollowUpService(
         repository=FailOnAnswerRepository(db_session),
         ai_service=StaticFollowUpAIService(),
-        resume_path=resume_path,
+        resume_context_path=resume_context_path,
     )
 
     with pytest.raises(FollowUpPersistenceError):

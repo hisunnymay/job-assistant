@@ -2,6 +2,7 @@
 
 ## Version Log
 
+- **v0.6 — 2026-08-27:** Approved the user-verified static résumé Markdown as the MVP runtime AI context while retaining the matching fixed PDF for recruiter preview/download and prohibiting request-time extraction or upload scope.
 - **v0.5 — 2026-08-27:** Recognized AI System Design v1.1 as the authority for real-AI implementation and aligned the AI Service validation, internal structured-output, and retry rules without changing public APIs.
 - **v0.4 — 2026-08-25:** Added goal-level requirements traceability and specification-conformance rules after Goal 1 passed functional validation but diverged from the finalized conversation-workspace design.
 - **v0.3 — 2026-08-25:** Added the goal-level Git workflow: one short-lived branch per coding Goal, authorized local commits, protected unrelated changes, and explicit approval for push, merge, and pull requests.
@@ -62,7 +63,7 @@ API Access Protection -> Controller -> Service -> AI Service / Repository
 - Do not add multiple candidates, candidate comparison, résumé upload or management, ranking, an overall match score, hiring decisions, or performance prediction.
 - Do not add open-ended chat, user accounts, or a broader recruitment-management workflow.
 - Do not invent candidate evidence or present unknown or unsupported information as fact.
-- Use the same predefined static résumé PDF for preview/download and AI context. Do not add backend PDF extraction, preprocessing, or a required text/Markdown mirror.
+- Keep the predefined static résumé PDF as the recruiter preview/download artifact and use its user-verified static Markdown counterpart as the MVP runtime AI context. Treat both as one approved fixed candidate resource; do not add request-time PDF extraction, preprocessing, résumé upload/management, or an independently editable second source of candidate facts.
 - Do not expose or persist raw prompts, raw provider responses, provider-specific payloads, secrets, or internal errors.
 - Do not place AI reasoning or business workflow in the frontend or controller, and do not let the AI Service access persistence directly.
 - Do not introduce microservices, distributed or event-driven infrastructure, multiple databases, complex retry systems, or speculative scaling work.

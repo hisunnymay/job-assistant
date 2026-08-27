@@ -5,6 +5,9 @@ description = "FastAPI backend for the AI Job Fit Assistant MVP"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.116,<1.0",
+    "langchain>=1.0,<2",
+    "langchain-openai>=1.0,<2",
+    "langgraph>=1.0,<2",
     "psycopg[binary]>=3.2,<4",
     "pydantic-settings>=2.10,<3",
     "sqlalchemy>=2.0,<3",
@@ -26,6 +29,9 @@ package = false
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-q"
+markers = [
+    "live_ark: opt-in live Volcengine Ark compatibility and API tests",
+]
 
 [tool.mypy]
 python_version = "3.12"

@@ -4,12 +4,12 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
+from app.ai.dependencies import get_ai_service
 from app.ai.follow_up import FollowUpAIService
-from app.ai.mock import MockAIService
 from app.api.errors import raise_api_error
 from app.db.session import get_db_session
 from app.repositories.conversations import ConversationRepository
-from app.resources.candidate_resume import get_candidate_resume_path
+from app.resources.candidate_resume import get_candidate_resume_context_path
 from app.services.follow_up import (
     FollowUpConversationNotFoundError,
     FollowUpPersistenceError,
@@ -18,6 +18,7 @@ from app.services.follow_up import (
 )
 
 router = APIRouter(prefix="/api", tags=["follow-up"])
+get_follow_up_ai_service = get_ai_service
 
 
 class FollowUpRequest(BaseModel):
@@ -31,10 +32,6 @@ class FollowUpResponse(BaseModel):
     content: str
 
 
-def get_follow_up_ai_service() -> FollowUpAIService:
-    return MockAIService()
-
-
 def get_follow_up_service(
     session: Annotated[Session, Depends(get_db_session)],
     ai_service: Annotated[FollowUpAIService, Depends(get_follow_up_ai_service)],
@@ -42,7 +39,7 @@ def get_follow_up_service(
     return FollowUpService(
         repository=ConversationRepository(session),
         ai_service=ai_service,
-        resume_path=get_candidate_resume_path(),
+        resume_context_path=get_candidate_resume_context_path(),
     )
 
 

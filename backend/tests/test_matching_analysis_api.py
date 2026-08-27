@@ -4,7 +4,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ai.matching import AIServiceError, MatchingAIService
-from app.controllers.matching_analysis import get_ai_service, get_matching_analysis_service
+from app.controllers.matching_analysis import (
+    get_matching_ai_service,
+    get_matching_analysis_service,
+)
 from app.db.models import Conversation, ConversationMessage
 from app.main import app
 from app.services.matching_analysis import MatchingAnalysisPersistenceError
@@ -81,7 +84,7 @@ def test_mock_ai_failure_is_safe_and_rolls_back(
     def override_ai_service() -> MatchingAIService:
         return FailingAIService()
 
-    app.dependency_overrides[get_ai_service] = override_ai_service
+    app.dependency_overrides[get_matching_ai_service] = override_ai_service
 
     response = client.post(
         "/api/matching-analysis",
