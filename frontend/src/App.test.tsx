@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
 import { zhCN } from './content/zh-CN'
@@ -10,10 +11,12 @@ import { FeedbackClientError } from './services/feedbackClient'
 import { FollowUpClientError } from './services/followUpClient'
 import { createMockAnalysisClient } from './services/mockAnalysisClient'
 import type { FollowUpClient } from './types/followUp'
+import type { TrackingClient } from './types/tracking'
 
 function renderJourney(options?: {
   failFirstRequest?: boolean
   followUpClient?: FollowUpClient
+  trackingClient?: TrackingClient
 }) {
   const analysisClient = createMockAnalysisClient({
     delayMs: 0,
@@ -24,6 +27,7 @@ function renderJourney(options?: {
     <App
       analysisClient={analysisClient}
       followUpClient={options?.followUpClient}
+      trackingClient={options?.trackingClient}
     />,
   )
 }
@@ -685,5 +689,125 @@ describe('Goal 4 recruiter workspace', () => {
 
     expect(await screen.findByText(zhCN.feedback.submitError)).toBeInTheDocument()
     expect(helpful).toBeEnabled()
+  })
+
+  it('emits every required privacy-safe tracking event at its interaction point', async () => {
+    const track = vi.fn()
+    const submit = vi.fn().mockResolvedValue(undefined)
+    const analysisClient = createMockAnalysisClient({ delayMs: 0 })
+    render(
+      <App
+        analysisClient={analysisClient}
+        feedbackClient={{ submit }}
+        trackingClient={{ track }}
+      />,
+    )
+
+    const analysisMessage = await openCompletedAnalysis()
+    fireEvent.click(
+      within(analysisMessage).getByRole('button', {
+        name: zhCN.report.viewResume,
+      }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.navigation.assistant }),
+    )
+    fireEvent.click(
+      within(
+        screen.getByRole('article', {
+          name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
+        }),
+      ).getByRole('button', { name: zhCN.report.contactCandidate }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.navigation.assistant }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.feedback.helpful }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: '+ 证据清晰可核验' }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: zhCN.feedback.submit }))
+    await screen.findByText(zhCN.feedback.successDescription)
+
+    const conversationContext = { conversationId: 'conversation_mock_001' }
+    expect(track.mock.calls).toEqual([
+      ['page_visit', undefined],
+      ['job_description_submitted', undefined],
+      ['matching_report_generated', conversationContext],
+      ['resume_previewed', conversationContext],
+      ['contact_cta_clicked', conversationContext],
+      ['feedback_submitted', conversationContext],
+    ])
+    const serializedEvents = JSON.stringify(track.mock.calls)
+    expect(serializedEvents).not.toContain(zhCN.sampleJobDescription)
+    expect(serializedEvents).not.toContain('证据清晰可核验')
+  })
+
+  it('keeps the recruiter journey usable when tracking throws', async () => {
+    const trackingClient: TrackingClient = {
+      track() {
+        throw new Error('tracking unavailable')
+      },
+    }
+    renderJourney({ trackingClient })
+
+    const analysisMessage = await openCompletedAnalysis()
+    expect(analysisMessage).toHaveTextContent('有明确证据')
+    fireEvent.click(
+      within(analysisMessage).getByRole('button', {
+        name: zhCN.report.viewResume,
+      }),
+    )
+    expect(
+      screen.getByRole('heading', { name: zhCN.resume.title }),
+    ).toBeInTheDocument()
+  })
+
+  it('emits one page visit when React Strict Mode repeats effects', () => {
+    const track = vi.fn()
+
+    render(
+      <StrictMode>
+        <App trackingClient={{ track }} />
+      </StrictMode>,
+    )
+
+    expect(track.mock.calls).toEqual([['page_visit', undefined]])
+  })
+
+  it('does not double-count JD submission when analysis retry succeeds', async () => {
+    const track = vi.fn()
+    renderJourney({ failFirstRequest: true, trackingClient: { track } })
+    submitExampleJobDescription()
+
+    await screen.findByRole('alert')
+    expect(track).toHaveBeenCalledWith('job_description_submitted', undefined)
+    expect(track).not.toHaveBeenCalledWith(
+      'matching_report_generated',
+      expect.anything(),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: zhCN.failure.retry }))
+    await screen.findByRole('article', {
+      name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
+    })
+
+    expect(
+      track.mock.calls.filter(
+        ([eventName]) => eventName === 'job_description_submitted',
+      ),
+    ).toHaveLength(1)
+    expect(
+      track.mock.calls.filter(
+        ([eventName]) => eventName === 'matching_report_generated',
+      ),
+    ).toEqual([
+      [
+        'matching_report_generated',
+        { conversationId: 'conversation_mock_001' },
+      ],
+    ])
   })
 })

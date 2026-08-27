@@ -6,10 +6,10 @@
 | --- | --- |
 | Document Name | AI Job Fit Assistant Backend Technical Design |
 | Document Type | Backend Technical Design |
-| Version | v0.2 |
+| Version | v0.4 |
 | Status | Finalized |
 | Owner | Mei Chang |
-| Last Updated | 2026-08-25 |
+| Last Updated | 2026-08-27 |
 | Related Documents | Project Alignment Document, Product Requirement Document, Lightweight AI Design Decision, Frontend Technical Design |
 
 
@@ -17,6 +17,8 @@
 
 | Version | Date | Change | Reason |
 | --- | --- | --- | --- |
+| v0.3 | 2026-08-27 | Selected a custom centralized tracking API and persistent User Behavior Event model, including privacy, idempotency, and retention rules. | Make S001 data queryable across sessions for MVP success metric evaluation. |
+| v0.4 | 2026-08-27 | Added an internal request fingerprint for deletion-safe idempotent replay and restricted conversion to the generated-report session cohort. | Preserve the event contract after `ON DELETE SET NULL` and prevent contact-only sessions from inflating the MVP conversion metric. |
 | v0.2 | 2026-08-25 | Finalized the backend design and selected Python with FastAPI. | Establish the backend implementation baseline before planning. |
 
 
@@ -423,7 +425,11 @@ Suggested information:
 
 ### User Behavior Event
 
-The product requires tracking:
+Purpose:
+
+Persist the privacy-safe interaction events required for aggregate MVP usage and conversion evaluation.
+
+The supported event names are:
 
 - Page visits;
 - Job description submission;
@@ -432,7 +438,19 @@ The product requires tracking:
 - Contact CTA click;
 - Feedback submission.
 
-The implementation approach is defined in Section 7.5.
+Suggested information:
+
+- `eventId`: primary key, client-generated string up to 64 characters;
+- `eventName`: allowlisted event-name string;
+- `sessionId`: indexed pseudonymous string up to 64 characters;
+- `occurredAt`: client interaction timestamp with timezone;
+- `receivedAt`: indexed server persistence timestamp with timezone;
+- `requestFingerprint`: internal SHA-256 digest of the canonical accepted event metadata;
+- `conversationId`: nullable indexed foreign key to Conversation with `ON DELETE SET NULL`.
+
+`sessionId` is a random pseudonymous visit identifier and is not a user account or Conversation identifier. `conversationId` is nullable because page visits and job-description submissions can occur before a Conversation exists.
+
+`requestFingerprint` is derived only from `eventId`, `eventName`, `sessionId`, `occurredAt`, and the original optional `conversationId`. It is not supplied by the frontend and contains no raw interaction content. User Behavior Event must not contain job descriptions, resume content, follow-up questions, feedback comments, contact data, prompts, provider payloads, IP addresses, user-agent strings, or other user-entered content. The implementation approach, idempotency rule, and retention period are defined in Section 7.5.
 
 
 ## 3.2 Data Storage Strategy
@@ -444,7 +462,8 @@ The implementation approach is defined in Section 7.5.
 MVP persistent data:
 - Conversation;
 - Conversation Message;
-- Feedback.
+- Feedback;
+- User Behavior Event.
 
 ### Candidate Resume Resource
 
@@ -690,6 +709,7 @@ The MVP exposes the following APIs.
 | POST /api/conversations/{conversationId}/messages | Answer follow-up questions |
 | GET /api/resume                                   | Provide resume file        |
 | POST /api/feedback                                | Submit feedback            |
+| POST /api/tracking-events                         | Persist a user behavior event |
 
 
 ---
@@ -788,6 +808,43 @@ Response:
 
 ---
 
+### User Behavior Event Submission
+
+Request:
+
+```json
+{
+  "eventId": "event_001",
+  "eventName": "matching_report_generated",
+  "sessionId": "session_001",
+  "occurredAt": "2026-08-27T00:00:00.000Z",
+  "conversationId": "conversation_001"
+}
+```
+
+`eventName` must be one of:
+
+- `page_visit`;
+- `job_description_submitted`;
+- `matching_report_generated`;
+- `resume_previewed`;
+- `contact_cta_clicked`;
+- `feedback_submitted`.
+
+`conversationId` is optional and should be omitted until the relevant Conversation exists. `eventId`, `sessionId`, and `conversationId`, when present, must be non-empty strings of at most 64 characters. `occurredAt` must be a valid RFC 3339 timestamp.
+
+Response:
+
+```json
+{
+  "success": true
+}
+```
+
+The endpoint returns `200 OK` only after the event is persisted or an identical event with the same `eventId` already exists. Replaying an identical event is idempotent and must not create another row. Reusing an `eventId` with different event data returns `409 Conflict`. Invalid payloads return `400 Bad Request`; an unknown supplied `conversationId` returns `404 Not Found`.
+
+---
+
 
 
 ## 5.3 Integration Considerations
@@ -823,6 +880,7 @@ Backend:
 | AI Generated Messages  | Backend generates and stores         |
 | Resume File            | Backend provides                     |
 | Feedback               | Frontend collects, Backend stores    |
+| User Behavior Event    | Frontend detects, Backend validates and stores |
 | Contact Me Information | Frontend static content              |
 
 
@@ -1032,7 +1090,8 @@ The MVP requires persistence for:
 
 - Conversation;
 - Conversation Message;
-- Feedback.
+- Feedback;
+- User Behavior Event.
 
 The database should prioritize simple setup, development speed, and compatibility with the selected deployment environment.
 
@@ -1058,23 +1117,32 @@ Changing the AI provider should not require major changes to backend business lo
 
 Decision:
 
-Deferred until implementation.
-
-The product requires tracking key user behaviors, but the implementation approach has not been selected.
-
-Possible approaches include:
-
-- Custom backend tracking API;
-- Third-party analytics platform.
-
-The final approach should prioritize MVP implementation speed and sufficient data for product evaluation. Tracking data should support association with the corresponding user session.
+Use the custom `POST /api/tracking-events` endpoint and persist User Behavior Events in the existing MVP database. Centrally persisted events are the authoritative analytics source; browser storage is limited to a temporary delivery queue.
 
 Tracking session and Conversation are separate concepts:
 
 - Tracking session identifies a user's product visit and may exist before a Conversation is created;
 - Conversation identifies a specific candidate-job evaluation context.
 
-The exact tracking session implementation depends on the selected tracking approach.
+The Controller validates the HTTP payload and delegates to a tracking Service. The Service enforces the event allowlist, optional Conversation association, idempotency, and retention rules, then persists through the Repository Layer. Controllers must not access the database directly.
+
+The backend stores only `eventId`, `eventName`, `sessionId`, `occurredAt`, server-generated `receivedAt`, the server-generated `requestFingerprint`, and optional `conversationId`. The fingerprint is a SHA-256 digest of the canonical accepted event metadata and preserves the original request identity if `conversationId` is later cleared. The backend must not log request bodies or persist raw interaction content, IP addresses, user-agent strings, secrets, prompts, or provider payloads as tracking data. Access to event-level data is limited to authorized MVP evaluators; product reporting should use aggregate counts and rates.
+
+Events are retained for 90 days from `receivedAt`, covering the MVP evaluation period. Events older than 90 days must be removed by a documented maintenance operation; the MVP does not require a distributed scheduler or separate analytics service. Deleting a Conversation must not delete its historical metric event; the nullable foreign key is set to null.
+
+The backend uses `eventId` as the unique idempotency key and compares retries against the immutable `requestFingerprint`. Identical retries return success without creating duplicates, including after Conversation deletion sets the relational `conversationId` to null. Tracking failures are returned through the tracking endpoint but must remain isolated from the recruiter-facing workflow by the frontend tracking boundary.
+
+The MVP does not expose event-level tracking data or a recruiter-facing analytics API. Instead, it provides a documented internal aggregate report operation for authorized evaluators. For a requested evaluation period, the report returns total and distinct-session counts for each approved event name and calculates Contact Conversion Rate as:
+
+```text
+Distinct sessionId values with both contact_cta_clicked and matching_report_generated
+
+/
+
+Distinct sessionId values with matching_report_generated
+```
+
+The report must handle a zero denominator without returning an invalid numeric value. Event-level export and a visual Dashboard remain outside MVP scope.
 
 
 ## 7.6 AI Retry Strategy

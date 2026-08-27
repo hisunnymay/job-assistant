@@ -9,10 +9,10 @@
 | ------------- | ---------------------------- |
 | Document Name | AI Job Fit Assistant PRD     |
 | Document Type | Product Requirement Document |
-| Version       | v0.1                         |
+| Version       | v0.5                         |
 | Status        | Approved                     |
 | Owner         | Mei Chang                    |
-| Last Updated  | 2026-08-20                   |
+| Last Updated  | 2026-08-27                   |
 | Product Stage | MVP Planning                 |
 
 
@@ -40,14 +40,12 @@ Related documents:
 
 The Version Log records document changes and the reasons behind those changes.
 
-Currently the following updates are not real. It is just for demonstration and will be replaced by when there comes the real document change.
-
 
 | Version | Date       | Changes                                                           | Reason                                                           |
 | ------- | ---------- | ----------------------------------------------------------------- | ---------------------------------------------------------------- |
 | v0.1    | 2026-08-20 | Initial PRD structure created                                     | Establish product requirement documentation structure            |
-| v0.2    | 2026-08-20 | Refined feature boundaries between PRD and AI System Design       | Separate user-facing features from internal AI capabilities      |
-| v0.3    | 2026-08-20 | Updated functional requirements and system requirements structure | Improve document clarity and support downstream technical design |
+| v0.2    | 2026-08-27 | Clarified that S001 requires centralized, cross-session event persistence and aggregate metric evaluation. | Ensure the tracking implementation can evaluate MVP usage and conversion rather than retaining data only in an individual browser. |
+| v0.3    | 2026-08-27 | Defined Contact Conversion Rate using the generated-report session cohort. | Keep the MVP metric measurable with the approved S001 events and prevent contact-only sessions from inflating conversion. |
 
 
 
@@ -315,12 +313,14 @@ The MVP focuses on validating user behavior and product value perception rather 
 Definition:
 
 ```text
-Number of users who click contact CTA
+Number of distinct sessions with both a contact CTA click and a generated matching report
 
 /
 
-Number of users who view the matching report
+Number of distinct sessions with a generated matching report
 ```
+
+Because the MVP has no user accounts, a distinct pseudonymous tracking session is used as the measurable proxy for a user in this calculation. Both the numerator and denominator use the generated-report session cohort from the same evaluation period; contact-only sessions outside that cohort remain visible in event totals but do not count as converted sessions.
 
 Purpose:
 
@@ -1024,9 +1024,9 @@ Feedback may include:
 
 #### Overview
 
-User Behavior Tracking collects interaction data required to evaluate MVP usage and conversion performance.
+User Behavior Tracking centrally collects interaction data required to evaluate MVP usage and conversion performance across recruiter sessions and browser instances.
 
-This capability supports product iteration by helping understand how recruiters interact with the product.
+This capability supports product iteration by helping understand how recruiters interact with the product. Browser-local data alone is not an authoritative analytics source because it cannot support aggregate MVP evaluation.
 
 ---
 
@@ -1043,15 +1043,22 @@ The system should track key user interactions, including:
 - Contact CTA clicks;
 - Feedback submissions.
 
+Each event should include a pseudonymous tracking-session identifier and timestamp. Events created after a Conversation exists should also include the corresponding Conversation identifier.
+
+Events must be sent to and persist in a centralized backend-owned store so authorized MVP evaluators can aggregate behavior across sessions. Tracking must not include job descriptions, resume content, follow-up questions, feedback comments, contact data, prompts, provider payloads, or other user-entered content.
+
 ---
 
 
 
 #### Acceptance Criteria
 
-- User interactions can be recorded;
-- Events can be associated with the corresponding user session;
-- Tracking data can support MVP success metric evaluation.
+- Every required interaction is persisted in the centralized tracking store with its event name, event identifier, timestamp, and pseudonymous tracking-session identifier;
+- Events can be associated with the corresponding Conversation when one exists without treating the Conversation identifier as the tracking-session identifier;
+- Authorized evaluators can run a documented aggregate report across sessions to calculate the supporting usage metrics and the distinct-session Contact Conversion Rate defined in Section 2.2;
+- Clearing one browser's local data does not remove events already accepted by the centralized store;
+- Tracking payloads exclude user-entered and candidate content, and tracking failures do not prevent completion of the recruiter journey;
+- Tracking data is retained only for the approved MVP evaluation period defined in the Backend Technical Design.
 
 ---
 
@@ -1158,5 +1165,3 @@ Expand the product from a single-candidate validation scenario into a broader re
 | Multi-candidate Analysis | Support analysis across multiple candidates.                                            |
 | Candidate Comparison     | Enable comparison between candidates based on job requirements and supporting evidence. |
 | Interview Assistance     | Provide support for interview preparation and candidate evaluation workflows.           |
-
-

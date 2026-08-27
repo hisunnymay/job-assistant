@@ -16,12 +16,18 @@ import {
   createFollowUpClient,
   FollowUpClientError,
 } from './services/followUpClient'
+import { createTrackingClient } from './services/trackingClient'
 import type { FeedbackClient } from './types/feedback'
 import type { FollowUpClient } from './types/followUp'
 import type {
   AnalysisClient,
   ConversationMessage as ConversationMessageData,
 } from './types/matching'
+import type {
+  TrackingClient,
+  TrackingContext,
+  TrackingEventName,
+} from './types/tracking'
 import './styles.css'
 
 type JourneyState = 'ready' | 'loading' | 'success' | 'failure'
@@ -38,12 +44,26 @@ const maximumFollowUpLength = 1000
 const defaultAnalysisClient = createAnalysisClient()
 const defaultFeedbackClient = createFeedbackClient()
 const defaultFollowUpClient = createFollowUpClient()
+const defaultTrackingClient = createTrackingClient()
 const resumeUrl = `${appConfig.apiBaseUrl.replace(/\/$/, '')}/api/resume`
 
 interface AppProps {
   analysisClient?: AnalysisClient
   feedbackClient?: FeedbackClient
   followUpClient?: FollowUpClient
+  trackingClient?: TrackingClient
+}
+
+function trackSafely(
+  trackingClient: TrackingClient,
+  eventName: TrackingEventName,
+  context?: TrackingContext,
+) {
+  try {
+    trackingClient.track(eventName, context)
+  } catch {
+    // Tracking must never interrupt the recruiter journey.
+  }
 }
 
 function getInitialView(): WorkspaceView {
@@ -62,6 +82,7 @@ export function App({
   analysisClient = defaultAnalysisClient,
   feedbackClient = defaultFeedbackClient,
   followUpClient = defaultFollowUpClient,
+  trackingClient = defaultTrackingClient,
 }: AppProps) {
   const [jobDescription, setJobDescription] = useState('')
   const [submittedJobDescription, setSubmittedJobDescription] = useState('')
@@ -84,6 +105,7 @@ export function App({
   const activeConversationIdRef = useRef<string | undefined>(undefined)
   const followUpInFlightRef = useRef(false)
   const followUpSequenceRef = useRef(0)
+  const pageVisitTrackedRef = useRef(false)
 
   const normalizedJobDescription = jobDescription.trim()
   const normalizedFollowUpQuestion = followUpQuestion.trim()
@@ -103,6 +125,13 @@ export function App({
       scrollContainer.scrollTop = scrollContainer.scrollHeight
     }
   }, [activeView, followUpState, journeyState, messages.length])
+
+  useEffect(() => {
+    if (!pageVisitTrackedRef.current) {
+      pageVisitTrackedRef.current = true
+      trackSafely(trackingClient, 'page_visit')
+    }
+  }, [trackingClient])
 
   function validateJobDescription(value: string): string | undefined {
     if (!value) {
@@ -159,6 +188,9 @@ export function App({
       setMatchingMessageId(response.messageId)
       setMessages((currentMessages) => [...currentMessages, analysisMessage])
       setJourneyState('success')
+      trackSafely(trackingClient, 'matching_report_generated', {
+        conversationId: response.conversationId,
+      })
     } catch (error) {
       if (error instanceof AnalysisClientError) {
         if (error.code === 'INVALID_REQUEST') {
@@ -193,6 +225,7 @@ export function App({
     setFailureDescription(zhCN.failure.description)
     setCanRetryFailure(true)
     setActiveView('conversation')
+    trackSafely(trackingClient, 'job_description_submitted')
     void requestAnalysis(normalizedJobDescription, true)
   }
 
@@ -330,6 +363,21 @@ export function App({
     setActiveView(hasActiveConversation ? 'conversation' : 'home')
   }
 
+  function showResume() {
+    trackSafely(trackingClient, 'resume_previewed', { conversationId })
+    setActiveView('resume')
+  }
+
+  function showContact() {
+    trackSafely(trackingClient, 'contact_cta_clicked', { conversationId })
+    setActiveView('contact')
+  }
+
+  function handleFeedbackSubmitted(rating: 1 | 5) {
+    setSubmittedFeedbackRating(rating)
+    trackSafely(trackingClient, 'feedback_submitted', { conversationId })
+  }
+
   if (activeView === 'home') {
     return (
       <main className="entrance-page" id="main-content">
@@ -390,7 +438,7 @@ export function App({
             type="button"
             aria-label={zhCN.navigation.resume}
             aria-current={activeView === 'resume' ? 'page' : undefined}
-            onClick={() => setActiveView('resume')}
+            onClick={showResume}
           >
             <Icon name="file" />
             <span>{zhCN.navigation.resume}</span>
@@ -399,7 +447,7 @@ export function App({
             type="button"
             aria-label={zhCN.navigation.contact}
             aria-current={activeView === 'contact' ? 'page' : undefined}
-            onClick={() => setActiveView('contact')}
+            onClick={showContact}
           >
             <Icon name="user" />
             <span>{zhCN.navigation.contact}</span>
@@ -428,7 +476,7 @@ export function App({
                             type="button"
                             data-tooltip={zhCN.report.viewResume}
                             aria-label={zhCN.report.viewResume}
-                            onClick={() => setActiveView('resume')}
+                            onClick={showResume}
                           >
                             <Icon name="file" />
                           </button>
@@ -437,7 +485,7 @@ export function App({
                             type="button"
                             data-tooltip={zhCN.report.contactCandidate}
                             aria-label={zhCN.report.contactCandidate}
-                            onClick={() => setActiveView('contact')}
+                            onClick={showContact}
                           >
                             <Icon name="user" />
                           </button>
@@ -447,7 +495,7 @@ export function App({
                               messageId={matchingMessageId}
                               feedbackClient={feedbackClient}
                               submittedRating={submittedFeedbackRating}
-                              onSubmitted={setSubmittedFeedbackRating}
+                              onSubmitted={handleFeedbackSubmitted}
                             />
                           ) : null}
                         </div>

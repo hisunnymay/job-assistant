@@ -35,6 +35,8 @@ def register_error_handlers(application: FastAPI) -> None:
     ) -> JSONResponse:
         if request.url.path == "/api/feedback":
             message = "反馈格式无效，请检查评分和反馈内容。"
+        elif request.url.path == "/api/tracking-events":
+            message = "行为事件格式无效。"
         elif request.url.path.startswith("/api/conversations/") and request.url.path.endswith(
             "/messages"
         ):

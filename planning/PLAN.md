@@ -2,14 +2,19 @@
 
 ## Document Information
 
-- **Version:** v0.19
-- **Status:** Draft — Goals 3 and 4 Complete
+- **Version:** v0.24
+- **Status:** Draft — Goal 5 Complete
 - **Owner:** Mei Chang
-- **Last Updated:** 2026-08-26
+- **Last Updated:** 2026-08-27
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.24 — 2026-08-27:** Closed the Goal 5 Bugbot findings with permanent-rejection queue handling, generated-report conversion cohorts, deletion-safe event replay fingerprints, additive local schema upgrade, and corrected AI-design readiness language.
+- **v0.23 — 2026-08-27:** Completed the corrected Goal 5 with centralized PostgreSQL event persistence, idempotent tracking delivery, a bounded frontend retry queue, internal aggregate reporting, 90-day cleanup, privacy enforcement, and full guardrail/conformance validation.
+- **v0.22 — 2026-08-27:** Reopened Goal 5 because browser-local events cannot support S001's required centralized, cross-session MVP metric evaluation; replaced the local-only decision with a privacy-safe backend tracking contract, idempotent delivery, retention, and aggregate validation requirements while preserving the completed AI guardrail work.
+- **v0.21 — 2026-08-27:** Completed Goal 5 with all six PRD events, privacy-safe browser-local session tracking, non-blocking failure behavior, reusable deterministic guardrail fixtures, and full automated/specification validation.
+- **v0.20 — 2026-08-27:** Started Goal 5, selected a browser-local tracking repository behind a replaceable frontend interface, defined its privacy-safe event fixture and session/conversation boundary, and added the authoritative AI guardrail requirements before implementation.
 - **v0.19 — 2026-08-26:** Addressed the Goal 4 Bugbot findings by making report feedback retry-safe under a matching-message lock and constraining the final serialized qualitative comment to the existing 2,000-character backend limit without changing the API contract.
 - **v0.18 — 2026-08-26:** Addressed the Goal 3 Bugbot findings by resolving referential follow-ups from prior persisted questions and replaying an identical immediately retried exchange under a conversation lock without changing the approved API contract.
 - **v0.17 — 2026-08-26:** Completed Goal 3 with the persisted multi-turn follow-up API, ordered backend context preparation, deterministic bounded Mock answers, atomic rollback behavior, recoverable frontend conversation flow, and full automated/API/persistence/browser/conformance validation.
@@ -70,7 +75,7 @@ Before a Goal is marked complete, Codex must compare the implementation with tho
 - **Phase A — Demo with Mock AI:** In progress
 - **AI Design Gate:** Not ready; `docs/02_AI_System_Design.md` has not been created or finalized.
 - **Phase B — Real AI:** Deferred until the AI Design Gate is complete.
-- **Current coding readiness:** Goals 3 and 4 are complete with no unresolved conformance mismatch. Goal 5 is ready for its required tracking entry decision when requested.
+- **Current coding readiness:** Goals 3, 4, and the corrected Goal 5 are complete with no unresolved conformance mismatch. Goal 6 is ready for its hosting, accessibility, and API access-protection entry decisions when requested.
 
 ## 4. Pre-implementation Decisions
 
@@ -497,32 +502,76 @@ Specification review: compare implementation against the Goal 4 authoritative re
 
 ## Goal 5 — Product Tracking and Deterministic AI Guardrails
 
-- **Status:** Not started
+- **Status:** Complete
 - **Depends on:** Goals 3 and 4
 - **Branch:** `goal/05-tracking-and-guardrails`
+- **Actual Implementation Time:** Approximately 18 minutes for the reopened centralized-tracking correction, measured by the Codex Goal timer through implementation, regression coverage, complete validation, command smoke checks, conformance review, and documentation closeout. The earlier approximately 14-minute browser-local checkpoint remains recorded in Version Log v0.21 and the implementation history.
 
 ### Entry Decision
 
-Choose the MVP tracking implementation before coding this Goal. If the choice adds or changes a backend API, request approval and update Backend Technical Design Section 5 and corresponding frontend assumptions before implementation.
+Use the existing backend and PostgreSQL database as the authoritative centralized event store through `POST /api/tracking-events`. Keep the pseudonymous tracking-session identifier in `sessionStorage`; browser local storage may hold only a bounded queue of privacy-safe events awaiting backend acknowledgement. The superseded browser-only event log was a conformance mismatch and is not the completed S001 analytics implementation.
+
+### Authoritative References and Constraints
+
+- Product Requirement Document S001 requires page visit, job-description submission, matching-report generation, résumé preview, contact CTA, and feedback-submission events associated with a user session;
+- Product Requirement Document F003 and F005 and Lightweight AI Design Decision Sections 1.2–1.4 require evidence-grounded matching, explicit partial/missing information, bounded follow-ups, and rejection of unsupported judgments;
+- Frontend Technical Design Section 4.4 owns all six interaction boundaries, centralized delivery, the pseudonymous session identifier, the bounded pending queue, and non-blocking failure behavior;
+- Backend Technical Design User Behavior Event, Section 5, and Section 7.5 define the persistent entity, `POST /api/tracking-events` contract, idempotency, privacy, Conversation association, and 90-day retention;
+- Each event contains only `eventId`, `eventName`, `sessionId`, `occurredAt`, server-generated `receivedAt`, a server-generated SHA-256 request fingerprint, and an optional `conversationId`. Do not store job descriptions, résumé content, follow-up questions, feedback comments, contact data, IP addresses, user-agent strings, prompts, provider payloads, or other sensitive content;
+- Page visit is emitted once per application mount; job-description submission is emitted once for the recruiter's valid initial submit but not an automatic retry; matching-report generation is emitted after success; résumé preview and contact CTA are emitted on each explicit navigation action; feedback submission is emitted only after successful persistence;
+- Tracking write or storage failure must be swallowed at the tracking boundary and must not alter recruiter-visible behavior;
+- Backend persistence is authoritative for evaluation; the browser queue is not an analytics source;
+- Identical retries reuse `eventId` and must not create duplicate persisted events;
+- Events older than 90 days are removed through a documented maintenance operation;
+- Guardrail cases must be provider-neutral reusable fixtures and must run against the deterministic Mock without adding a real model, provider, eval platform, strict AI output schema, or frontend reasoning.
+
+### Tracking Event Fixture
+
+```json
+{
+  "eventId": "event_001",
+  "eventName": "matching_report_generated",
+  "sessionId": "session_001",
+  "occurredAt": "2026-08-27T00:00:00.000Z",
+  "conversationId": "conversation_001"
+}
+```
+
+Successful response:
+
+```json
+{
+  "success": true
+}
+```
 
 ### Outcome
 
-The Demo records the required product events and has repeatable checks for the AI behavior boundaries that can be tested without a real provider.
+The Demo centrally persists the required product events so authorized evaluators can calculate cross-session usage and conversion metrics, and it retains repeatable checks for AI behavior boundaries without a real provider.
 
 ### Scope
 
-- Track page visit, job-description submission, résumé preview, contact CTA, and feedback submission;
+- Track page visit, job-description submission, matching-report generation, résumé preview, contact CTA, and feedback submission;
 - Keep tracking session identity separate from Conversation identity;
-- Associate events with the relevant session and conversation when available;
+- Add the User Behavior Event database model, repository operation, tracking Service, Controller, and `POST /api/tracking-events` route within the existing layered backend;
+- Associate centrally persisted events with the relevant session and Conversation when available;
+- Replace the permanent browser event log with a 100-event pending-delivery queue that retries stable event IDs, removes acknowledged events, discards permanent contract rejections, and discards the oldest event on overflow;
 - Avoid sensitive content in event payloads;
+- Provide a documented operation that deletes tracking events older than 90 days;
+- Provide a documented internal aggregate report operation for the Section 2.2 total and distinct-session usage counts and Contact Conversion Rate without adding an event-level export, public analytics API, or recruiter-facing Dashboard;
 - Add deterministic fixtures/checks for supported evidence, partial information, missing information, out-of-scope questions, and unsupported scoring;
 - Prepare reusable behavior cases for later real-AI evals without integrating an eval platform or real model.
 
 ### Completion Criteria
 
-- Every PRD-required event is emitted once at the correct interaction point;
-- Events contain enough context for MVP usage analysis without storing raw prompts or résumé content;
+- Every PRD-required event is emitted at the correct interaction point and persisted in the backend database;
+- Events from multiple pseudonymous sessions can be aggregated to reproduce the Section 2.2 usage metrics and Contact Conversion Rate;
+- The documented aggregate report uses distinct tracking sessions as the MVP user proxy and handles an evaluation period with no generated reports;
+- Replaying an identical `eventId` is idempotent, while conflicting reuse is rejected;
+- Events contain enough context for MVP usage analysis without storing raw prompts, résumé content, user-entered text, contact data, IP addresses, or user-agent strings;
+- The browser queue retries transiently unacknowledged events, removes acknowledged events, discards permanent contract rejections without blocking later events, and enforces the specified 100-event overflow behavior;
 - Tracking failures do not break the recruiter journey;
+- Events older than 90 days can be removed with the documented maintenance operation;
 - Guardrail tests reject invented evidence, hiring recommendations, ranking, prediction, and overall scoring;
 - The behavior cases can be reused after real AI integration.
 
@@ -530,9 +579,20 @@ The Demo records the required product events and has repeatable checks for the A
 
 ```text
 cd backend && uv run pytest
+cd backend && uv run mypy app tests
+cd backend && uv run ruff check .
 cd frontend && npm run test
+cd frontend && npm run type-check
+cd frontend && npm run lint
+cd frontend && npm run build
 Run tracking integration checks for every required event
+Run tracking API validation, persistence, optional Conversation association, idempotency, conflict, and storage-failure tests
+Run frontend pending-queue retry, acknowledgement-removal, and 100-event overflow tests
+Run privacy tests proving both request payloads and persisted rows exclude prohibited content and request metadata
+Run the internal aggregate report against multi-session and zero-denominator fixtures and verify the PRD Section 2.2 usage counts and Contact Conversion Rate
+Run the retention maintenance operation against events on both sides of the 90-day boundary
 Run deterministic AI-boundary fixture suite
+Specification review: compare implementation against every Goal 5 authoritative reference and record the result
 ```
 
 ## Goal 6 — Demo Validation, Review, and Readiness

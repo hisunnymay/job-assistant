@@ -1,14 +1,52 @@
-from sqlalchemy import text
+from sqlalchemy import Connection, text
 
 from app.db import models  # noqa: F401
 from app.db.base import Base
 from app.db.session import get_engine
+from app.services.tracking import build_tracking_event_fingerprint
+
+
+def ensure_tracking_event_fingerprints(connection: Connection) -> None:
+    connection.execute(
+        text(
+            "ALTER TABLE user_behavior_events "
+            "ADD COLUMN IF NOT EXISTS request_fingerprint VARCHAR(64)"
+        )
+    )
+    legacy_events = connection.execute(
+        text(
+            "SELECT id, event_name, session_id, occurred_at, conversation_id "
+            "FROM user_behavior_events WHERE request_fingerprint IS NULL"
+        )
+    ).mappings()
+    for event in legacy_events:
+        fingerprint = build_tracking_event_fingerprint(
+            event_id=event["id"],
+            event_name=event["event_name"],
+            session_id=event["session_id"],
+            occurred_at=event["occurred_at"],
+            conversation_id=event["conversation_id"],
+        )
+        connection.execute(
+            text(
+                "UPDATE user_behavior_events "
+                "SET request_fingerprint = :fingerprint WHERE id = :event_id"
+            ),
+            {"fingerprint": fingerprint, "event_id": event["id"]},
+        )
+    connection.execute(
+        text(
+            "ALTER TABLE user_behavior_events "
+            "ALTER COLUMN request_fingerprint SET NOT NULL"
+        )
+    )
 
 
 def initialize_database() -> None:
     engine = get_engine()
     Base.metadata.create_all(bind=engine)
-    with engine.connect() as connection:
+    with engine.begin() as connection:
+        ensure_tracking_event_fingerprints(connection)
         connection.execute(text("SELECT 1"))
 
 

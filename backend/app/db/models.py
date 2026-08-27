@@ -24,6 +24,10 @@ class Conversation(Base):
         cascade="all, delete-orphan",
         order_by="ConversationMessage.created_at",
     )
+    behavior_events: Mapped[list["UserBehaviorEvent"]] = relationship(
+        back_populates="conversation",
+        passive_deletes=True,
+    )
 
 
 class ConversationMessage(Base):
@@ -72,3 +76,27 @@ class Feedback(Base):
         nullable=False,
     )
     message: Mapped[ConversationMessage] = relationship(back_populates="feedback_entries")
+
+
+class UserBehaviorEvent(Base):
+    __tablename__ = "user_behavior_events"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    event_name: Mapped[str] = mapped_column(String(32), nullable=False)
+    session_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        nullable=False,
+        index=True,
+    )
+    request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    conversation_id: Mapped[str | None] = mapped_column(
+        ForeignKey("conversations.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    conversation: Mapped[Conversation | None] = relationship(
+        back_populates="behavior_events"
+    )
