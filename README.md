@@ -4,7 +4,7 @@ A Chinese-language MVP that helps recruiters compare a job description with a pr
 
 ## Project Status
 
-Goal 5 provides the integrated recruiter journey, centralized privacy-safe product tracking, an internal aggregate metrics report, 90-day tracking retention, and deterministic AI guardrail fixtures. Matching reports still use the deterministic backend Mock AI Service; no real AI provider or API key is used during this Demo phase.
+Goal 6 provides a validated recruiter journey, automated browser coverage, and a provider-neutral single-host Docker demo bundle protected by gateway-level HTTP Basic Authentication. Matching reports still use the deterministic backend Mock AI Service; no real AI provider or API key is used during this Demo phase.
 
 ## Repository Structure
 
@@ -68,7 +68,10 @@ npm run test
 npm run type-check
 npm run lint
 npm run build
+npm run test:e2e
 ```
+
+The end-to-end command starts an isolated PostgreSQL container, backend, and frontend, runs the desktop and compact-browser journeys, and removes the isolated container afterward. Install the Playwright browser once with `npx playwright install chromium` if it is not already available.
 
 Backend:
 
@@ -85,6 +88,34 @@ Database initialization:
 cd backend
 uv run python -m app.db.init_db
 ```
+
+## Protected Demo Bundle
+
+The demo bundle runs PostgreSQL, the FastAPI backend, the built frontend, and an Nginx gateway on one Docker host. The gateway protects both the UI and API with HTTP Basic Authentication. Local development remains unprotected.
+
+From the repository root:
+
+```bash
+cp deploy/demo.env.example deploy/demo.env
+# Replace POSTGRES_PASSWORD with a long URL-safe random value.
+DEMO_USERNAME=demo DEMO_PASSWORD='choose-a-separate-demo-password' \
+  bash scripts/prepare-demo-auth.sh
+docker compose --env-file deploy/demo.env -f compose.demo.yaml up --build --wait
+```
+
+Open `http://localhost:8080` (or the configured `DEMO_PORT`) and sign in with the generated demo credentials. Verify service health through the protected gateway:
+
+```bash
+curl --user demo:'choose-a-separate-demo-password' http://localhost:8080/health
+```
+
+Stop the bundle without deleting its database volume:
+
+```bash
+docker compose --env-file deploy/demo.env -f compose.demo.yaml down
+```
+
+The bundle is deployment preparation only. It does not select a hosting provider, create external resources, or configure production HTTPS; those remain deployment-time decisions.
 
 ## Tracking Metrics and Retention
 
@@ -122,5 +153,6 @@ Both commands use the backend's configured `DATABASE_URL`. The metrics command i
 - [Goal 2 Implementation Record](history/implementation_logs/goal-02-matching-vertical-slice.md)
 - [Goal 4 Implementation Record](history/implementation_logs/goal-04-supporting-actions.md)
 - [Goal 5 Implementation Record](history/implementation_logs/goal-05-tracking-and-guardrails.md)
+- [Goal 6 Implementation Record](history/implementation_logs/goal-06-demo-readiness.md)
 
 Read `AGENTS.md` before implementation. Implement only the explicitly requested Goal from `planning/PLAN.md`.
