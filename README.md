@@ -4,7 +4,7 @@ A Chinese-language MVP that helps recruiters compare a job description with a pr
 
 ## Project Status
 
-The current provider-enabled implementation uses the validated Volcengine Ark adapter behind the existing backend AI Service boundary while keeping the deterministic Mock AI Service as the local and automated-test default. The public matching and follow-up APIs remain unchanged. The paired PDF remains the recruiter preview/download artifact; the user-verified fixed Markdown is the runtime AI context. Real runs require an uncommitted `ARK_API_KEY` with access to `doubao-seed-2-1-pro-260628`. The final evaluator-hashed release evidence and protected local real-provider gateway smoke passed. The result is **Release Candidate Ready — Deployment Pending**; all external deployment work remains separately gated.
+The current provider-enabled implementation uses the validated Volcengine Ark adapter behind the existing backend AI Service boundary while keeping the deterministic Mock AI Service as the local and automated-test default. The public matching and follow-up APIs remain unchanged. The paired PDF remains the recruiter preview/download artifact; the user-verified fixed Markdown is the runtime AI context. Real runs require an uncommitted `ARK_API_KEY` with access to `doubao-seed-2-1-pro-260628`. The final evaluator-hashed release evidence and protected local real-provider gateway smoke passed. The approved Hong Kong production environment is live and publicly accessible at `https://sunnydemo.me`.
 
 ## Repository Structure
 
@@ -137,11 +137,11 @@ cd backend
 uv run python -m app.db.init_db
 ```
 
-## Protected Demo Bundle
+## Local Protected Demo and Hong Kong Production
 
-The release-candidate bundle runs PostgreSQL, the FastAPI backend, the built frontend, and an Nginx gateway on one Docker host. Its isolated Compose project is named `job-assistant-demo`; the gateway protects both the UI and API with HTTP Basic Authentication. Local development remains unprotected.
+The bundle runs PostgreSQL, the FastAPI backend, the built frontend, and an Nginx gateway on one Docker host. Its isolated Compose project is named `job-assistant-demo`. The base bundle protects the UI and API with HTTP Basic Authentication for local gateway regression; local source development remains unprotected. The Hong Kong production overlay intentionally removes Basic Auth and serves the recruiter experience publicly at `https://sunnydemo.me`.
 
-`deploy/release-candidate.json` freezes the selected provider path, model, finite timeout, exact résumé hash, dependency lockfile hashes, current prompt/schema/evaluator hashes, final evaluation evidence, and the completed gateway-smoke checklist. The final artifact composes three-run matching/reliability evidence from the narrowly revalidated matching prompt with three-run follow-up evidence whose prompt was unchanged; the manifest pins both source artifacts and the 39-call approved validation total. Earlier threshold-short artifacts remain preserved as history. Verify the manifest through the Goal 9 backend tests before building. A local build may use the default image names; production must override all three image variables with approved immutable references from the selected mainland-accessible private registry.
+`deploy/release-candidate.json` freezes the selected provider path, model, finite timeout, exact résumé hash, dependency lockfile hashes, current prompt/schema/evaluator hashes, final evaluation evidence, and the completed gateway-smoke checklist. The final artifact composes three-run matching/reliability evidence from the narrowly revalidated matching prompt with three-run follow-up evidence whose prompt was unchanged; the manifest pins both source artifacts and the 39-call approved validation total. Earlier threshold-short artifacts remain preserved as history. Verify the manifest through the Goal 9 backend tests before building. Production application images must be immutable and identified by registry digest or verified local content ID.
 
 From the repository root:
 
@@ -184,9 +184,19 @@ docker compose --env-file deploy/demo.env -f compose.demo.yaml down
 
 Use `down --volumes` only when the isolated demo database is intentionally disposable. Before any production database change, create and verify a PostgreSQL backup. A minimal restore rehearsal uses `pg_dump --format=custom`, restores it into a separate empty database with `pg_restore --exit-on-error`, verifies the expected schema/row counts, and then removes only that rehearsal database.
 
-For production, set `POSTGRES_IMAGE`, `BACKEND_IMAGE`, and `GATEWAY_IMAGE` to registry references containing `@sha256:` and deploy with `docker compose pull` followed by `docker compose up --detach --wait --no-build`. Record both the active and preceding application-image digests. Rollback means restoring a compatible verified database backup when required, resetting the application image variables to the recorded preceding digests, and rerunning the same no-build deployment plus health/smoke checks. Never build source or edit a running container on the production host.
+Hong Kong production layers `compose.hk-production.yaml` over the base bundle. It replaces the local gateway ports and volumes, mounts `deploy/nginx.hk-production.conf`, terminates HTTPS for `sunnydemo.me`, and removes the Basic Auth password-file mount. Deploy only prebuilt immutable images with `--no-build`:
 
-The bundle is release preparation only. It does not select or purchase a hosting provider, publish images, create external resources, configure production HTTPS, establish ICP eligibility, or prove recruiter-network accessibility; those remain separately approved deployment steps. The current status is **Release Candidate Ready — Deployment Pending**, not recruiter-production complete.
+```bash
+docker compose \
+  --env-file deploy/demo.env \
+  -f compose.demo.yaml \
+  -f compose.hk-production.yaml \
+  up --detach --wait --no-build
+```
+
+The current approved production is live at `https://sunnydemo.me`. Its backend and gateway use verified immutable content IDs, the PostgreSQL base remains digest-pinned, HTTP redirects to HTTPS, and Certbot renewal hooks use the production overlay. The first release has no preceding application image, so its active IDs and verified database backup form the rollback baseline for the next release. Never build source or edit a running container on the production host.
+
+Production is intentionally public. Ark-side quotas or rate limits can constrain provider spend, but they do not prevent repeated API traffic, database growth, or other abuse. Keep Ark and database secrets server-side, monitor usage, and add gateway/application abuse controls if exposure expands.
 
 ## Tracking Metrics and Retention
 
