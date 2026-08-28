@@ -4,7 +4,7 @@ A Chinese-language MVP that helps recruiters compare a job description with a pr
 
 ## Project Status
 
-Goal 7 adds a validated Volcengine Ark adapter behind the existing backend AI Service boundary while keeping the deterministic Mock AI Service as the local and automated-test default. The public matching and follow-up APIs remain unchanged. The paired PDF remains the recruiter preview/download artifact; the user-verified fixed Markdown is the runtime AI context. The corrected matching-plus-follow-up path passed the opt-in live test with `doubao-seed-2-1-pro-260628`; real runs require an uncommitted `ARK_API_KEY` with access to the configured model.
+The current provider-enabled implementation uses the validated Volcengine Ark adapter behind the existing backend AI Service boundary while keeping the deterministic Mock AI Service as the local and automated-test default. The public matching and follow-up APIs remain unchanged. The paired PDF remains the recruiter preview/download artifact; the user-verified fixed Markdown is the runtime AI context. Real runs require an uncommitted `ARK_API_KEY` with access to `doubao-seed-2-1-pro-260628`. The final evaluator-hashed release evidence and protected local real-provider gateway smoke passed. The result is **Release Candidate Ready — Deployment Pending**; all external deployment work remains separately gated.
 
 ## Repository Structure
 
@@ -139,7 +139,9 @@ uv run python -m app.db.init_db
 
 ## Protected Demo Bundle
 
-The demo bundle runs PostgreSQL, the FastAPI backend, the built frontend, and an Nginx gateway on one Docker host. The gateway protects both the UI and API with HTTP Basic Authentication. Local development remains unprotected.
+The release-candidate bundle runs PostgreSQL, the FastAPI backend, the built frontend, and an Nginx gateway on one Docker host. Its isolated Compose project is named `job-assistant-demo`; the gateway protects both the UI and API with HTTP Basic Authentication. Local development remains unprotected.
+
+`deploy/release-candidate.json` freezes the selected provider path, model, finite timeout, exact résumé hash, dependency lockfile hashes, current prompt/schema/evaluator hashes, final evaluation evidence, and the completed gateway-smoke checklist. The final artifact composes three-run matching/reliability evidence from the narrowly revalidated matching prompt with three-run follow-up evidence whose prompt was unchanged; the manifest pins both source artifacts and the 39-call approved validation total. Earlier threshold-short artifacts remain preserved as history. Verify the manifest through the Goal 9 backend tests before building. A local build may use the default image names; production must override all three image variables with approved immutable references from the selected mainland-accessible private registry.
 
 From the repository root:
 
@@ -147,9 +149,12 @@ From the repository root:
 cp deploy/demo.env.example deploy/demo.env
 # Replace POSTGRES_PASSWORD with a long URL-safe random value.
 # Keep AI_PROVIDER=mock, or set Ark variables only in the ignored deploy/demo.env.
+DEMO_AUTH_FILE=./deploy/secrets/demo.htpasswd \
 DEMO_USERNAME=demo DEMO_PASSWORD='choose-a-separate-demo-password' \
   bash scripts/prepare-demo-auth.sh
-docker compose --env-file deploy/demo.env -f compose.demo.yaml up --build --wait
+docker compose --env-file deploy/demo.env -f compose.demo.yaml config
+docker compose --env-file deploy/demo.env -f compose.demo.yaml build --pull
+docker compose --env-file deploy/demo.env -f compose.demo.yaml up --detach --wait
 ```
 
 Open `http://localhost:8080` (or the configured `DEMO_PORT`) and sign in with the generated demo credentials. Verify service health through the protected gateway:
@@ -158,13 +163,30 @@ Open `http://localhost:8080` (or the configured `DEMO_PORT`) and sign in with th
 curl --user demo:'choose-a-separate-demo-password' http://localhost:8080/health
 ```
 
+For a separately approved live-provider gateway smoke, set `AI_PROVIDER=ark` and `ARK_API_KEY` only in the ignored `deploy/demo.env`, export the same Basic Auth credentials to the smoke process, then run:
+
+```bash
+cd backend
+DEMO_USERNAME=demo DEMO_PASSWORD='choose-a-separate-demo-password' \
+  uv run python ../scripts/smoke-real-ai-demo.py \
+  --base-url http://localhost:8080 \
+  --compose-file ../compose.demo.yaml \
+  --env-file ../deploy/demo.env
+```
+
+The smoke uses the unchanged public API for one matching analysis, one follow-up, and an identical follow-up replay. It verifies unauthenticated `401` responses, the approved résumé PDF digest, safe validation failure, persistence, privacy-safe logs/database content, and temporary-record cleanup. It prints only status and generated identifiers. Because the two workflows can each use up to two provider attempts, do not run it without explicit approval for up to four provider calls, their account-billed cost, and the external data disclosure.
+
 Stop the bundle without deleting its database volume:
 
 ```bash
 docker compose --env-file deploy/demo.env -f compose.demo.yaml down
 ```
 
-The bundle is deployment preparation only. It does not select a hosting provider, create external resources, or configure production HTTPS; those remain deployment-time decisions.
+Use `down --volumes` only when the isolated demo database is intentionally disposable. Before any production database change, create and verify a PostgreSQL backup. A minimal restore rehearsal uses `pg_dump --format=custom`, restores it into a separate empty database with `pg_restore --exit-on-error`, verifies the expected schema/row counts, and then removes only that rehearsal database.
+
+For production, set `POSTGRES_IMAGE`, `BACKEND_IMAGE`, and `GATEWAY_IMAGE` to registry references containing `@sha256:` and deploy with `docker compose pull` followed by `docker compose up --detach --wait --no-build`. Record both the active and preceding application-image digests. Rollback means restoring a compatible verified database backup when required, resetting the application image variables to the recorded preceding digests, and rerunning the same no-build deployment plus health/smoke checks. Never build source or edit a running container on the production host.
+
+The bundle is release preparation only. It does not select or purchase a hosting provider, publish images, create external resources, configure production HTTPS, establish ICP eligibility, or prove recruiter-network accessibility; those remain separately approved deployment steps. The current status is **Release Candidate Ready — Deployment Pending**, not recruiter-production complete.
 
 ## Tracking Metrics and Retention
 
@@ -203,5 +225,6 @@ Both commands use the backend's configured `DATABASE_URL`. The metrics command i
 - [Goal 4 Implementation Record](history/implementation_logs/goal-04-supporting-actions.md)
 - [Goal 5 Implementation Record](history/implementation_logs/goal-05-tracking-and-guardrails.md)
 - [Goal 6 Implementation Record](history/implementation_logs/goal-06-demo-readiness.md)
+- [Goal 9 Implementation Record](history/implementation_logs/goal-09-ai-release-validation.md)
 
 Read `AGENTS.md` before implementation. Implement only the explicitly requested Goal from `planning/PLAN.md`.

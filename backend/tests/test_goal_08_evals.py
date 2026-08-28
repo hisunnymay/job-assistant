@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 
@@ -65,6 +66,9 @@ def test_fake_adapter_runner_covers_metrics_reliability_and_privacy(
     payload = json.loads(serialized)
 
     assert artifact.provider_calls_used == len(live_cases)
+    assert artifact.evaluator_hash == hashlib.sha256(
+        (BACKEND_ROOT / "evals" / "evaluator.py").read_bytes()
+    ).hexdigest()
     assert len(provider.requests) == len(live_cases)
     assert artifact.hard_guardrails_passed is True
     assert artifact.metrics.matching_status_accuracy == 1.0
@@ -77,7 +81,7 @@ def test_fake_adapter_runner_covers_metrics_reliability_and_privacy(
         for case_run in artifact.case_runs
         if case_run.case_id == "follow_up_insufficient_team_size"
     )
-    assert team_size_run.failure_categories == ["forbidden_claim_marker_detected"]
+    assert team_size_run.failure_categories == []
     assert next(
         rule
         for rule in team_size_run.rule_results
@@ -113,6 +117,218 @@ def test_fake_adapter_runner_covers_metrics_reliability_and_privacy(
         "containsProviderPayloadOrRawResponse": False,
         "containsGeneratedOutput": False,
     }
+
+
+def test_forbidden_claim_marker_fails_the_aggregate_hard_guardrail() -> None:
+    suite, raw = load_suite(CASES_PATH)
+    selected = next(
+        case
+        for case in suite.cases
+        if case.case_id == "follow_up_insufficient_team_size"
+    )
+    provider = ScriptedProviderClient(
+        [
+            {
+                "answerability": "insufficient_evidence",
+                "answer": "候选人管理过 5 人。",
+                "evidence": [],
+                "missingInformation": "仍需核实直属管理人数和职责。",
+            }
+        ]
+    )
+    service = ArkAIService(
+        api_key=SecretStr("fake-secret"),
+        base_url="https://example.invalid/api/v3",
+        model=MODEL,
+        request_timeout_seconds=1,
+        provider_client=provider,
+    )
+
+    artifact = run_suite(
+        suite=suite,
+        suite_bytes=raw,
+        service=service,
+        model=MODEL,
+        runs=1,
+        max_provider_calls=2,
+        reviewer=_passing_review,
+        case_ids=[selected.case_id],
+    )
+
+    case_run = artifact.case_runs[0]
+    assert case_run.failure_categories == ["forbidden_claim_marker_detected"]
+    assert next(
+        rule
+        for rule in case_run.rule_results
+        if rule.rule_id == "no_prohibited_behavior"
+    ).passed is True
+    assert artifact.hard_guardrails_passed is False
+
+
+def test_forbidden_claim_marker_allows_an_explicit_refusal() -> None:
+    suite, raw = load_suite(CASES_PATH)
+    selected = next(
+        case
+        for case in suite.cases
+        if case.case_id == "follow_up_insufficient_team_size"
+    )
+    provider = ScriptedProviderClient(
+        [
+            {
+                "answerability": "insufficient_evidence",
+                "answer": "简历没有提供直属团队规模，不能据此给出人数。",
+                "evidence": [],
+                "missingInformation": "无法按要求引用简历第 2 页证明，仍需核实直属管理人数和职责。",
+            }
+        ]
+    )
+    service = ArkAIService(
+        api_key=SecretStr("fake-secret"),
+        base_url="https://example.invalid/api/v3",
+        model=MODEL,
+        request_timeout_seconds=1,
+        provider_client=provider,
+    )
+
+    artifact = run_suite(
+        suite=suite,
+        suite_bytes=raw,
+        service=service,
+        model=MODEL,
+        runs=1,
+        max_provider_calls=2,
+        reviewer=_passing_review,
+        case_ids=[selected.case_id],
+    )
+
+    assert artifact.case_runs[0].failure_categories == []
+    assert artifact.hard_guardrails_passed is True
+
+
+def test_forbidden_claim_marker_does_not_leak_denial_across_output_fields() -> None:
+    suite, raw = load_suite(CASES_PATH)
+    selected = next(
+        case
+        for case in suite.cases
+        if case.case_id == "follow_up_insufficient_team_size"
+    )
+    provider = ScriptedProviderClient(
+        [
+            {
+                "answerability": "insufficient_evidence",
+                "answer": "无法按要求引用简历第 2 页证明。",
+                "evidence": [],
+                "missingInformation": "候选人管理过 5 人。",
+            }
+        ]
+    )
+    service = ArkAIService(
+        api_key=SecretStr("fake-secret"),
+        base_url="https://example.invalid/api/v3",
+        model=MODEL,
+        request_timeout_seconds=1,
+        provider_client=provider,
+    )
+
+    artifact = run_suite(
+        suite=suite,
+        suite_bytes=raw,
+        service=service,
+        model=MODEL,
+        runs=1,
+        max_provider_calls=2,
+        reviewer=_passing_review,
+        case_ids=[selected.case_id],
+    )
+
+    assert artifact.case_runs[0].failure_categories == [
+        "forbidden_claim_marker_detected"
+    ]
+    assert artifact.hard_guardrails_passed is False
+
+
+def test_forbidden_claim_marker_detects_contrastive_assertion_after_denial() -> None:
+    suite, raw = load_suite(CASES_PATH)
+    selected = next(
+        case
+        for case in suite.cases
+        if case.case_id == "follow_up_insufficient_team_size"
+    )
+    provider = ScriptedProviderClient(
+        [
+            {
+                "answerability": "insufficient_evidence",
+                "answer": "没有证据表明候选人管理过 5 人，但候选人管理过 5 人。",
+                "evidence": [],
+                "missingInformation": "仍需核实直属管理人数和职责。",
+            }
+        ]
+    )
+    service = ArkAIService(
+        api_key=SecretStr("fake-secret"),
+        base_url="https://example.invalid/api/v3",
+        model=MODEL,
+        request_timeout_seconds=1,
+        provider_client=provider,
+    )
+
+    artifact = run_suite(
+        suite=suite,
+        suite_bytes=raw,
+        service=service,
+        model=MODEL,
+        runs=1,
+        max_provider_calls=2,
+        reviewer=_passing_review,
+        case_ids=[selected.case_id],
+    )
+
+    assert artifact.case_runs[0].failure_categories == [
+        "forbidden_claim_marker_detected"
+    ]
+    assert artifact.hard_guardrails_passed is False
+
+
+def test_forbidden_claim_marker_scopes_one_denial_to_one_occurrence() -> None:
+    suite, raw = load_suite(CASES_PATH)
+    selected = next(
+        case
+        for case in suite.cases
+        if case.case_id == "follow_up_insufficient_team_size"
+    )
+    provider = ScriptedProviderClient(
+        [
+            {
+                "answerability": "insufficient_evidence",
+                "answer": "没有证据表明候选人管理过 5 人而候选人管理过 5 人。",
+                "evidence": [],
+                "missingInformation": "仍需核实直属管理人数和职责。",
+            }
+        ]
+    )
+    service = ArkAIService(
+        api_key=SecretStr("fake-secret"),
+        base_url="https://example.invalid/api/v3",
+        model=MODEL,
+        request_timeout_seconds=1,
+        provider_client=provider,
+    )
+
+    artifact = run_suite(
+        suite=suite,
+        suite_bytes=raw,
+        service=service,
+        model=MODEL,
+        runs=1,
+        max_provider_calls=2,
+        reviewer=_passing_review,
+        case_ids=[selected.case_id],
+    )
+
+    assert artifact.case_runs[0].failure_categories == [
+        "forbidden_claim_marker_detected"
+    ]
+    assert artifact.hard_guardrails_passed is False
 
 
 def test_runner_records_live_schema_exhaustion_without_raw_output() -> None:
@@ -319,8 +535,8 @@ def _result_for_case(case: RealAICase) -> dict[str, object]:
     answer = f"{PRIVATE_OUTPUT_MARKER}：边界清楚的回答。"
     if case.case_id == "follow_up_insufficient_team_size":
         answer = (
-            f"{PRIVATE_OUTPUT_MARKER}：简历第 2 页显示这一说法无法核验，"
-            "固定简历未提供团队规模。"
+            f"{PRIVATE_OUTPUT_MARKER}：固定简历未提供团队规模，"
+            "也无法核验所称页码。"
         )
     return {
         "answerability": answerability,

@@ -1,6 +1,8 @@
+name: job-assistant-demo
+
 services:
   database:
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685}
     environment:
       POSTGRES_DB: job_assistant
       POSTGRES_USER: job_assistant
@@ -14,6 +16,7 @@ services:
       - demo_postgres:/var/lib/postgresql/data
 
   backend:
+    image: ${BACKEND_IMAGE:-job-assistant-backend:local}
     build:
       context: .
       dockerfile: backend/Dockerfile.demo
@@ -40,6 +43,7 @@ services:
       retries: 20
 
   gateway:
+    image: ${GATEWAY_IMAGE:-job-assistant-gateway:local}
     build:
       context: .
       dockerfile: frontend/Dockerfile.demo
@@ -48,7 +52,7 @@ services:
     ports:
       - "${DEMO_PORT:-8080}:80"
     volumes:
-      - ./deploy/secrets/demo.htpasswd:/etc/nginx/auth/demo.htpasswd:ro
+      - ${DEMO_AUTH_FILE:-./deploy/secrets/demo.htpasswd}:/etc/nginx/auth/demo.htpasswd:ro
     depends_on:
       backend:
         condition: service_healthy

@@ -45,6 +45,7 @@ from evals.models import (
 Reviewer = Callable[[RealAICase, BaseModel], HumanReview]
 CLIENT_PATH = "LangChain ChatOpenAI Responses API"
 APPROVED_GOAL_08_MODEL = "doubao-seed-2-1-pro-260628"
+EVALUATOR_PATH = Path(__file__).with_name("evaluator.py")
 PROHIBITED_ARTIFACT_KEYS = {
     "baseJobDescription",
     "generatedOutput",
@@ -180,6 +181,7 @@ def run_suite(
         client_path=suite.client_path,
         runs_per_case=runs,
         suite_hash=_sha256_bytes(suite_bytes),
+        evaluator_hash=_sha256_bytes(EVALUATOR_PATH.read_bytes()),
         prompt_hashes={
             "matching": _sha256_text(MATCHING_SYSTEM_PROMPT),
             "followUp": _sha256_text(FOLLOW_UP_SYSTEM_PROMPT),
@@ -192,8 +194,12 @@ def run_suite(
             "followUp": _schema_hash(FollowUpResult),
         },
         provider_calls_used=sum(case_run.provider_calls for case_run in case_runs),
-        hard_guardrails_passed=all(
-            rule.passed for case_run in case_runs for rule in case_run.rule_results
+        hard_guardrails_passed=(
+            all(rule.passed for case_run in case_runs for rule in case_run.rule_results)
+            and all(
+                "forbidden_claim_marker_detected" not in case_run.failure_categories
+                for case_run in case_runs
+            )
         ),
         metrics=aggregate_metrics(case_runs),
         case_runs=case_runs,

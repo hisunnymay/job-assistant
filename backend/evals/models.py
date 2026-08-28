@@ -234,6 +234,7 @@ class EvaluationArtifact(EvalModel):
     client_path: str
     runs_per_case: int = Field(ge=1)
     suite_hash: str
+    evaluator_hash: str | None = None
     prompt_hashes: dict[str, str]
     schema_hashes: dict[str, str]
     provider_calls_used: int = Field(ge=0)

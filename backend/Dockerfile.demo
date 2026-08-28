@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim@sha256:e5b65587bce7de595f299855d7385fe7fca39b8a74baa261ba1b7147afa78e58
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
@@ -12,4 +12,4 @@ COPY backend/app ./app
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "uv run python -m app.db.init_db && exec uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", ".venv/bin/python -m app.db.init_db && exec .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000"]
