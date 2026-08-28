@@ -2,14 +2,17 @@
 
 ## Document Information
 
-- **Version:** v0.33
-- **Status:** Draft — Goal 7A Complete; Goal 8 Ready
+- **Version:** v0.36
+- **Status:** Draft — Goal 8 Pending After Bounded Tuning
 - **Owner:** Mei Chang
-- **Last Updated:** 2026-08-27
+- **Last Updated:** 2026-08-28
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.36 — 2026-08-28:** Required every live evaluation command to declare a provider-call ceiling and reject execution before provider access when the selected cases, run count, and two-attempt workflow could exceed that ceiling.
+- **v0.35 — 2026-08-28:** Recorded the Goal 8 checkpoint after three bounded prompt-tuning iterations, preserved the completed but graded-threshold-short final attempt, noted the user-stopped rerun that produced no artifact, and marked Goal 8 pending until the current prompt passes the complete three-run matrix and closeout validation.
+- **v0.34 — 2026-08-28:** Recorded the corrected one-pass Goal 8 Pro baseline, retained the preceding pilot as non-baseline evidence, and approved the zero-tolerance hard guardrails plus numerical quality and latency thresholds that govern bounded tuning and the three-run final evaluation.
 - **v0.33 — 2026-08-27:** Completed Goal 7A with the provider-free static example, truthful waiting timer, differentiated safe retry behavior, Bugbot fixes, full regression/conformance validation, and a privacy-safe Mini run that was materially faster but retained the Pro default pending broader evidence-calibration evaluation.
 - **v0.32 — 2026-08-27:** Started Goal 7A with a provider-free static example report, truthful elapsed waiting states, invalid-output-only correction retries, and a separately authorized Mini matching/follow-up compatibility comparison that cannot change the default model automatically.
 - **v0.31 — 2026-08-27:** Completed the verified-text Goal 7 correction with fixed-resource integrity and source-reference guardrails, text-only stable-prefix Ark transport, Pro matching/follow-up live validation in 34.28 seconds with two first-attempt successes, Bugbot fixes, and full regression/conformance closeout.
@@ -84,8 +87,8 @@ Before a Goal is marked complete, Codex must compare the implementation with tho
 
 - **Phase A — Demo with Mock AI:** Complete
 - **AI Design Gate:** Complete through AI System Design v1.3 and Backend Technical Design v0.8.
-- **Phase B — Real AI:** Goals 7 and 7A are complete through the verified-text Pro path and bounded Mini compatibility check; Goal 8 is next and retains its separate provider-call approval gate.
-- **Current coding readiness:** Goals 0–7A are complete. Goal 8 is fully scoped and ready; Goal 9 becomes executable after Goal 8 and its deployment decisions.
+- **Phase B — Real AI:** Goals 7 and 7A are complete through the verified-text Pro path and bounded Mini compatibility check; Goal 8 is pending after its baseline, approved thresholds, and three bounded tuning iterations because the current prompt still needs a complete three-run final evaluation and closeout validation.
+- **Current coding readiness:** Goals 0–7A are complete. Goal 8 implementation and bounded tuning are substantially complete but remain pending rather than accepted; deployment sequencing is intentionally unchanged in this version and will be decided separately.
 
 ## 4. Pre-implementation Decisions
 
@@ -891,7 +894,7 @@ The live Mini command and exact privacy-safe output path are finalized before th
 
 ## Goal 8 — AI Evaluation and Behavior Tuning
 
-- **Status:** Ready; live execution requires provider-call count and cost approval
+- **Status:** Pending; three bounded tuning iterations are complete, but the current prompt has not completed the full three-run final matrix and Goal closeout validation
 - **Depends on:** Goal 7
 - **Branch:** `goal/08-ai-evaluation`
 
@@ -945,6 +948,46 @@ Hard guardrails are zero-tolerance across the approved final evaluation runs:
 
 Graded metrics include matching-status accuracy, importance accuracy, follow-up answerability accuracy, evidence-anchor correctness, explanation usefulness, valid-first-attempt rate, retry recovery rate, and latency. Baseline values are measured once before tuning; final numerical thresholds are then proposed from the baseline and explicitly approved. The final evaluation runs each approved case three times to expose model variability. Hard-guardrail failures cannot be accepted for release; graded shortfalls require an explicit user decision and, when accepted, an updated threshold/limitation record.
 
+#### Approved Baseline
+
+- The preceding 11-call pilot is retained at `history/evaluation_runs/goal-08-baseline-pilot.json` as harness-development evidence only and is not the formal baseline;
+- The corrected formal baseline is stored at `history/evaluation_runs/goal-08-baseline.json`, used `doubao-seed-2-1-pro-260628`, and consumed 11 provider calls within the separately approved 20-call and ¥5 ceilings;
+- Matching-status accuracy: `1.00`;
+- Importance accuracy: `1.00`;
+- Follow-up answerability accuracy: `0.8571`;
+- Evidence-anchor correctness: `0.80`;
+- Explanation-usefulness mean: `2.90 / 4`;
+- Valid-first-attempt rate: `0.90`;
+- Retry-recovery rate: `0.00`;
+- Mean latency: `9,204.2 ms`;
+- P95 latency: `26,024 ms`;
+- Hard guardrails did not pass because the contextual prior-analysis-gap case exhausted both strict-structured-output attempts. No successful baseline output was judged to invent candidate evidence or perform prohibited hiring, ranking, prediction, or scoring behavior.
+
+#### Approved Final Thresholds
+
+- Matching-status accuracy: `1.00`;
+- Importance accuracy: `1.00`;
+- Follow-up answerability accuracy: `1.00`;
+- Evidence-anchor correctness: at least `0.90`;
+- Explanation-usefulness mean: at least `3.00 / 4`;
+- Valid-first-attempt rate: at least `0.90`;
+- Retry-recovery rate: `1.00` when a retry is exercised; `N/A` passes when no retry occurs;
+- Mean latency: no more than `12,000 ms`;
+- P95 latency: no more than `30,000 ms`;
+- Every approved live case runs exactly three times in the final evaluation;
+- Hard guardrails remain zero-tolerance, and no final live case may exhaust both provider attempts.
+
+#### Current Checkpoint
+
+- Prompt tuning stopped after the planned maximum of three iterations; no model, public API, persistence, frontend, or architecture contract changed;
+- Tuning iteration 1 repaired the contextual prior-analysis-gap structured-output failure and tightened direct-evidence selection. Its three-case focused run used 3 provider calls, passed every hard guardrail, and achieved `1.00` for status, importance, answerability, evidence anchors, and valid-first-attempt rate;
+- The first complete three-run final attempt is preserved at `history/evaluation_runs/goal-08-final-attempt-01.json`. Across 30 live executions it used 30 provider calls, passed every hard guardrail, and achieved follow-up answerability `1.00`, evidence anchors `0.90`, explanation usefulness `3.23 / 4`, valid-first-attempt rate `1.00`, mean latency `6,708.1 ms`, and P95 latency `13,215 ms`. It did not pass the approved graded thresholds because matching-status accuracy was `0.6667` and importance accuracy was `0.7778`;
+- Tuning iteration 2 clarified the distinction between a composite capability requirement and independent result fields. Its two-case, three-run focused evaluation used 6 provider calls: the composite capability case stabilized, while the quantitative-result case still merged independent fields in two runs and therefore did not pass;
+- Tuning iteration 3 explicitly required independent quantitative result fields to be returned and judged separately. Its remaining-case, three-run focused evaluation used 3 provider calls, passed every hard guardrail, and achieved `1.00` for status, importance, evidence anchors, and valid-first-attempt rate with explanation usefulness `4.00 / 4`;
+- A new complete final rerun was started after iteration 3 and stopped immediately at the user's request after 3 provider calls. The runner writes only complete artifacts, so no `goal-08-final.json` was produced from that interrupted run;
+- Goal 8 live evaluation has used 67 provider calls in total: 11 pilot, 11 corrected baseline, 3 tuning iteration 1, 30 first final attempt, 6 tuning iteration 2, 3 tuning iteration 3, and 3 from the stopped rerun. All calls stayed within their explicitly approved call and expected-cost ceilings;
+- Goal 8 remains pending until the current prompt completes the full three-run final matrix, meets the approved thresholds or records an explicitly accepted graded shortfall, passes full regression and independent/specification review, and receives its implementation-log closeout. No further Ark call is implied or authorized by this checkpoint record.
+
 ### Implementation Sequence
 
 1. Convert the required matrix into versioned, typed real-AI cases while preserving the Goal 5 fixture;
@@ -971,10 +1014,10 @@ Graded metrics include matching-status accuracy, importance accuracy, follow-up 
 
 ```text
 cd backend && uv run pytest
-cd backend && uv run mypy app tests
+cd backend && uv run mypy app evals tests
 cd backend && uv run ruff check .
-cd backend && RUN_LIVE_ARK_EVALS=1 AI_PROVIDER=ark uv run python -m evals.run_real_ai_evals --cases evals/goal_08_real_ai_cases.json --runs 1 --output ../history/evaluation_runs/goal-08-baseline.json
-cd backend && RUN_LIVE_ARK_EVALS=1 AI_PROVIDER=ark uv run python -m evals.run_real_ai_evals --cases evals/goal_08_real_ai_cases.json --runs 3 --output ../history/evaluation_runs/goal-08-final.json
+cd backend && RUN_LIVE_ARK_EVALS=1 AI_PROVIDER=ark ARK_MODEL=doubao-seed-2-1-pro-260628 uv run python -m evals.run_real_ai_evals --cases evals/goal_08_real_ai_cases.json --runs 1 --max-provider-calls 20 --output ../history/evaluation_runs/goal-08-baseline.json
+cd backend && RUN_LIVE_ARK_EVALS=1 AI_PROVIDER=ark ARK_MODEL=doubao-seed-2-1-pro-260628 uv run python -m evals.run_real_ai_evals --cases evals/goal_08_real_ai_cases.json --runs 3 --max-provider-calls 60 --output ../history/evaluation_runs/goal-08-final.json
 cd frontend && npm run test
 cd frontend && npm run type-check
 cd frontend && npm run lint
@@ -1059,7 +1102,7 @@ cd frontend && npm run type-check
 cd frontend && npm run lint
 cd frontend && npm run build
 cd frontend && npm run test:e2e
-cd backend && RUN_LIVE_ARK_EVALS=1 AI_PROVIDER=ark uv run python -m evals.run_real_ai_evals --cases evals/goal_08_real_ai_cases.json --runs 3 --output ../history/evaluation_runs/goal-09-release.json
+cd backend && RUN_LIVE_ARK_EVALS=1 AI_PROVIDER=ark ARK_MODEL=doubao-seed-2-1-pro-260628 uv run python -m evals.run_real_ai_evals --cases evals/goal_08_real_ai_cases.json --runs 3 --max-provider-calls 60 --output ../history/evaluation_runs/goal-09-release.json
 docker compose --env-file deploy/demo.env -f compose.demo.yaml config
 docker compose --env-file deploy/demo.env -f compose.demo.yaml build
 docker compose --env-file deploy/demo.env -f compose.demo.yaml up --detach --wait
@@ -1077,9 +1120,9 @@ The smoke script reads Basic Auth credentials from environment variables, prints
 
 - **Goal 7:** Complete through the validated verified-Markdown Ark Responses API path with the Pro model and no native SDK fallback required.
 - **Goal 7A:** Complete with the static example, truthful waiting states, correction-only structured retry, full validation, and a privacy-safe Mini comparison; the Pro default remains unchanged because broader evidence-calibration evaluation is still required.
-- **Goal 8:** Fully specified and ready. It contains an intentional baseline → threshold approval → bounded tuning → final-evaluation checkpoint; provider-call cost approval is required before live runs.
+- **Goal 8:** Pending after three bounded tuning iterations. The corrected baseline, approved thresholds, focused tuning artifacts, and graded-threshold-short first final attempt are preserved; the current prompt still needs a complete three-run final evaluation and closeout validation.
 - **Goal 9:** Fully specified for implementation and local release-candidate validation after Goal 8. Live recruiter-release completion additionally requires an approved hosting target, HTTPS/domain decision, deployment permission, and intended-network accessibility evidence.
-- No unresolved product, architecture, schema, retry, persistence, or API decision remains from Goals 7 or 7A. Goal 8 provider-call approval and future deployment choices are external inputs and must never be guessed or committed.
+- No unresolved product, architecture, schema, retry, persistence, or API decision remains from Goals 7 or 7A. Goal 8's pending completion and future deployment choices remain explicit external checkpoints and must never be guessed or committed.
 
 ## Supporting References
 

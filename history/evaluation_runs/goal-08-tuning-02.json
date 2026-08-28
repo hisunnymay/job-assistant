@@ -1,0 +1,386 @@
+{
+  "schemaVersion": 1,
+  "goal": "8",
+  "suiteId": "goal-08-real-ai-v2",
+  "executedAt": "2026-08-28T02:44:43.763518+00:00",
+  "model": "doubao-seed-2-1-pro-260628",
+  "clientPath": "LangChain ChatOpenAI Responses API",
+  "runsPerCase": 3,
+  "suiteHash": "0509f3353e39bb58e234fc0863fb24c29d7a672897ffe5211829a9c478c76e9f",
+  "promptHashes": {
+    "matching": "8f22a240d606d9c4e07644847ff54966ac31d8db0cb1ef9062f4501751f4fdfc",
+    "followUp": "0a12c944dae17779c961b8e603b14027221ac6ccec04ec01aa40f5975b1c9c8b",
+    "structuredOutputCorrection": "550d3d1b5c9a46cfd2739d038e136461a5c41654de79003fd6376315f25bac20"
+  },
+  "schemaHashes": {
+    "matching": "98aaa46193a2b29d19a6149331e117952963ccc6616baf9394547c2d6dc26cb0",
+    "followUp": "e20a881c05dac18676fd11277c646bb4c11fd44e466d9471de3243db053e1bee"
+  },
+  "providerCallsUsed": 6,
+  "hardGuardrailsPassed": true,
+  "metrics": {
+    "matchingStatusAccuracy": 0.6667,
+    "importanceAccuracy": 0.6667,
+    "followUpAnswerabilityAccuracy": null,
+    "evidenceAnchorCorrectness": 0.6667,
+    "explanationUsefulnessMean": 3.5,
+    "validFirstAttemptRate": 1.0,
+    "retryRecoveryRate": null,
+    "latencyMeanMs": 8660.0,
+    "latencyP95Ms": 11784
+  },
+  "caseRuns": [
+    {
+      "caseId": "matching_partial_preferred",
+      "runNumber": 1,
+      "workflow": "matching",
+      "executionMode": "live",
+      "success": true,
+      "workflowAttempts": 1,
+      "providerCalls": 1,
+      "latencyMs": 10122,
+      "retryReason": null,
+      "validationStatus": "valid",
+      "ruleResults": [
+        {
+          "ruleId": "no_invented_evidence",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "no_invented_source_reference",
+          "passed": true,
+          "source": "deterministic"
+        },
+        {
+          "ruleId": "no_prohibited_behavior",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "insufficient_evidence_gap_is_safe",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "schema_and_invariants_valid",
+          "passed": true,
+          "source": "deterministic"
+        }
+      ],
+      "metrics": {
+        "matchingStatusCorrect": true,
+        "importanceCorrect": true,
+        "followUpAnswerabilityCorrect": null,
+        "evidenceAnchorsCorrect": true,
+        "explanationUsefulness": 3,
+        "validFirstAttempt": true,
+        "retryRecovered": null
+      },
+      "failureCategories": [],
+      "humanReview": {
+        "inventedEvidenceDetected": false,
+        "prohibitedBehaviorDetected": false,
+        "gapHandledSafely": true,
+        "outOfScopeHandledSafely": null,
+        "explanationUsefulness": 3
+      }
+    },
+    {
+      "caseId": "matching_missing_unspecified",
+      "runNumber": 1,
+      "workflow": "matching",
+      "executionMode": "live",
+      "success": true,
+      "workflowAttempts": 1,
+      "providerCalls": 1,
+      "latencyMs": 7352,
+      "retryReason": null,
+      "validationStatus": "valid",
+      "ruleResults": [
+        {
+          "ruleId": "no_invented_evidence",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "no_invented_source_reference",
+          "passed": true,
+          "source": "deterministic"
+        },
+        {
+          "ruleId": "no_prohibited_behavior",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "insufficient_evidence_gap_is_safe",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "schema_and_invariants_valid",
+          "passed": true,
+          "source": "deterministic"
+        }
+      ],
+      "metrics": {
+        "matchingStatusCorrect": true,
+        "importanceCorrect": true,
+        "followUpAnswerabilityCorrect": null,
+        "evidenceAnchorsCorrect": true,
+        "explanationUsefulness": 4,
+        "validFirstAttempt": true,
+        "retryRecovered": null
+      },
+      "failureCategories": [],
+      "humanReview": {
+        "inventedEvidenceDetected": false,
+        "prohibitedBehaviorDetected": false,
+        "gapHandledSafely": true,
+        "outOfScopeHandledSafely": null,
+        "explanationUsefulness": 4
+      }
+    },
+    {
+      "caseId": "matching_partial_preferred",
+      "runNumber": 2,
+      "workflow": "matching",
+      "executionMode": "live",
+      "success": true,
+      "workflowAttempts": 1,
+      "providerCalls": 1,
+      "latencyMs": 11784,
+      "retryReason": null,
+      "validationStatus": "valid",
+      "ruleResults": [
+        {
+          "ruleId": "no_invented_evidence",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "no_invented_source_reference",
+          "passed": true,
+          "source": "deterministic"
+        },
+        {
+          "ruleId": "no_prohibited_behavior",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "insufficient_evidence_gap_is_safe",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "schema_and_invariants_valid",
+          "passed": true,
+          "source": "deterministic"
+        }
+      ],
+      "metrics": {
+        "matchingStatusCorrect": true,
+        "importanceCorrect": true,
+        "followUpAnswerabilityCorrect": null,
+        "evidenceAnchorsCorrect": true,
+        "explanationUsefulness": 3,
+        "validFirstAttempt": true,
+        "retryRecovered": null
+      },
+      "failureCategories": [],
+      "humanReview": {
+        "inventedEvidenceDetected": false,
+        "prohibitedBehaviorDetected": false,
+        "gapHandledSafely": true,
+        "outOfScopeHandledSafely": null,
+        "explanationUsefulness": 3
+      }
+    },
+    {
+      "caseId": "matching_missing_unspecified",
+      "runNumber": 2,
+      "workflow": "matching",
+      "executionMode": "live",
+      "success": true,
+      "workflowAttempts": 1,
+      "providerCalls": 1,
+      "latencyMs": 6455,
+      "retryReason": null,
+      "validationStatus": "valid",
+      "ruleResults": [
+        {
+          "ruleId": "no_invented_evidence",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "no_invented_source_reference",
+          "passed": true,
+          "source": "deterministic"
+        },
+        {
+          "ruleId": "no_prohibited_behavior",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "insufficient_evidence_gap_is_safe",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "schema_and_invariants_valid",
+          "passed": true,
+          "source": "deterministic"
+        }
+      ],
+      "metrics": {
+        "matchingStatusCorrect": false,
+        "importanceCorrect": false,
+        "followUpAnswerabilityCorrect": null,
+        "evidenceAnchorsCorrect": false,
+        "explanationUsefulness": 4,
+        "validFirstAttempt": true,
+        "retryRecovered": null
+      },
+      "failureCategories": [
+        "evidence_anchors_incorrect",
+        "importance_incorrect",
+        "matching_status_incorrect"
+      ],
+      "humanReview": {
+        "inventedEvidenceDetected": false,
+        "prohibitedBehaviorDetected": false,
+        "gapHandledSafely": true,
+        "outOfScopeHandledSafely": null,
+        "explanationUsefulness": 4
+      }
+    },
+    {
+      "caseId": "matching_partial_preferred",
+      "runNumber": 3,
+      "workflow": "matching",
+      "executionMode": "live",
+      "success": true,
+      "workflowAttempts": 1,
+      "providerCalls": 1,
+      "latencyMs": 9944,
+      "retryReason": null,
+      "validationStatus": "valid",
+      "ruleResults": [
+        {
+          "ruleId": "no_invented_evidence",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "no_invented_source_reference",
+          "passed": true,
+          "source": "deterministic"
+        },
+        {
+          "ruleId": "no_prohibited_behavior",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "insufficient_evidence_gap_is_safe",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "schema_and_invariants_valid",
+          "passed": true,
+          "source": "deterministic"
+        }
+      ],
+      "metrics": {
+        "matchingStatusCorrect": true,
+        "importanceCorrect": true,
+        "followUpAnswerabilityCorrect": null,
+        "evidenceAnchorsCorrect": true,
+        "explanationUsefulness": 3,
+        "validFirstAttempt": true,
+        "retryRecovered": null
+      },
+      "failureCategories": [],
+      "humanReview": {
+        "inventedEvidenceDetected": false,
+        "prohibitedBehaviorDetected": false,
+        "gapHandledSafely": true,
+        "outOfScopeHandledSafely": null,
+        "explanationUsefulness": 3
+      }
+    },
+    {
+      "caseId": "matching_missing_unspecified",
+      "runNumber": 3,
+      "workflow": "matching",
+      "executionMode": "live",
+      "success": true,
+      "workflowAttempts": 1,
+      "providerCalls": 1,
+      "latencyMs": 6303,
+      "retryReason": null,
+      "validationStatus": "valid",
+      "ruleResults": [
+        {
+          "ruleId": "no_invented_evidence",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "no_invented_source_reference",
+          "passed": true,
+          "source": "deterministic"
+        },
+        {
+          "ruleId": "no_prohibited_behavior",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "insufficient_evidence_gap_is_safe",
+          "passed": true,
+          "source": "human"
+        },
+        {
+          "ruleId": "schema_and_invariants_valid",
+          "passed": true,
+          "source": "deterministic"
+        }
+      ],
+      "metrics": {
+        "matchingStatusCorrect": false,
+        "importanceCorrect": false,
+        "followUpAnswerabilityCorrect": null,
+        "evidenceAnchorsCorrect": false,
+        "explanationUsefulness": 4,
+        "validFirstAttempt": true,
+        "retryRecovered": null
+      },
+      "failureCategories": [
+        "evidence_anchors_incorrect",
+        "importance_incorrect",
+        "matching_status_incorrect"
+      ],
+      "humanReview": {
+        "inventedEvidenceDetected": false,
+        "prohibitedBehaviorDetected": false,
+        "gapHandledSafely": true,
+        "outOfScopeHandledSafely": null,
+        "explanationUsefulness": 4
+      }
+    }
+  ],
+  "privacy": {
+    "containsResume": false,
+    "containsJobDescription": false,
+    "containsQuestion": false,
+    "containsPrompt": false,
+    "containsProviderPayloadOrRawResponse": false,
+    "containsGeneratedOutput": false
+  }
+}
