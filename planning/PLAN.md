@@ -2,14 +2,20 @@
 
 ## Document Information
 
-- **Version:** v0.36
-- **Status:** Draft — Goal 8 Pending After Bounded Tuning
+- **Version:** v0.42
+- **Status:** Draft — Goal 9 Release Candidate Ready, Deployment Pending
 - **Owner:** Mei Chang
 - **Last Updated:** 2026-08-28
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.42 — 2026-08-28:** Promoted Goal 9 to **Release Candidate Ready — Deployment Pending** after an evaluator-hashed complete rerun passed all hard guardrails but exposed one broad source-heading miss, a narrow traceability correction passed three matching/reliability runs, and the final privacy-safe artifact composed those current-prompt results with the unchanged follow-up results. The final evidence uses 39 provider calls within the approved 60-call ceiling and passes every graded threshold; external deployment gates remain unchanged.
+- **v0.41 — 2026-08-28:** Reopened Goal 9 release promotion after final review found that the passing privacy-safe matrix predates the evaluator's post-run negation hardening and cannot be mechanically re-scored because generated outputs are intentionally omitted. Added evaluator hashing for future artifacts and recorded the current candidate as evaluator-evidence-pending until a bounded rerun passes or the user explicitly approves the documented evaluator-only deviation.
+- **v0.40 — 2026-08-28:** Promoted Goal 9 to **Release Candidate Ready — Deployment Pending** after the adjusted prompt passed the complete three-run Ark release matrix with zero hard-guardrail violations and every graded accuracy threshold at `1.00`, the evaluator was hardened against negated forbidden-marker false positives without permitting affirmative claims, and the protected local real-provider gateway smoke passed within its four-call ceiling; external registry, deployment, domain, ICP, HTTPS, rollback-by-production-digest, and recruiter-network validation remain separately gated.
+- **v0.39 — 2026-08-28:** Implemented the local Goal 9 release-validation bundle, reproducibility manifest, privacy-safe gateway smoke and cleanup recovery, digest-pinned bases, backup/restore rehearsal, and deterministic validation; preserved the first 31-call release artifact after it passed all hard guardrails but missed the approved matching-status threshold (`0.8889` versus `1.00`), fixed the independent-review findings and the cross-dimension evidence cause, and left the adjusted candidate pending separately approved complete Ark revalidation and real-provider gateway smoke.
+- **v0.38 — 2026-08-28:** Completed Goal 8 after the current prompt passed the approved three-run final matrix with zero hard-guardrail violations, all graded thresholds satisfied, 30 first-attempt provider calls within the separately approved 60-call and ¥15 ceilings, and privacy-safe artifact closeout; Goal 9 is now ready for local implementation while external deployment remains separately gated.
+- **v0.37 — 2026-08-28:** Finalized the environment and release-strategy boundary for Goal 9: local/Codex development and deterministic testing remain the default, mainland Beijing-region single-host Docker Compose is the preferred recruiter-production target after filing and compliance gates, Hong Kong is temporary staging only, releases use mainland-accessible private images pinned by digest, and no mainland server should be purchased before the documented provider/domain/ICP preflight passes.
 - **v0.36 — 2026-08-28:** Required every live evaluation command to declare a provider-call ceiling and reject execution before provider access when the selected cases, run count, and two-attempt workflow could exceed that ceiling.
 - **v0.35 — 2026-08-28:** Recorded the Goal 8 checkpoint after three bounded prompt-tuning iterations, preserved the completed but graded-threshold-short final attempt, noted the user-stopped rerun that produced no artifact, and marked Goal 8 pending until the current prompt passes the complete three-run matrix and closeout validation.
 - **v0.34 — 2026-08-28:** Recorded the corrected one-pass Goal 8 Pro baseline, retained the preceding pilot as non-baseline evidence, and approved the zero-tolerance hard guardrails plus numerical quality and latency thresholds that govern bounded tuning and the three-run final evaluation.
@@ -87,8 +93,8 @@ Before a Goal is marked complete, Codex must compare the implementation with tho
 
 - **Phase A — Demo with Mock AI:** Complete
 - **AI Design Gate:** Complete through AI System Design v1.3 and Backend Technical Design v0.8.
-- **Phase B — Real AI:** Goals 7 and 7A are complete through the verified-text Pro path and bounded Mini compatibility check; Goal 8 is pending after its baseline, approved thresholds, and three bounded tuning iterations because the current prompt still needs a complete three-run final evaluation and closeout validation.
-- **Current coding readiness:** Goals 0–7A are complete. Goal 8 implementation and bounded tuning are substantially complete but remain pending rather than accepted; deployment sequencing is intentionally unchanged in this version and will be decided separately.
+- **Phase B — Real AI:** Goals 7, 7A, and 8 are complete through the verified-text Pro path, bounded Mini compatibility check, versioned evaluation matrix, three bounded tuning iterations, and the passing three-run final evaluation.
+- **Current coding readiness:** Goals 0–8 are complete. Goal 9 is **Release Candidate Ready — Deployment Pending** after evaluator-hashed three-run workflow evidence and the protected local real-provider gateway smoke passed all local gates. External purchase, registry, deployment, domain, filing, HTTPS, rollback-by-production-digest, and recruiter-network actions remain separately gated.
 
 ## 4. Pre-implementation Decisions
 
@@ -894,9 +900,10 @@ The live Mini command and exact privacy-safe output path are finalized before th
 
 ## Goal 8 — AI Evaluation and Behavior Tuning
 
-- **Status:** Pending; three bounded tuning iterations are complete, but the current prompt has not completed the full three-run final matrix and Goal closeout validation
+- **Status:** Complete
 - **Depends on:** Goal 7
 - **Branch:** `goal/08-ai-evaluation`
+- **Actual Implementation Time:** Not reliably reconstructable because Goal 8 spanned the earlier checkpoint and a separately resumed final-evaluation closeout. The final three-run evaluation itself took approximately 10 minutes of active provider execution and human review; no estimate is invented for the full Goal.
 
 ### Entry Prerequisites
 
@@ -977,7 +984,7 @@ Graded metrics include matching-status accuracy, importance accuracy, follow-up 
 - Every approved live case runs exactly three times in the final evaluation;
 - Hard guardrails remain zero-tolerance, and no final live case may exhaust both provider attempts.
 
-#### Current Checkpoint
+#### Final Evaluation Result
 
 - Prompt tuning stopped after the planned maximum of three iterations; no model, public API, persistence, frontend, or architecture contract changed;
 - Tuning iteration 1 repaired the contextual prior-analysis-gap structured-output failure and tightened direct-evidence selection. Its three-case focused run used 3 provider calls, passed every hard guardrail, and achieved `1.00` for status, importance, answerability, evidence anchors, and valid-first-attempt rate;
@@ -985,8 +992,10 @@ Graded metrics include matching-status accuracy, importance accuracy, follow-up 
 - Tuning iteration 2 clarified the distinction between a composite capability requirement and independent result fields. Its two-case, three-run focused evaluation used 6 provider calls: the composite capability case stabilized, while the quantitative-result case still merged independent fields in two runs and therefore did not pass;
 - Tuning iteration 3 explicitly required independent quantitative result fields to be returned and judged separately. Its remaining-case, three-run focused evaluation used 3 provider calls, passed every hard guardrail, and achieved `1.00` for status, importance, evidence anchors, and valid-first-attempt rate with explanation usefulness `4.00 / 4`;
 - A new complete final rerun was started after iteration 3 and stopped immediately at the user's request after 3 provider calls. The runner writes only complete artifacts, so no `goal-08-final.json` was produced from that interrupted run;
-- Goal 8 live evaluation has used 67 provider calls in total: 11 pilot, 11 corrected baseline, 3 tuning iteration 1, 30 first final attempt, 6 tuning iteration 2, 3 tuning iteration 3, and 3 from the stopped rerun. All calls stayed within their explicitly approved call and expected-cost ceilings;
-- Goal 8 remains pending until the current prompt completes the full three-run final matrix, meets the approved thresholds or records an explicitly accepted graded shortfall, passes full regression and independent/specification review, and receives its implementation-log closeout. No further Ark call is implied or authorized by this checkpoint record.
+- The completed final matrix is stored at `history/evaluation_runs/goal-08-final.json`. Across 30 live executions it used 30 first-attempt provider calls within the separately approved 60-call and ¥15 ceilings, passed every hard guardrail, and achieved matching-status accuracy `1.00`, importance accuracy `1.00`, follow-up answerability accuracy `1.00`, evidence-anchor correctness `1.00`, explanation usefulness `3.30 / 4`, valid-first-attempt rate `1.00`, mean latency `7,048.9 ms`, and P95 latency `12,904 ms`; retry recovery is `N/A` because no live case required a retry;
+- Goal 8 has 94 provider calls backed by stored artifacts: 11 pilot, 11 corrected baseline, 3 tuning iteration 1, 30 first final attempt, 6 tuning iteration 2, 3 tuning iteration 3, and 30 from the passing final matrix. The user-stopped rerun recorded 3 additional calls but intentionally produced no artifact, bringing the operational history to 97 while leaving 94 independently reconstructable from repository artifacts. Every group stayed within its explicitly approved call and expected-cost ceilings; actual provider billing was not queried;
+- Goal 8 is complete. The final artifact matches its recorded prompt and schema hashes, contains only approved privacy-safe metadata, and satisfied that Goal's release gate without changing the model, public APIs, persistence, frontend behavior, retry ceiling, or architecture.
+- Goal 9 subsequently exposed one stochastic cross-dimension evidence error in a separate release matrix and applied a narrow matching-prompt correction. The Goal 8 artifact remains the approved prerequisite evidence for its recorded prompt hash; the adjusted Goal 9 prompt is validated separately by the passing Goal 9 release artifact.
 
 ### Implementation Sequence
 
@@ -1030,7 +1039,7 @@ Specification-conformance review against every Goal 8 reference and approved thr
 
 ## Goal 9 — AI-enabled Release Validation
 
-- **Status:** Implementation-ready after Goal 8; live release completion requires deployment decisions
+- **Status:** Release Candidate Ready — Deployment Pending; local implementation, evaluator-hashed Ark validation, and real-provider gateway smoke passed, while external deployment remains separately gated
 - **Depends on:** Goal 8
 - **Branch:** `goal/09-release-validation`
 
@@ -1039,7 +1048,11 @@ Specification-conformance review against every Goal 8 reference and approved thr
 - Goal 8 is complete with zero hard-guardrail violations and approved graded thresholds satisfied;
 - The provider-enabled release candidate uses `AI_PROVIDER=ark`, the selected client path, the locked dependencies, and the validated finite provider timeout;
 - Real Ark, PostgreSQL, and Basic Auth secrets are supplied only through ignored deployment files or the hosting platform's secret store;
-- Before any external deployment, the user explicitly approves the hosting target, domain/HTTPS approach, intended recruiter access region, deployment action, and any external cost;
+- Local Docker Compose on the developer Mac is the default environment for Codex fixes, feature iteration, deterministic tests, and release-candidate validation. Normal automated tests use Mock AI; Ark calls remain separately enabled, bounded, and approved;
+- No mainland server is required or should be purchased for local Goal 9 implementation. Before purchasing or deploying externally, confirm the filing主体 and cloud-account identity, domain ownership and real-name status, applicable ICP and content-review requirements, a provider resource that qualifies for filing, public-IP and HTTPS availability, region, registry availability, expected cost, intended recruiter access region, and rollback/backup responsibilities;
+- The preferred recruiter-production target is one mainland China host in or near Beijing running the approved Docker Compose bundle. The exact provider is selected only after the preflight; Volcengine Beijing is the first option to evaluate because the selected Ark endpoint and a mainland private registry are available in that region, not an automatic purchase decision;
+- Hong Kong may be used as one temporary staging/demo host only when remote access is required before mainland filing completes. Hong Kong and mainland must not operate as dual-active production systems;
+- Before any external deployment, the user explicitly approves the hosting provider and region, server specification and commitment, domain/HTTPS approach, intended recruiter access region, deployment action, and every external cost;
 - Goal 9 implementation and local release-candidate validation may begin before deployment approval, but Goal 9 must not be marked complete for recruiter release until live accessibility and HTTPS checks pass. If deployment remains deferred, record **Release Candidate Ready — Deployment Pending** instead of **Complete**.
 
 ### Authoritative References and Constraints
@@ -1058,6 +1071,8 @@ The provider-enabled MVP is reproducible from locked dependencies, passes determ
 ### Release Scope and Named Files
 
 - Keep the normal Playwright suite deterministic in Mock mode; add a separate opt-in real-provider gateway smoke path rather than making browser regression tests depend on model output or network availability;
+- Build immutable production-platform images locally or in CI, publish them to a mainland-accessible private registry, and deploy Compose services by image digest. Prefer CI for reproducibility; local Buildx is an acceptable bounded fallback when the target architecture is explicit and the clean build is verified;
+- Do not clone from GitHub, pull application images from Docker Hub, or build source on the production server. Do not edit running production containers to fix bugs: inspect privacy-safe diagnostics, reproduce and fix locally, validate, publish a new immutable image, and redeploy by digest;
 - Pass Ark configuration into the backend container without adding it to frontend build arguments, images, repository files, or logs;
 - Align Nginx upstream timeouts with the measured Goal 7 two-attempt worst case while keeping them finite;
 - Add `scripts/smoke-real-ai-demo.py` to exercise protected health, matching, one follow-up, résumé response, safe failure handling, and persistence through the provider-enabled gateway without printing submitted/generated content;
@@ -1072,8 +1087,10 @@ The provider-enabled MVP is reproducible from locked dependencies, passes determ
 4. Run all frontend/backend/E2E tests and the approved three-run real-AI evaluation from a clean checkout/configuration;
 5. Build and start the protected provider-enabled Docker bundle from the locked files and run the real gateway smoke script, persistence inspection, access checks, and log/privacy checks;
 6. Perform independent review and specification-conformance review, resolve every high-severity finding, and record any lower-severity accepted limitation;
-7. After explicit deployment approval, deploy to the selected target, verify HTTPS and Basic Auth, and test the complete matching/follow-up journey from the intended recruiter network without exposing secrets or sensitive content;
-8. Teardown temporary local resources and write the implementation/release record. Do not delete a live deployment without explicit approval.
+7. Complete the provider/domain/ICP preflight. If a remote demo is required before mainland filing, deploy one temporary Hong Kong staging host after approval; otherwise keep validation local until the mainland target is eligible;
+8. After explicit purchase and deployment approval, publish immutable production-platform images to the approved mainland-accessible private registry, deploy the selected image digests to the single mainland target, and record the preceding digests for rollback;
+9. Verify HTTPS, Basic Auth, Ark calls, PostgreSQL persistence, finite timeout/exhaustion behavior, backup/restore, digest rollback, and accessibility from multiple representative mainland networks without exposing secrets or sensitive content;
+10. Teardown temporary local resources and any approved temporary staging environment, then write the implementation/release record. Do not delete a live deployment without explicit approval.
 
 ### Completion Criteria
 
@@ -1085,8 +1102,10 @@ The provider-enabled MVP is reproducible from locked dependencies, passes determ
 - Unauthenticated protected UI/API requests return `401`; authenticated health, résumé, matching, and follow-up requests succeed;
 - The frontend bundle, container images, Git-tracked files, logs, database, API responses, and tracking events contain no Ark key, raw prompt/provider payload/response, or prohibited interaction content;
 - Nginx and backend timeouts are finite and consistent with the measured two-attempt budget;
+- Production runs only approved immutable image digests from the selected mainland-accessible private registry; a tested preceding digest and database recovery procedure are available for rollback;
+- Code changes and routine bug fixes are implemented and validated locally or in an approved staging environment, never by editing a running production container;
 - No unresolved high-severity independent-review or specification-conformance finding remains;
-- For recruiter release, the approved live target serves HTTPS, enforces Basic Auth, and is reachable from the intended network. Without that evidence, the result is release-candidate readiness only and Goal 9 remains deployment-pending;
+- For recruiter release, the approved mainland live target serves HTTPS, enforces Basic Auth, completes real Ark workflows, persists and recovers data correctly, rolls back to the recorded image digest, and is reachable from multiple representative mainland networks. Without that evidence, the result is release-candidate readiness only and Goal 9 remains deployment-pending;
 - Deployment, push, merge, and pull-request actions occur only with their separately required approvals.
 
 ### Validation
@@ -1114,15 +1133,15 @@ Independent read-only code/security review
 Specification-conformance review against every Goal 9 reference, approved threshold, and release constraint
 ```
 
-The smoke script reads Basic Auth credentials from environment variables, prints only status/identifier metadata, and cleans its temporary Conversation and tracking data. Provider-specific deployment commands and the public URL are added to this Goal after the user approves the hosting target; they cannot be selected safely in advance.
+The smoke script reads Basic Auth credentials from environment variables, prints only status/identifier metadata, and cleans its temporary Conversation and tracking data. Provider-specific purchase, registry, deployment, filing, and public-URL instructions are added only after the provider/domain/ICP preflight and user approval; they cannot be selected safely in advance.
 
 ## Phase B Readiness Summary
 
 - **Goal 7:** Complete through the validated verified-Markdown Ark Responses API path with the Pro model and no native SDK fallback required.
 - **Goal 7A:** Complete with the static example, truthful waiting states, correction-only structured retry, full validation, and a privacy-safe Mini comparison; the Pro default remains unchanged because broader evidence-calibration evaluation is still required.
-- **Goal 8:** Pending after three bounded tuning iterations. The corrected baseline, approved thresholds, focused tuning artifacts, and graded-threshold-short first final attempt are preserved; the current prompt still needs a complete three-run final evaluation and closeout validation.
-- **Goal 9:** Fully specified for implementation and local release-candidate validation after Goal 8. Live recruiter-release completion additionally requires an approved hosting target, HTTPS/domain decision, deployment permission, and intended-network accessibility evidence.
-- No unresolved product, architecture, schema, retry, persistence, or API decision remains from Goals 7 or 7A. Goal 8's pending completion and future deployment choices remain explicit external checkpoints and must never be guessed or committed.
+- **Goal 8:** Complete. The corrected baseline, three bounded tuning iterations, earlier graded-threshold-short attempt, stopped rerun, and passing three-run final artifact are all preserved; the final run passed every hard guardrail and approved graded threshold.
+- **Goal 9:** **Release Candidate Ready — Deployment Pending.** Local implementation, locked rebuild, deterministic regression, Mock gateway smoke, persistence/privacy inspection, backup/restore rehearsal, independent-review fixes, evaluator-hashed three-run workflow evidence, and the protected local real-provider gateway smoke are complete. Earlier threshold-short artifacts remain preserved; the final composed artifact pins the current prompt/schema/evaluator hashes, uses 39 approved provider calls across its source runs, and passes every hard guardrail and graded threshold. No server purchase is required; all external deployment gates remain unchanged.
+- No unresolved product, architecture, schema, retry, persistence, public-API, or environment-boundary decision remains from Goals 7, 7A, or 8. Goal 9's provider/purchase/filing approvals remain explicit external checkpoints and must never be guessed or committed.
 
 ## Supporting References
 

@@ -3,6 +3,8 @@ from collections.abc import Iterable
 from collections.abc import Set as AbstractSet
 from typing import Literal
 
+from pydantic import BaseModel
+
 from app.ai.schemas import FollowUpResult, MatchingAnalysisResult, RequirementAnalysis
 from app.ai.workflow import WorkflowExecution
 from evals.models import (
@@ -104,9 +106,9 @@ def evaluate_successful_live_case(
         has_explicit_gap = result.missing_information is not None
         declined_out_of_scope = result.answerability == "out_of_scope"
 
-    serialized_result = result.model_dump_json(by_alias=True)
-    forbidden_claims_absent = not any(
-        claim in serialized_result for claim in case.forbidden_claims
+    forbidden_claims_absent = not _contains_forbidden_claim(
+        result,
+        case.forbidden_claims,
     )
     rules: list[RuleResult] = []
     for rule_id in case.hard_guardrail_checks:
@@ -191,6 +193,53 @@ def _anchors_match(
     allowed: AbstractSet[str],
 ) -> bool:
     return required <= actual and (not actual or actual <= allowed)
+
+
+def _contains_forbidden_claim(result: BaseModel, forbidden_claims: list[str]) -> bool:
+    """Detect asserted forbidden markers without treating explicit refusals as claims."""
+    denial_cues = (
+        "无法按要求引用",
+        "无法引用",
+        "不能引用",
+        "无法证明",
+        "不能证明",
+        "不足以证明",
+        "没有证据表明",
+        "无证据表明",
+        "未显示",
+        "未提及",
+        "不存在",
+    )
+    clause_boundaries = "。！？；，,：:\n"
+    for text in _string_values(result.model_dump()):
+        occurrences: set[tuple[int, int]] = set()
+        for claim in forbidden_claims:
+            search_from = 0
+            while (position := text.find(claim, search_from)) >= 0:
+                occurrences.add((position, position + len(claim)))
+                search_from = position + len(claim)
+        previous_marker_end = 0
+        for position, marker_end in sorted(occurrences):
+            clause_start = max(
+                text.rfind(mark, 0, position) for mark in clause_boundaries
+            )
+            scope_start = max(clause_start + 1, previous_marker_end, position - 32)
+            prefix = text[scope_start:position]
+            if not any(cue in prefix for cue in denial_cues):
+                return True
+            previous_marker_end = marker_end
+    return False
+
+
+def _string_values(value: object) -> Iterable[str]:
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for nested in value.values():
+            yield from _string_values(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            yield from _string_values(nested)
 
 
 def failed_live_case(

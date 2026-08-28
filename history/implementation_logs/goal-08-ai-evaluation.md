@@ -2,7 +2,7 @@
 
 ## Status
 
-Pending checkpoint. The typed evaluation infrastructure, corrected baseline, approved thresholds, three bounded prompt-tuning iterations, deterministic regression validation, and independent Bugbot review are recorded. The current prompt has not completed the full three-run final matrix, so Goal 8 is not complete and the approved graded release gate has not passed.
+Complete. The typed evaluation infrastructure, corrected baseline, approved thresholds, three bounded prompt-tuning iterations, passing three-run final matrix, deterministic regression validation, independent review, and specification closeout are recorded. The current prompt passed every approved hard guardrail and graded release threshold.
 
 ## Implemented Scope
 
@@ -25,12 +25,13 @@ Pending checkpoint. The typed evaluation infrastructure, corrected baseline, app
 - `goal-08-tuning-02.json`: 6-call focused three-run check. The composite capability case stabilized, but the independent quantitative fields still merged in two runs.
 - `goal-08-tuning-03.json`: 3-call focused three-run check after the final allowed prompt iteration. Every hard guardrail passed; status, importance, evidence anchors, and first-attempt validity were `1.00`, with usefulness `4.00 / 4`.
 - A post-tuning complete final rerun was stopped at the user's request after 3 provider calls. The runner writes only complete artifacts, so no `goal-08-final.json` was created.
-- Total Goal 8 live usage to this checkpoint is 67 provider calls: 11 pilot, 11 corrected baseline, 3 tuning iteration 1, 30 first final attempt, 6 tuning iteration 2, 3 tuning iteration 3, and 3 stopped-rerun calls. Every group stayed within its explicitly approved call and expected-cost ceiling. Actual provider billing was not queried.
+- `goal-08-final.json`: passing three-run final matrix using the current prompt and schema hashes. All 30 live executions succeeded on their first provider attempt; every hard guardrail passed; status, importance, answerability, and evidence anchors were `1.00`; usefulness was `3.30 / 4`; mean latency was `7,048.9 ms`; and P95 latency was `12,904 ms`. Retry recovery is `N/A` because no live retry occurred.
+- Stored artifacts substantiate 94 Goal 8 provider calls: 11 pilot, 11 corrected baseline, 3 tuning iteration 1, 30 first final attempt, 6 tuning iteration 2, 3 tuning iteration 3, and 30 passing-final calls. The user-stopped rerun recorded 3 additional calls but intentionally produced no artifact, bringing the operational history to 97 while leaving 94 independently reconstructable. Every group stayed within its explicitly approved call and expected-cost ceiling; the final run stayed within the approved 60-call and ¥15 ceilings. Actual provider billing was not queried.
 
 ## Validation
 
-- Goal 8 evaluator/runner regression: `7 passed`.
-- Full backend: `149 passed, 1 skipped`; the opt-in live test remained skipped.
+- Goal 8 evaluator/runner regression after the final roll-up fix: `8 passed`.
+- Full backend after the final roll-up fix: `150 passed, 1 skipped`; the opt-in live test remained skipped.
 - Mypy: no issues across `app`, `evals`, and `tests` (`67` source files).
 - Ruff: all checks passed.
 - Frontend Vitest: `8` files and `49` tests passed.
@@ -38,16 +39,24 @@ Pending checkpoint. The typed evaluation infrastructure, corrected baseline, app
 - Playwright: `6 passed` across desktop and compact Chromium with `AI_PROVIDER=mock`.
 - `git diff --check` passed.
 - Normal automated validation remained Mock-based and network-free; no Ark call was made by the final regression or Bugbot-fix validation.
+- Approved live final matrix: 30 first-attempt provider calls, zero hard-guardrail violations, and every approved graded threshold passed. The stored artifact contains no résumé, JD, question, prompt, generated response, provider payload/raw response, secret, or internal-error content.
 
 ## Independent Review
 
 - Bugbot reported one P1 finding: the paid live runner reported call usage only after completion and did not enforce the approved ceiling.
 - Fixed by requiring an explicit provider-call budget, calculating the selected cases' two-attempt worst case, rejecting insufficient budgets before provider access, updating all documented commands, and adding a regression assertion that rejection produces zero provider requests.
-- No post-fix Bugbot rerun was requested. Focused and full deterministic validation passed after the fix.
+- Final closeout review found one P2 roll-up defect: a deterministic forbidden-claim marker was recorded in a case's failure categories but did not force the artifact-level hard-guardrail flag to fail. The aggregate now treats that marker as a hard failure, with regression coverage proving a human-safe review cannot mask it. The passing final artifact contains no forbidden-claim marker, so it was revalidated offline without another provider call.
+- No post-budget-fix Bugbot rerun was requested. Focused and full deterministic validation passed after the budget fix, and the final closeout reviewer verified the artifact metrics, hashes, privacy fields, case/run counts, and public-contract boundaries before reporting and closing the roll-up defect.
+- The follow-up read-only review confirmed both the roll-up defect and provider-call auditability wording were resolved, `git diff --check` passed, and no material finding remained. Goal 8 therefore required no additional provider call for final sign-off.
 
-## Conformance and Remaining Work
+## Conformance and Closeout
 
 - The implemented checkpoint conforms to the approved scope and architecture: the fixed verified Markdown remains the only runtime candidate context; the PDF remains preview/download only; AI handling remains behind the AI Service; public APIs, persistence ownership, frontend behavior, strict internal schemas/invariants, source-heading validation, and the two-attempt ceiling remain unchanged.
 - Evaluation artifacts contain no résumé, JD, question, prompt, generated response, provider payload/raw response, secret, or internal error content. No upload, request-time extraction, RAG, streaming, new provider, scoring, ranking, hiring decision, or frontend AI reasoning was introduced.
-- Goal 8 remains pending. Before it can be marked complete under the current AI System Design, the current prompt must complete the full three-run matrix, meet the approved thresholds or receive an explicitly documented graded-shortfall decision, and receive final artifact, conformance, and implementation closeout.
-- Deployment sequencing is intentionally not changed by this checkpoint and is deferred to the next planning round.
+- At Goal 8 closeout, the passing final matrix matched the then-current matching, follow-up, correction-prompt, and internal-schema hashes. No model, parameter, provider, public API, persistence, frontend, or architecture change was introduced before that closeout.
+- Goal 8 is complete with no accepted graded shortfall and no remaining material conformance mismatch. Deployment sequencing and external purchase/deployment approvals remain owned by Goal 9.
+- Goal 9 later exposed one stochastic cross-dimension evidence error in its separate release matrix and applied a narrow matching-prompt correction. The passing Goal 8 artifact remains valid historical prerequisite evidence for its recorded prompt hash, but it no longer matches the adjusted Goal 9 prompt and is not used as current-candidate release evidence; the separate corrected Goal 9 matrix subsequently passed.
+
+## Actual Implementation Time
+
+The full Goal 8 time is not reliably reconstructable because implementation, bounded tuning, the user-stopped rerun, and final closeout occurred across separate sessions. The passing final matrix took approximately 10 minutes of active provider execution and human review; no full-Goal estimate is invented.

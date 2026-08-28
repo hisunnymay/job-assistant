@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "status": "release_candidate_ready_deployment_pending",
+  "provider": {
+    "name": "ark",
+    "model": "doubao-seed-2-1-pro-260628",
+    "clientPath": "LangChain ChatOpenAI Responses API",
+    "baseUrl": "https://ark.cn-beijing.volces.com/api/v3",
+    "requestTimeoutSeconds": 180,
+    "maxProviderAttempts": 2
+  },
+  "gateway": {
+    "connectTimeoutSeconds": 10,
+    "sendTimeoutSeconds": 400,
+    "readTimeoutSeconds": 400
+  },
+  "runtimeResume": {
+    "path": "backend/app/resources/resume/mei_chang_resume.md",
+    "sha256": "9e1db40802663dd49fc5ece9637a7b386f3f7a7dcc552bdc7444ae1cf17e1c04"
+  },
+  "dependencies": {
+    "backend": {
+      "path": "backend/uv.lock",
+      "sha256": "f587675ef23885612a05c70d1acbaefef13ea508f2fb533b1f7420846096f6b2"
+    },
+    "frontend": {
+      "path": "frontend/package-lock.json",
+      "sha256": "e58cc068c4ce12fc02eaca6ea8a544113bf52070de19484b2f94c59dac1fc5aa"
+    }
+  },
+  "baseImages": {
+    "backend": "ghcr.io/astral-sh/uv:python3.12-bookworm-slim@sha256:e5b65587bce7de595f299855d7385fe7fca39b8a74baa261ba1b7147afa78e58",
+    "frontendBuild": "node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32",
+    "gateway": "nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10",
+    "database": "postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685"
+  },
+  "prerequisiteEvaluation": {
+    "suitePath": "backend/evals/goal_08_real_ai_cases.json",
+    "suiteSha256": "0509f3353e39bb58e234fc0863fb24c29d7a672897ffe5211829a9c478c76e9f",
+    "artifactPath": "history/evaluation_runs/goal-08-final.json",
+    "artifactSha256": "b1f95221fd9ff52dea3cd50f44e3d0dc6e549323c199f2b58c558238f0782e21",
+    "runsPerCase": 3,
+    "hardGuardrailsPassed": true
+  },
+  "evaluation": {
+    "status": "passed",
+    "currentCandidateValidated": true,
+    "suitePath": "backend/evals/goal_08_real_ai_cases.json",
+    "suiteSha256": "0509f3353e39bb58e234fc0863fb24c29d7a672897ffe5211829a9c478c76e9f",
+    "artifactPath": "history/evaluation_runs/goal-09-release-composite-final.json",
+    "artifactSha256": "4f3c11acdec4c7996eb68cb61a21bed73b586ccd6679339069ca7268568403b4",
+    "artifactEvaluatorSha256": "c0246e13c2593f67823d0cef9acbd79309760df7cf96fd5545785e360d110a53",
+    "currentEvaluatorSha256": "c0246e13c2593f67823d0cef9acbd79309760df7cf96fd5545785e360d110a53",
+    "evaluatorEvidenceStatus": "passed",
+    "runsPerCase": 3,
+    "providerCallsUsed": 30,
+    "hardGuardrailsPassed": true,
+    "thresholdsPassed": true,
+    "shortfalls": [],
+    "metrics": {
+      "matchingStatusAccuracy": 1.0,
+      "importanceAccuracy": 1.0,
+      "followUpAnswerabilityAccuracy": 1.0,
+      "evidenceAnchorCorrectness": 1.0,
+      "explanationUsefulnessMean": 3.4,
+      "validFirstAttemptRate": 1.0,
+      "retryRecoveryRate": null,
+      "latencyMeanMs": 6290.3,
+      "latencyP95Ms": 13330
+    },
+    "promptHashes": {
+      "matching": "903316d07fd3e6139577424667f7a7dc075da126bea6e697de77ec67514c4729",
+      "followUp": "0a12c944dae17779c961b8e603b14027221ac6ccec04ec01aa40f5975b1c9c8b",
+      "structuredOutputCorrection": "550d3d1b5c9a46cfd2739d038e136461a5c41654de79003fd6376315f25bac20"
+    },
+    "schemaHashes": {
+      "matching": "98aaa46193a2b29d19a6149331e117952963ccc6616baf9394547c2d6dc26cb0",
+      "followUp": "e20a881c05dac18676fd11277c646bb4c11fd44e466d9471de3243db053e1bee"
+    },
+    "composition": {
+      "strategy": "workflow_scoped_revalidation",
+      "approvedProviderCallsUsed": 39,
+      "sources": [
+        {
+          "artifactPath": "history/evaluation_runs/goal-09-release-hardened-final.json",
+          "artifactSha256": "dfa3944abde562b85949093fc23733edb0a5e36ae5c71baafbb6ff39609f30f6",
+          "includedWorkflows": ["follow_up"],
+          "includedProviderCalls": 21
+        },
+        {
+          "artifactPath": "history/evaluation_runs/goal-09-release-matching-final.json",
+          "artifactSha256": "ca61454bc413abe68b918eba785d1b6996b457268b2ee69313abbc05dabd9685",
+          "includedWorkflows": ["matching", "reliability"],
+          "includedProviderCalls": 9
+        }
+      ]
+    }
+  },
+  "gatewaySmoke": {
+    "status": "passed",
+    "provider": "ark",
+    "maximumProviderCalls": 4,
+    "checks": [
+      "basic_auth",
+      "health",
+      "resume_digest",
+      "safe_failure",
+      "matching",
+      "follow_up",
+      "identical_replay",
+      "persistence",
+      "log_privacy",
+      "database_privacy",
+      "cleanup"
+    ]
+  },
+  "supersededEvaluation": {
+    "artifactPath": "history/evaluation_runs/goal-09-release.json",
+    "artifactSha256": "afc16945af64787b892b98138fc20ba5f5d7c76e207085016c4e19510d01255c",
+    "providerCallsUsed": 31,
+    "hardGuardrailsPassed": true,
+    "thresholdsPassed": false,
+    "matchingStatusAccuracy": 0.8889,
+    "matchingPromptSha256": "c7f2194b170db90c737794650bbfc91b082e676fc5afe57312042dc0f0688a70"
+  },
+  "intermediateEvaluations": [
+    {
+      "artifactPath": "history/evaluation_runs/goal-09-release-final.json",
+      "artifactSha256": "3ce318b4eb154218279b9ba3f9a4ee2ba04b63df90ce2af14139d715d755581e",
+      "status": "pre_final_evaluator"
+    },
+    {
+      "artifactPath": "history/evaluation_runs/goal-09-release-hardened-final.json",
+      "artifactSha256": "dfa3944abde562b85949093fc23733edb0a5e36ae5c71baafbb6ff39609f30f6",
+      "status": "evidence_anchor_threshold_short"
+    },
+    {
+      "artifactPath": "history/evaluation_runs/goal-09-release-matching-final.json",
+      "artifactSha256": "ca61454bc413abe68b918eba785d1b6996b457268b2ee69313abbc05dabd9685",
+      "status": "focused_matching_pass"
+    }
+  ],
+  "productionImages": {
+    "status": "deployment_pending",
+    "requiredReferenceFormat": "<mainland-private-registry>/<repository>@sha256:<digest>"
+  }
+}
