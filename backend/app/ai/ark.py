@@ -21,6 +21,7 @@ from app.ai.workflow import (
     ProviderPermanentError,
     ProviderTransientError,
     StructuredAIWorkflow,
+    WorkflowExecution,
 )
 from app.resources.candidate_resume import (
     CANDIDATE_RESUME_CONTEXT_FILENAME,
@@ -139,11 +140,22 @@ class ArkAIService:
         resume_context_path: Path,
         job_description: str,
     ) -> str:
+        return self.execute_matching_analysis(
+            resume_context_path=resume_context_path,
+            job_description=job_description,
+        ).rendered_output
+
+    def execute_matching_analysis(
+        self,
+        *,
+        resume_context_path: Path,
+        job_description: str,
+    ) -> WorkflowExecution[MatchingAnalysisResult]:
         if not job_description.strip():
             raise AIServiceError("AI processing failed")
         resume_context = _load_resume_context(resume_context_path)
         workflow = StructuredAIWorkflow(workflow_name="matching", model=self._model)
-        return workflow.run(
+        return workflow.execute(
             generate=lambda request_id, use_correction: self._provider_client.complete(
                 _matching_request(
                     request_id=request_id,
@@ -162,6 +174,17 @@ class ArkAIService:
         resume_context_path: Path,
         conversation_history: tuple[FollowUpContextMessage, ...],
     ) -> str:
+        return self.execute_follow_up(
+            resume_context_path=resume_context_path,
+            conversation_history=conversation_history,
+        ).rendered_output
+
+    def execute_follow_up(
+        self,
+        *,
+        resume_context_path: Path,
+        conversation_history: tuple[FollowUpContextMessage, ...],
+    ) -> WorkflowExecution[FollowUpResult]:
         if not conversation_history:
             raise AIServiceError("AI processing failed")
         current_question = conversation_history[-1]
@@ -178,7 +201,7 @@ class ArkAIService:
 
         resume_context = _load_resume_context(resume_context_path)
         workflow = StructuredAIWorkflow(workflow_name="follow_up", model=self._model)
-        return workflow.run(
+        return workflow.execute(
             generate=lambda request_id, use_correction: self._provider_client.complete(
                 _follow_up_request(
                     request_id=request_id,
