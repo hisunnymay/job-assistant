@@ -2,14 +2,15 @@
 
 ## Document Information
 
-- **Version:** v0.42
-- **Status:** Draft — Goal 9 Release Candidate Ready, Deployment Pending
+- **Version:** v0.43
+- **Status:** Draft — Goal 9 Hong Kong Production Live
 - **Owner:** Mei Chang
 - **Last Updated:** 2026-08-28
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.43 — 2026-08-28:** Designated the approved Hong Kong ECS and `sunnydemo.me` as the current recruiter-production environment, removed production Basic Auth for public recruiter access, retained the protected local demo harness, deployed immutable locally built `linux/amd64` images by verified content ID, and recorded the first-release rollback limitation and public-abuse-control follow-up.
 - **v0.42 — 2026-08-28:** Promoted Goal 9 to **Release Candidate Ready — Deployment Pending** after an evaluator-hashed complete rerun passed all hard guardrails but exposed one broad source-heading miss, a narrow traceability correction passed three matching/reliability runs, and the final privacy-safe artifact composed those current-prompt results with the unchanged follow-up results. The final evidence uses 39 provider calls within the approved 60-call ceiling and passes every graded threshold; external deployment gates remain unchanged.
 - **v0.41 — 2026-08-28:** Reopened Goal 9 release promotion after final review found that the passing privacy-safe matrix predates the evaluator's post-run negation hardening and cannot be mechanically re-scored because generated outputs are intentionally omitted. Added evaluator hashing for future artifacts and recorded the current candidate as evaluator-evidence-pending until a bounded rerun passes or the user explicitly approves the documented evaluator-only deviation.
 - **v0.40 — 2026-08-28:** Promoted Goal 9 to **Release Candidate Ready — Deployment Pending** after the adjusted prompt passed the complete three-run Ark release matrix with zero hard-guardrail violations and every graded accuracy threshold at `1.00`, the evaluator was hardened against negated forbidden-marker false positives without permitting affirmative claims, and the protected local real-provider gateway smoke passed within its four-call ceiling; external registry, deployment, domain, ICP, HTTPS, rollback-by-production-digest, and recruiter-network validation remain separately gated.
@@ -94,7 +95,7 @@ Before a Goal is marked complete, Codex must compare the implementation with tho
 - **Phase A — Demo with Mock AI:** Complete
 - **AI Design Gate:** Complete through AI System Design v1.3 and Backend Technical Design v0.8.
 - **Phase B — Real AI:** Goals 7, 7A, and 8 are complete through the verified-text Pro path, bounded Mini compatibility check, versioned evaluation matrix, three bounded tuning iterations, and the passing three-run final evaluation.
-- **Current coding readiness:** Goals 0–8 are complete. Goal 9 is **Release Candidate Ready — Deployment Pending** after evaluator-hashed three-run workflow evidence and the protected local real-provider gateway smoke passed all local gates. External purchase, registry, deployment, domain, filing, HTTPS, rollback-by-production-digest, and recruiter-network actions remain separately gated.
+- **Current coding readiness:** Goals 0–8 are complete. Goal 9 is **Hong Kong Production Live** after evaluator-hashed workflow evidence, protected local and remote real-provider gateway smoke, public HTTPS deployment, persistence/backup checks, and certificate-renewal rehearsal passed. A preceding-image rollback rehearsal, public-abuse hardening, future purchases, additional paid validation, and any mainland deployment remain separately gated.
 
 ## 4. Pre-implementation Decisions
 
@@ -1039,7 +1040,7 @@ Specification-conformance review against every Goal 8 reference and approved thr
 
 ## Goal 9 — AI-enabled Release Validation
 
-- **Status:** Release Candidate Ready — Deployment Pending; local implementation, evaluator-hashed Ark validation, and real-provider gateway smoke passed, while external deployment remains separately gated
+- **Status:** Hong Kong Production Live; public HTTPS access, Ark workflow smoke, persistence, privacy, certificate renewal, and backup/restore checks passed; the first release has no preceding production image to exercise as a rollback target
 - **Depends on:** Goal 8
 - **Branch:** `goal/09-release-validation`
 
@@ -1047,13 +1048,12 @@ Specification-conformance review against every Goal 8 reference and approved thr
 
 - Goal 8 is complete with zero hard-guardrail violations and approved graded thresholds satisfied;
 - The provider-enabled release candidate uses `AI_PROVIDER=ark`, the selected client path, the locked dependencies, and the validated finite provider timeout;
-- Real Ark, PostgreSQL, and Basic Auth secrets are supplied only through ignored deployment files or the hosting platform's secret store;
+- Real Ark and PostgreSQL secrets are supplied only through ignored deployment files or the hosting platform's secret store;
 - Local Docker Compose on the developer Mac is the default environment for Codex fixes, feature iteration, deterministic tests, and release-candidate validation. Normal automated tests use Mock AI; Ark calls remain separately enabled, bounded, and approved;
-- No mainland server is required or should be purchased for local Goal 9 implementation. Before purchasing or deploying externally, confirm the filing主体 and cloud-account identity, domain ownership and real-name status, applicable ICP and content-review requirements, a provider resource that qualifies for filing, public-IP and HTTPS availability, region, registry availability, expected cost, intended recruiter access region, and rollback/backup responsibilities;
-- The preferred recruiter-production target is one mainland China host in or near Beijing running the approved Docker Compose bundle. The exact provider is selected only after the preflight; Volcengine Beijing is the first option to evaluate because the selected Ark endpoint and a mainland private registry are available in that region, not an automatic purchase decision;
-- Hong Kong may be used as one temporary staging/demo host only when remote access is required before mainland filing completes. Hong Kong and mainland must not operate as dual-active production systems;
-- Before any external deployment, the user explicitly approves the hosting provider and region, server specification and commitment, domain/HTTPS approach, intended recruiter access region, deployment action, and every external cost;
-- Goal 9 implementation and local release-candidate validation may begin before deployment approval, but Goal 9 must not be marked complete for recruiter release until live accessibility and HTTPS checks pass. If deployment remains deferred, record **Release Candidate Ready — Deployment Pending** instead of **Complete**.
+- The current recruiter-production target is the user-approved Hong Kong ECS at `https://sunnydemo.me`; a future mainland deployment is deferred and would require a separate filing, provider, cost, data-migration, and cutover decision;
+- The user approved the Hong Kong provider/region, existing server, domain/HTTPS approach, public recruiter access, Ark activation, deployment action, and the bounded live validation already completed;
+- Future infrastructure purchases, additional paid provider validation, domain transfer, mainland filing, or a second active production environment remain separately gated;
+- Public production intentionally has no Basic Auth or user accounts. Ark-side constraints limit provider spend but do not replace application/gateway abuse controls, database-growth monitoring, or host hardening.
 
 ### Authoritative References and Constraints
 
@@ -1066,17 +1066,18 @@ Specification-conformance review against every Goal 8 reference and approved thr
 
 ### Outcome
 
-The provider-enabled MVP is reproducible from locked dependencies, passes deterministic application validation and the approved real-AI evaluations, protects secrets and recruiter access, behaves correctly through the gateway, and—after separate deployment approval—is verified from the intended recruiter network.
+The provider-enabled MVP is reproducible from locked dependencies, passes deterministic application validation and the approved real-AI evaluations, protects secrets, behaves correctly through the gateway, and is publicly available from the approved Hong Kong production host.
 
 ### Release Scope and Named Files
 
 - Keep the normal Playwright suite deterministic in Mock mode; add a separate opt-in real-provider gateway smoke path rather than making browser regression tests depend on model output or network availability;
-- Build immutable production-platform images locally or in CI, publish them to a mainland-accessible private registry, and deploy Compose services by image digest. Prefer CI for reproducibility; local Buildx is an acceptable bounded fallback when the target architecture is explicit and the clean build is verified;
+- Build immutable production-platform images locally or in CI and deploy them through an approved registry or bounded local-to-host transfer by immutable registry digest or verified content ID. Prefer CI for reproducibility; local Buildx is an acceptable bounded fallback when the target architecture is explicit and the clean build is verified;
 - Do not clone from GitHub, pull application images from Docker Hub, or build source on the production server. Do not edit running production containers to fix bugs: inspect privacy-safe diagnostics, reproduce and fix locally, validate, publish a new immutable image, and redeploy by digest;
 - Pass Ark configuration into the backend container without adding it to frontend build arguments, images, repository files, or logs;
 - Align Nginx upstream timeouts with the measured Goal 7 two-attempt worst case while keeping them finite;
 - Add `scripts/smoke-real-ai-demo.py` to exercise protected health, matching, one follow-up, résumé response, safe failure handling, and persistence through the provider-enabled gateway without printing submitted/generated content;
 - Update `README.md`, `deploy/demo.env.example`, `compose.demo.yaml`, and `deploy/nginx.demo.conf` with the final provider-enabled setup and teardown process;
+- Add `compose.hk-production.yaml`, `deploy/nginx.hk-production.conf`, and certificate-renewal hooks for the public `sunnydemo.me` production overlay without changing the protected local demo harness;
 - Create `history/implementation_logs/goal-09-ai-release-validation.md` at closeout.
 
 ### Implementation Sequence
@@ -1087,10 +1088,10 @@ The provider-enabled MVP is reproducible from locked dependencies, passes determ
 4. Run all frontend/backend/E2E tests and the approved three-run real-AI evaluation from a clean checkout/configuration;
 5. Build and start the protected provider-enabled Docker bundle from the locked files and run the real gateway smoke script, persistence inspection, access checks, and log/privacy checks;
 6. Perform independent review and specification-conformance review, resolve every high-severity finding, and record any lower-severity accepted limitation;
-7. Complete the provider/domain/ICP preflight. If a remote demo is required before mainland filing, deploy one temporary Hong Kong staging host after approval; otherwise keep validation local until the mainland target is eligible;
-8. After explicit purchase and deployment approval, publish immutable production-platform images to the approved mainland-accessible private registry, deploy the selected image digests to the single mainland target, and record the preceding digests for rollback;
-9. Verify HTTPS, Basic Auth, Ark calls, PostgreSQL persistence, finite timeout/exhaustion behavior, backup/restore, digest rollback, and accessibility from multiple representative mainland networks without exposing secrets or sensitive content;
-10. Teardown temporary local resources and any approved temporary staging environment, then write the implementation/release record. Do not delete a live deployment without explicit approval.
+7. Confirm the Hong Kong server, `sunnydemo.me`, HTTPS, public access, intended recruiter access, Ark activation, deployment, and external costs with the user;
+8. Build clean `linux/amd64` application images locally, transfer only immutable images and deployment files to the Hong Kong host, deploy by verified content ID, and record the active IDs and database recovery baseline;
+9. Verify public HTTPS access, Ark calls, PostgreSQL persistence, finite timeout/exhaustion behavior, backup/restore, certificate renewal, privacy-safe diagnostics, and accessibility without exposing secrets or sensitive content;
+10. Remove obsolete production Basic Auth material, retain the live environment, and write the production implementation/release record. Do not delete or replace the live deployment without explicit approval.
 
 ### Completion Criteria
 
@@ -1099,13 +1100,13 @@ The provider-enabled MVP is reproducible from locked dependencies, passes determ
 - The approved final real-AI evaluation passes with no hard-guardrail violation and all graded thresholds satisfied;
 - The provider-enabled gateway smoke completes matching and follow-up with the unchanged public contracts and confirms the exact résumé, conversation persistence, atomic failure behavior, and completed-identical-follow-up replay;
 - A transient/invalid response never exceeds two provider attempts, and timeout/exhaustion remains recoverable through the existing safe UI/API state;
-- Unauthenticated protected UI/API requests return `401`; authenticated health, résumé, matching, and follow-up requests succeed;
+- Public production UI, health, and approved API routes are reachable over HTTPS without credentials; the protected local demo continues to return `401` for unauthenticated requests;
 - The frontend bundle, container images, Git-tracked files, logs, database, API responses, and tracking events contain no Ark key, raw prompt/provider payload/response, or prohibited interaction content;
 - Nginx and backend timeouts are finite and consistent with the measured two-attempt budget;
-- Production runs only approved immutable image digests from the selected mainland-accessible private registry; a tested preceding digest and database recovery procedure are available for rollback;
+- Production runs only approved immutable application images identified by verified content IDs, and a verified database backup/recovery procedure is available. The first release records the active IDs as the rollback baseline; rollback to a preceding application image becomes testable after the next release exists;
 - Code changes and routine bug fixes are implemented and validated locally or in an approved staging environment, never by editing a running production container;
 - No unresolved high-severity independent-review or specification-conformance finding remains;
-- For recruiter release, the approved mainland live target serves HTTPS, enforces Basic Auth, completes real Ark workflows, persists and recovers data correctly, rolls back to the recorded image digest, and is reachable from multiple representative mainland networks. Without that evidence, the result is release-candidate readiness only and Goal 9 remains deployment-pending;
+- The approved Hong Kong live target serves public HTTPS, completes real Ark workflows, persists and recovers data correctly, renews its certificate through tested hooks, and is reachable at `sunnydemo.me`. Public-abuse controls beyond provider-side spend constraints and a preceding-image rollback rehearsal remain visible production follow-ups;
 - Deployment, push, merge, and pull-request actions occur only with their separately required approvals.
 
 ### Validation
@@ -1128,20 +1129,24 @@ docker compose --env-file deploy/demo.env -f compose.demo.yaml up --detach --wai
 cd backend && uv run python ../scripts/smoke-real-ai-demo.py --base-url http://localhost:${DEMO_PORT:-8080}
 docker compose --env-file deploy/demo.env -f compose.demo.yaml logs
 docker compose --env-file deploy/demo.env -f compose.demo.yaml down --remove-orphans
+docker compose --env-file deploy/demo.env -f compose.demo.yaml -f compose.hk-production.yaml config --quiet
+curl --head http://sunnydemo.me
+curl --head https://sunnydemo.me
+curl https://sunnydemo.me/health
 git diff --check
 Independent read-only code/security review
 Specification-conformance review against every Goal 9 reference, approved threshold, and release constraint
 ```
 
-The smoke script reads Basic Auth credentials from environment variables, prints only status/identifier metadata, and cleans its temporary Conversation and tracking data. Provider-specific purchase, registry, deployment, filing, and public-URL instructions are added only after the provider/domain/ICP preflight and user approval; they cannot be selected safely in advance.
+The local smoke script reads Basic Auth credentials from environment variables, prints only status/identifier metadata, and cleans its temporary Conversation and tracking data. Hong Kong production intentionally disables that protection through its overlay. Live provider calls remain separately approved and bounded even when the public URL itself is accessible without credentials.
 
 ## Phase B Readiness Summary
 
 - **Goal 7:** Complete through the validated verified-Markdown Ark Responses API path with the Pro model and no native SDK fallback required.
 - **Goal 7A:** Complete with the static example, truthful waiting states, correction-only structured retry, full validation, and a privacy-safe Mini comparison; the Pro default remains unchanged because broader evidence-calibration evaluation is still required.
 - **Goal 8:** Complete. The corrected baseline, three bounded tuning iterations, earlier graded-threshold-short attempt, stopped rerun, and passing three-run final artifact are all preserved; the final run passed every hard guardrail and approved graded threshold.
-- **Goal 9:** **Release Candidate Ready — Deployment Pending.** Local implementation, locked rebuild, deterministic regression, Mock gateway smoke, persistence/privacy inspection, backup/restore rehearsal, independent-review fixes, evaluator-hashed three-run workflow evidence, and the protected local real-provider gateway smoke are complete. Earlier threshold-short artifacts remain preserved; the final composed artifact pins the current prompt/schema/evaluator hashes, uses 39 approved provider calls across its source runs, and passes every hard guardrail and graded threshold. No server purchase is required; all external deployment gates remain unchanged.
-- No unresolved product, architecture, schema, retry, persistence, public-API, or environment-boundary decision remains from Goals 7, 7A, or 8. Goal 9's provider/purchase/filing approvals remain explicit external checkpoints and must never be guessed or committed.
+- **Goal 9:** **Hong Kong Production Live.** Local implementation, locked rebuild, deterministic regression, Mock gateway smoke, persistence/privacy inspection, backup/restore rehearsal, independent-review fixes, evaluator-hashed real-AI evidence, protected local real-provider smoke, public Hong Kong HTTPS deployment, certificate renewal, and remote Ark smoke are complete. The active image content IDs and backup form the first-release rollback baseline; a preceding-image rollback test is not possible until a second release exists.
+- No unresolved product, architecture, schema, retry, persistence, public-API, or environment-boundary decision remains from Goals 7, 7A, 8, or the current production designation. Future infrastructure purchases, mainland deployment, additional paid provider validation, public-abuse hardening, and production replacement remain explicit checkpoints.
 
 ## Supporting References
 

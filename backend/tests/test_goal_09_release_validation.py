@@ -54,7 +54,7 @@ def test_release_candidate_manifest_matches_locked_current_inputs() -> None:
     )
 
     assert manifest["schemaVersion"] == 1
-    assert manifest["status"] == "release_candidate_ready_deployment_pending"
+    assert manifest["status"] == "hong_kong_production_live"
     assert manifest["provider"] == {
         "name": "ark",
         "model": "doubao-seed-2-1-pro-260628",
@@ -124,6 +124,18 @@ def test_release_candidate_manifest_matches_locked_current_inputs() -> None:
             "artifactSha256"
         ]
     assert manifest["gatewaySmoke"]["status"] == "passed"
+    assert manifest["productionDeployment"] == {
+        "status": "live",
+        "environment": "hong_kong_production",
+        "url": "https://sunnydemo.me",
+        "access": "public_unauthenticated",
+        "https": True,
+        "certificateRenewal": "systemd_timer_with_tested_pre_post_hooks",
+        "databaseBackupRestore": "passed",
+        "publicAbuseControls": (
+            "provider_spend_constraints_planned_application_controls_pending"
+        ),
+    }
     superseded = manifest["supersededEvaluation"]
     assert _sha256(REPOSITORY_ROOT / superseded["artifactPath"]) == (
         superseded["artifactSha256"]
@@ -201,6 +213,27 @@ def test_demo_compose_is_isolated_runtime_only_and_digest_overridable() -> None:
             continue
         assert image in f"{backend_dockerfile}\n{frontend_dockerfile}"
         assert "@sha256:" in image
+
+
+def test_hong_kong_production_overlay_is_public_https_without_auth_mount() -> None:
+    overlay = (REPOSITORY_ROOT / "compose.hk-production.yaml").read_text(
+        encoding="utf-8"
+    )
+    nginx = (REPOSITORY_ROOT / "deploy" / "nginx.hk-production.conf").read_text(
+        encoding="utf-8"
+    )
+
+    assert "FRONTEND_ORIGIN: https://sunnydemo.me" in overlay
+    assert "ports: !override" in overlay
+    assert '"80:80"' in overlay
+    assert '"443:443"' in overlay
+    assert "volumes: !override" in overlay
+    assert "nginx.hk-production.conf" in overlay
+    assert "demo.htpasswd" not in overlay
+    assert "listen 443 ssl;" in nginx
+    assert "return 301 https://$host$request_uri;" in nginx
+    assert "auth_basic" not in nginx
+    assert "proxy_read_timeout 400s;" in nginx
 
 
 def test_demo_auth_is_sha512_and_private_on_creation(tmp_path: Path) -> None:

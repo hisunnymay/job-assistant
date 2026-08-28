@@ -6,10 +6,10 @@
 | --- | --- |
 | Document Name | AI Job Fit Assistant Backend Technical Design |
 | Document Type | Backend Technical Design |
-| Version | v0.9 |
+| Version | v1.1 |
 | Status | Finalized |
 | Owner | Mei Chang |
-| Last Updated | 2026-08-27 |
+| Last Updated | 2026-08-28 |
 | Related Documents | Project Alignment Document, Product Requirement Document, Lightweight AI Design Decision, AI System Design, Frontend Technical Design |
 
 
@@ -17,6 +17,8 @@
 
 | Version | Date | Change | Reason |
 | --- | --- | --- | --- |
+| v1.1 | 2026-08-28 | Designated the approved Hong Kong host and `sunnydemo.me` as the current recruiter-production environment; made production UI/API access public without Basic Auth; accepted bounded public-exposure risk while retaining HTTPS, immutable images, Ark spend controls, privacy-safe diagnostics, backup/restore, and local protected-demo validation. | Align the authoritative deployment boundary with the user's approved production decision and public recruiter access without treating provider-side spend limits as general API abuse protection. |
+| v1.0 | 2026-08-28 | Finalized the local development/test, optional Hong Kong staging, and preferred mainland Beijing production boundaries; added the provider/domain/ICP pre-purchase gate, immutable digest-based release path, production-fix prohibition, and live validation requirements; aligned the stale database-decision text with the already implemented PostgreSQL architecture. | Make the MVP deployment path actionable without prematurely purchasing infrastructure, weakening release controls, treating production as a development environment, or leaving contradictory deployment dependencies. |
 | v0.9 | 2026-08-27 | Defined separate second-attempt request behavior for invalid structured results and transient provider failures, safe Markdown rendering, a bounded gateway timeout, and a privacy-safe Mini validation record. | Improve strict-output recovery and end-to-end request safety without changing the public API, retry ceiling, persistence ownership, or default model. |
 | v0.8 | 2026-08-27 | Replaced request-time PDF input with the user-verified fixed résumé Markdown as AI context while retaining the paired PDF for recruiter preview/download. | The fixed-candidate MVP can avoid repeated document parsing and use a simpler, more reliable text-only provider path without changing public APIs or adding upload scope. |
 | v0.7 | 2026-08-27 | Corrected the real-AI transport to Ark's Responses API with inline Base64 PDF input, strict Responses structured output, and thinking disabled. | Provider clarification established the documented PDF endpoint while preserving the approved AI Service, persistence, and public API boundaries. |
@@ -1069,16 +1071,39 @@ For the default 180-second provider-attempt timeout and two-attempt application 
 
 Decision:
 
-Prepare a provider-neutral single-host Docker Compose deployment bundle for the Demo phase. The bundle contains PostgreSQL, the FastAPI backend, the built React frontend, and an Nginx gateway. It is preparation only and must not be deployed without explicit approval.
+Use the same provider-neutral single-host Docker Compose bundle across production-shaped environments. The bundle contains PostgreSQL, the FastAPI backend, the built React frontend, and an Nginx gateway. The gateway exposes one browser origin, serves the frontend, and proxies backend routes internally.
 
-The gateway exposes one browser origin, serves the frontend, and proxies backend routes internally. HTTPS termination and the actual hosting provider remain deployment-time choices because the intended recruiters' network accessibility, domain, and hosting account are not yet confirmed.
+Environment boundaries:
 
-Considerations:
+- **Development and deterministic testing:** Run Docker Compose locally on the developer Mac. Codex implements bug fixes and feature iterations locally and runs normal automated tests with Mock AI and no provider network dependency. Ark live tests remain explicit, bounded, separately approved, and opt-in.
+- **Recruiter production:** Use the user-approved single Hong Kong host at `https://sunnydemo.me`. It runs the same immutable-image, single-host Compose topology as the release candidate and is the only active production environment for the current MVP.
+- **Future mainland environment:** A mainland China deployment is deferred and is not required for the current production designation. If later requested, it requires a new provider/domain/ICP, cost, network-access, data-migration, and cutover decision; Hong Kong and mainland must not become unplanned dual-active production systems.
 
-- Target users are primarily located in China, so frontend and backend accessibility should be considered;
-- AI provider network accessibility may affect deployment choices;
-- Development and testing environments should remain accessible for local/Codex-assisted development;
-- Development and production databases may use different environments.
+Build and release:
+
+- Build immutable production-platform images locally or in CI. Prefer CI for reproducibility; local Buildx is an acceptable MVP fallback only when the target CPU architecture is explicit and a clean build is verified;
+- Distribute application images through an approved registry or a bounded local-to-host image transfer for the single-host MVP, and pin every deployed Compose service to an immutable registry digest or verified local content ID;
+- Record the deployed and immediately preceding digests so application rollback is exact;
+- Do not clone from GitHub, depend on Docker Hub for application images, or build source on the production server;
+- Do not edit source or running containers in production. For production defects, inspect privacy-safe diagnostics, reproduce and fix locally, run the required validation, publish a new immutable image, and redeploy by digest.
+
+Hong Kong production gate:
+
+- The user approved the Hong Kong provider/region, existing server, `sunnydemo.me`, HTTPS certificate issuance, public recruiter access, Ark activation, and deployment action for this release;
+- Keep the Ark key and database secret outside Git and images, and keep certificate and database backup ownership explicit;
+- Record the server commitment/free-trial end date and certificate expiry/renewal path so continued availability does not depend on an unnoticed external expiration;
+- Any new infrastructure purchase, domain transfer, future mainland filing, provider migration, or material recurring cost remains a separate approval.
+
+Production validation before recruiter release:
+
+- Verify HTTP-to-HTTPS redirection, certificate validity, HSTS, and intentional public access to the UI and API routes without Basic Auth;
+- Complete production-shaped matching and follow-up calls through Ark without exposing submitted or generated content in diagnostics;
+- Verify PostgreSQL persistence, backup and restore, atomic failure behavior, and completed-identical-follow-up replay;
+- Verify the finite backend/gateway timeout and safe retry-exhaustion behavior;
+- Record active immutable image content IDs and, after the next release creates a preceding version, verify rollback before restoring the release images;
+- Test accessibility and the complete recruiter journey from representative intended recruiter networks.
+
+The first production release has no preceding application image to exercise as a rollback target. Its verified active content IDs and database backup establish the rollback baseline for the next release; this limitation must remain visible in the implementation record.
 
 ---
 
@@ -1086,11 +1111,11 @@ Considerations:
 
 Decision:
 
-Use Nginx HTTP Basic Auth at the single public gateway for the deployed Demo. The gateway protects both the frontend and backend routes before requests reach the application. Credentials are supplied through an uncommitted password file and must not be stored in the repository.
+Expose the current recruiter-production UI and Section 5 API routes publicly through the single Nginx HTTPS gateway without Basic Auth or application user accounts. This is an explicit, user-approved access decision for the current MVP.
 
-Local development remains unprotected. This protection does not add user accounts, application authentication, permission management, browser-visible API keys, or changes to the Section 5 API contracts.
+The repository's protected local demo harness may continue to use Basic Auth for deterministic gateway regression, but the Hong Kong production overlay removes both the Nginx authentication directives and password-file mount. This does not add application authentication, permission management, browser-visible API keys, or changes to the Section 5 API contracts.
 
-This mechanism is appropriate only for the bounded recruiter Demo. A broader production release would require a separate security decision.
+Ark-side quotas or rate limits can bound model spend, but they do not prevent repeated public API requests, database growth, or non-AI traffic. The user accepted that current exposure risk and plans to configure Ark constraints. Application/gateway abuse controls, monitoring, and host hardening remain follow-up production work if the audience broadens or traffic warrants them.
 
 ---
 
@@ -1098,7 +1123,9 @@ This mechanism is appropriate only for the bounded recruiter Demo. A broader pro
 
 Decision:
 
-Deferred until implementation.
+Use PostgreSQL for local development, deterministic testing, and recruiter production. Database access remains behind the Repository Layer. Each environment uses an isolated database; production data must not be copied into local development as a debugging shortcut.
+
+For the single-host MVP, PostgreSQL runs as part of the Docker Compose bundle with a persistent volume. Before recruiter release, document and verify backup, restore, migration, and rollback procedures. A managed database, replica, or multi-host failover topology remains outside the MVP unless a later reliability requirement justifies a separate design decision.
 
 The MVP requires persistence for:
 

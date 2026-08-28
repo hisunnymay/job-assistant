@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "release_candidate_ready_deployment_pending",
+  "status": "hong_kong_production_live",
   "provider": {
     "name": "ark",
     "model": "doubao-seed-2-1-pro-260628",
@@ -98,6 +98,7 @@
   },
   "gatewaySmoke": {
     "status": "passed",
+    "scope": "protected_local_and_pre_public_production_validation",
     "provider": "ark",
     "maximumProviderCalls": 4,
     "checks": [
@@ -141,7 +142,23 @@
     }
   ],
   "productionImages": {
-    "status": "deployment_pending",
-    "requiredReferenceFormat": "<mainland-private-registry>/<repository>@sha256:<digest>"
+    "status": "deployed",
+    "distribution": "bounded_local_to_host_transfer",
+    "platform": "linux/amd64",
+    "backendContentId": "sha256:1d0f83936f6d7d24dc81fe2ff1f2f712113caea9221f56e453898190a043c0fa",
+    "gatewayContentId": "sha256:b54ba515917799658dea43e37db4e9e19011e106acbe2d8458c0ddc4ec14c3c1",
+    "databaseImage": "postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685",
+    "precedingApplicationImages": null,
+    "rollbackStatus": "first_release_baseline_established"
+  },
+  "productionDeployment": {
+    "status": "live",
+    "environment": "hong_kong_production",
+    "url": "https://sunnydemo.me",
+    "access": "public_unauthenticated",
+    "https": true,
+    "certificateRenewal": "systemd_timer_with_tested_pre_post_hooks",
+    "databaseBackupRestore": "passed",
+    "publicAbuseControls": "provider_spend_constraints_planned_application_controls_pending"
   }
 }
