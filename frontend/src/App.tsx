@@ -117,6 +117,8 @@ export function App({
   const [followUpState, setFollowUpState] = useState<FollowUpState>('idle')
   const [followUpError, setFollowUpError] = useState<string>()
   const [failedFollowUp, setFailedFollowUp] = useState<FailedFollowUp>()
+  const [matchingStartedAt, setMatchingStartedAt] = useState(0)
+  const [followUpStartedAt, setFollowUpStartedAt] = useState(0)
   const [testModeActive, setTestModeActive] = useState(() => {
     try {
       return trackingClient.isTestModeActive?.() ?? false
@@ -211,6 +213,7 @@ export function App({
       setFailedFollowUp(undefined)
     }
 
+    setMatchingStartedAt(Date.now())
     setJourneyState('loading')
     setFailureDescription(zhCN.failure.description)
     setCanRetryFailure(true)
@@ -369,6 +372,7 @@ export function App({
     setFollowUpQuestion('')
     setFollowUpError(undefined)
     setFailedFollowUp(undefined)
+    setFollowUpStartedAt(Date.now())
     setFollowUpState('loading')
 
     try {
@@ -708,7 +712,10 @@ export function App({
 
                 {journeyState === 'loading' ? (
                   <li className="message-row message-row-assistant">
-                    <LoadingStatus title={zhCN.loading.title} />
+                    <LoadingStatus
+                      title={zhCN.loading.title}
+                      startedAt={matchingStartedAt}
+                    />
                   </li>
                 ) : null}
 
@@ -740,6 +747,7 @@ export function App({
                   <li className="message-row message-row-assistant">
                     <LoadingStatus
                       title={zhCN.followUp.loadingTitle}
+                      startedAt={followUpStartedAt}
                       className="follow-up-status-message"
                       showTypicalDuration={false}
                     />

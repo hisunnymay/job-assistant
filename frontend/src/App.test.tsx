@@ -494,7 +494,7 @@ describe('Goal 4 recruiter workspace', () => {
     expect(ask.mock.calls[0]).toEqual(ask.mock.calls[1])
   })
 
-  it('stops and resets the matching timer when leaving and returning to an active request', async () => {
+  it('preserves matching elapsed time when leaving and returning to an active request', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-08-27T00:00:00Z'))
     let resolveAnalysis:
@@ -528,10 +528,14 @@ describe('Goal 4 recruiter workspace', () => {
     expect(screen.queryByText(zhCN.loading.elapsed(5))).not.toBeInTheDocument()
     expect(vi.getTimerCount()).toBe(0)
 
+    act(() => {
+      vi.advanceTimersByTime(4_000)
+    })
+
     fireEvent.click(
       screen.getByRole('button', { name: zhCN.navigation.assistant }),
     )
-    expect(screen.getByText(zhCN.loading.elapsed(0))).toBeInTheDocument()
+    expect(screen.getByText(zhCN.loading.elapsed(9))).toBeInTheDocument()
 
     await act(async () => {
       resolveAnalysis?.({

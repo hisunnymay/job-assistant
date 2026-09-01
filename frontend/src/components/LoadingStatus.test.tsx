@@ -11,7 +11,10 @@ describe('LoadingStatus', () => {
   it('shows actual elapsed seconds and extended guidance without fake progress', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-08-27T00:00:00Z'))
-    const { unmount } = render(<LoadingStatus title={zhCN.loading.title} />)
+    const startedAt = Date.now()
+    const { unmount } = render(
+      <LoadingStatus title={zhCN.loading.title} startedAt={startedAt} />,
+    )
 
     expect(screen.getByText(zhCN.loading.typicalDuration)).toBeInTheDocument()
     expect(screen.getByText(zhCN.loading.elapsed(0))).toBeInTheDocument()
@@ -27,5 +30,16 @@ describe('LoadingStatus', () => {
 
     unmount()
     expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('continues from the request start time when remounted', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-27T00:00:00Z'))
+    const startedAt = Date.now()
+
+    vi.setSystemTime(new Date('2026-08-27T00:00:09Z'))
+    render(<LoadingStatus title={zhCN.loading.title} startedAt={startedAt} />)
+
+    expect(screen.getByText(zhCN.loading.elapsed(9))).toBeInTheDocument()
   })
 })
