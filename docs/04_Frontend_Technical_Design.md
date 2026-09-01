@@ -7,7 +7,7 @@
 | ----------------- | -------------------------------------------------------------------------------------- |
 | Document Name     | AI Job Fit Assistant Frontend Technical Design                                         |
 | Document Type     | Frontend Technical Design                                                              |
-| Version           | v1.4                                                                                   |
+| Version           | v1.5                                                                                   |
 | Status            | Finalized                                                                              |
 | Last Updated      | 2026-09-01                                                                             |
 | Related Documents | Product Requirement Document, Lightweight AI Design Decision, Backend Technical Design |
@@ -17,6 +17,7 @@
 
 | Version | Date | Change | Reason |
 | --- | --- | --- | --- |
+| v1.5 | 2026-09-01 | Preserved each in-flight matching or follow-up request's wall-clock elapsed time when navigating away from and back to the Conversation View. | Prevent the visible waiting time from incorrectly returning to zero while the same backend request remains active. |
 | v1.4 | 2026-09-01 | Defined distinct-session presentation for résumé-preview and Contact CTA dashboard metrics and suppressed repeat tracking when their already-active workspace navigation item is selected. | Keep exploration and contact-intent metrics meaningful without changing the dashboard API shape or preventing legitimate navigation from other views. |
 | v1.3 | 2026-09-01 | Added a persistent workspace indicator aligned to the navigation grid, using a candidate-profile icon and identifying Mei Chang as the current candidate with an unframed information control beside the name and a right-side desktop disclosure. | Keep the MVP's single-candidate scope visible across every workspace view while explaining the planned direction without presenting résumé upload as an available control. |
 | v1.2 | 2026-09-01 | Removed the Data Dashboard kicker and changed its initial filter to the inclusive range from 2026-09-01 through the current Asia/Shanghai calendar date. | Start evaluation on the product's operational reporting window while preserving Reset access to all retained data. |
@@ -565,7 +566,7 @@ The frontend should provide:
 
 For both initial matching generation and follow-up generation, the visible status states `通常需要约 30–60 秒` and shows `已等待 N 秒`, starting at zero and updating from actual frontend elapsed time. After the elapsed value exceeds 60 seconds, it additionally states that complex roles may take longer. It must not show a percentage, name an unconfirmed backend stage, or imply progress the frontend cannot observe.
 
-Each request owns one timer lifecycle. Success, failure, a retry restart, navigation away from the Conversation View, and component unmount stop the active interval and reset its elapsed value. Returning to an active result must not resurrect an old timer. The loading container retains `role="status"`; the elapsed display must avoid unnecessarily re-announcing the whole status every second to assistive technology.
+Each request owns one wall-clock timer lifecycle. Navigating away from the Conversation View or unmounting the loading component stops its display interval but retains the request start time while that request remains in flight. Returning to the Conversation View during the same request resumes the display from the true total elapsed time instead of zero. Success and failure end the lifecycle, while a retry starts a new lifecycle from zero. Returning to a completed result must not resurrect an old timer. The loading container retains `role="status"`; the elapsed display must avoid unnecessarily re-announcing the whole status every second to assistive technology.
 
 
 

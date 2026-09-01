@@ -3,28 +3,34 @@ import { zhCN } from '../content/zh-CN'
 
 interface LoadingStatusProps {
   title: string
+  startedAt: number
   className?: string
   showTypicalDuration?: boolean
 }
 
+function getElapsedSeconds(startedAt: number, currentTime: number) {
+  return Math.max(0, Math.floor((currentTime - startedAt) / 1000))
+}
+
 export function LoadingStatus({
   title,
+  startedAt,
   className = '',
   showTypicalDuration = true,
 }: LoadingStatusProps) {
-  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [currentTime, setCurrentTime] = useState(Date.now)
+  const elapsedSeconds = getElapsedSeconds(startedAt, currentTime)
   const durationDescriptionId = useId()
 
   useEffect(() => {
-    const startedAt = Date.now()
     const timerId = window.setInterval(() => {
-      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000))
+      setCurrentTime(Date.now())
     }, 1000)
 
     return () => {
       window.clearInterval(timerId)
     }
-  }, [])
+  }, [startedAt])
 
   return (
     <article

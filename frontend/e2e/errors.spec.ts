@@ -110,6 +110,16 @@ test('shows truthful elapsed waiting state while analysis is pending', async ({
   await page.waitForTimeout(1_100)
   await expect(loading).toContainText(zhCN.loading.elapsed(1))
 
+  await page.getByRole('button', { name: zhCN.navigation.resume }).click()
+  await expect(loading).toHaveCount(0)
+  await page.waitForTimeout(1_100)
+  await page.getByRole('button', { name: zhCN.navigation.assistant }).click()
+  await expect(
+    page.getByRole('status', {
+      name: `${zhCN.conversation.assistantName}：${zhCN.loading.title}`,
+    }),
+  ).toContainText(/已等待 (?:[2-9]|[1-9]\d+) 秒/)
+
   releaseRequest?.()
   await expect(
     page.getByRole('article', {
