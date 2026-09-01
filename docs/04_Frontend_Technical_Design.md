@@ -7,9 +7,9 @@
 | ----------------- | -------------------------------------------------------------------------------------- |
 | Document Name     | AI Job Fit Assistant Frontend Technical Design                                         |
 | Document Type     | Frontend Technical Design                                                              |
-| Version           | v1.0                                                                                   |
+| Version           | v1.1                                                                                   |
 | Status            | Finalized                                                                              |
-| Last Updated      | 2026-08-27                                                                             |
+| Last Updated      | 2026-09-01                                                                             |
 | Related Documents | Product Requirement Document, Lightweight AI Design Decision, Backend Technical Design |
 
 
@@ -17,6 +17,7 @@
 
 | Version | Date | Change | Reason |
 | --- | --- | --- | --- |
+| v1.1 | 2026-09-01 | Added the aggregate Data Dashboard view, shared inclusive date-range filtering, hidden three-click test-mode entry, persistent “测试模式” state, and whole-session metric exclusion flow. | Implement PRD v0.9 without adding frontend analytics logic, person identity, event-level disclosure, or AI behavior changes. |
 | v1.0 | 2026-08-27 | Added the static example-report mode and truthful elapsed-time presentation for matching and follow-up requests. | Provide immediate report value and accurate synchronous-AI waiting feedback without new APIs, fake progress, or frontend AI reasoning. |
 | v0.9 | 2026-08-27 | Distinguished permanent tracking rejections from retryable delivery failures in the bounded browser queue. | Prevent one invalid event from blocking later valid analytics events while retaining transient failures for retry. |
 | v0.8 | 2026-08-27 | Defined centralized delivery, privacy-safe event payloads, pseudonymous session identity, and a bounded retry queue for all six S001 tracking events. | Ensure frontend tracking supports aggregate, cross-session MVP metric evaluation without blocking the recruiter journey. |
@@ -41,6 +42,8 @@ The frontend should:
 - Allow recruiters to view or download the candidate's resume independently;
 - Support follow-up question interactions;
 - Provide feedback, candidate contact, and owner contact entry points;
+- Present backend-calculated aggregate usage and contact-conversion metrics with a shared date-range filter;
+- Provide an explicit, visible test-mode state after the approved hidden activation gesture;
 - Present clear interaction states during system processing.
 
 The frontend should not:
@@ -117,7 +120,7 @@ The document should not restrict:
 
 The frontend is designed around a standalone Entrance View followed by a Job Assistant Workspace.
 
-The Entrance View uses the full available desktop canvas and does not display the workspace navigation. After a valid job description is submitted, the desktop workspace uses persistent navigation on the left and one active view on the right. The right side displays only one of the following views at a time: conversation, resume preview, or contact.
+The Entrance View uses the full available desktop canvas and does not display the workspace navigation. After a valid job description is submitted or a workspace view is entered directly, the desktop workspace uses persistent navigation on the left and one active view on the right. The right side displays only one of the following views at a time: conversation, resume preview, contact, or data dashboard.
 
 ```text
 Entrance View
@@ -130,7 +133,8 @@ Job Assistant Workspace
 │   ├── Product Brand / Home Control
 │   ├── Job Matching
 │   ├── Resume Preview
-│   └── Contact Candidate
+│   ├── Contact Candidate
+│   └── Data Dashboard
 │
 └── Right Workspace — one active view at a time
     ├── Conversation View
@@ -148,13 +152,19 @@ Job Assistant Workspace
     │   ├── Original Resume Preview
     │   └── Resume Download
     │
-    └── Contact View
-        ├── Candidate Contact Information and Copy Controls
-        ├── Optional Recruiter Name
-        └── Greeting Preview and Copy Action
+    ├── Contact View
+    │   ├── Candidate Contact Information and Copy Controls
+    │   ├── Optional Recruiter Name
+    │   └── Greeting Preview and Copy Action
+    │
+    └── Data Dashboard View
+        ├── Inclusive Date-range Filter
+        ├── Contact Conversion Rate
+        ├── Six Aggregate Usage Metrics
+        └── Reporting Period and Latest Update Time
 ```
 
-Submitting a valid job description opens the Conversation View. Selecting Resume Preview or Contact Candidate replaces the current right-side content. These views must not be stacked below the conversation or shown beside it. Returning to Job Matching should not intentionally clear the current conversation. Selecting the product brand returns to the Entrance View and must not silently discard an active conversation.
+Submitting a valid job description opens the Conversation View. Selecting Resume Preview, Contact Candidate, or Data Dashboard replaces the current right-side content. These views must not be stacked below the conversation or shown beside it. Returning to Job Matching should not intentionally clear the current conversation. Selecting the product brand returns to the Entrance View and must not silently discard an active conversation.
 
 ### 2.2 Core Components
 
@@ -167,11 +177,14 @@ Responsible for introducing the product and starting the matching journey.
 It includes:
 
 - A brief explanation of the product and fixed-candidate scope;
+- A visible “AI” title target that recognizes three consecutive selections within two seconds as the hidden test-mode gesture;
 - Job description input;
 - A distinct “立即查看示例报告” action;
 - A clear action to begin analysis.
 
 Submitting a valid job description transitions the right workspace to the Conversation View. Opening the example action transitions immediately to the same Conversation View and report renderer using checked static Markdown; it does not submit the example job description to the backend.
+
+The three-click gesture requests backend designation of the current `sessionId` as test mode. The frontend must not display the active test-mode state until that designation succeeds.
 
 #### Conversation View
 
@@ -207,9 +220,22 @@ It includes:
 - A product brand/title control that returns to Home;
 - Job Matching;
 - Resume Preview;
-- Contact Candidate.
+- Contact Candidate;
+- Data Dashboard.
 
-On desktop, navigation remains on the left while the right workspace changes. It appears in the Conversation, Resume Preview, and Contact views, but not on the standalone Entrance View. A compact responsive navigation may be used on smaller screens. Direct entry to Resume Preview or Contact Candidate may open the workspace without an active conversation, preserving the PRD requirement that these capabilities are independently accessible.
+On desktop, navigation remains on the left while the right workspace changes. It appears in the Conversation, Resume Preview, Contact, and Data Dashboard views, but not on the standalone Entrance View. A compact responsive navigation may be used on smaller screens. Direct entry to Resume Preview, Contact Candidate, or Data Dashboard may open the workspace without an active conversation, preserving independent access without creating a Conversation.
+
+#### Data Dashboard View
+
+Responsible for presenting backend-calculated aggregate product metrics without exposing event-level records or implementing aggregation in the browser.
+
+It includes:
+
+- An inclusive start-date and end-date filter, Apply action, and Reset action;
+- Contact Conversion Rate as the primary metric with percentage, distinct-session numerator, distinct-session denominator, and definition;
+- Total event counts for page visits, job-description submissions, matching reports generated, résumé previews, Contact CTA clicks, and feedback submissions;
+- Metric definitions, the active reporting period, timezone, and latest update time;
+- Loading, no-data, validation-error, and recoverable retrieval-error states.
 
 ### 2.3 Approved Desktop Reference
 
@@ -221,9 +247,16 @@ The following detail is the approved Conversation View treatment for contextual 
 
 ![Approved matching reply actions and follow-up input](assets/ai-reply-bottom-actions-v2.png)
 
-The reference images define the intended visual hierarchy and control placement, not literal candidate evidence, hard-coded analysis counts, or a new API schema. Implementation must preserve these requirements:
+The following supplied images are composition references for the Entrance View test-mode trigger and the Data Dashboard:
+
+![Entrance View reference for the hidden AI-title test-mode trigger](assets/entrance-test-mode-reference.png)
+
+![Data Dashboard composition reference](assets/data-dashboard-reference.png)
+
+The reference images define the intended visual hierarchy and control placement, not literal candidate evidence, hard-coded analysis or metric counts, or an API schema. PRD v0.9 and this document override details absent from or superseded in the screenshots: the dashboard must include the approved date-range filter; it must not display week-over-week comparisons; and active test mode must display a persistent “测试模式” text label. Implementation must preserve these requirements:
 
 - The Entrance View centers the product title, concise explanation, large job-description input, example action, character count, and primary analysis button;
+- The visible “AI” portion of the Entrance View title is the three-click test-mode target without appearing as a primary recruiter action;
 - The analysis button is disabled until the job description is valid;
 - Workspace views use a narrow left navigation and a larger right content area on desktop;
 - The active navigation item uses a visible light-blue selected state and an icon plus Chinese label;
@@ -233,6 +266,8 @@ The reference images define the intended visual hierarchy and control placement,
 - Selecting Helpful or Not Helpful opens a focused feedback dialog with rating-specific predefined reasons and a custom-text field; submission remains unavailable until at least one reason is selected or custom text is entered;
 - The Resume Preview View embeds the original PDF, displays the candidate name, and provides a clearly visible download action;
 - The Contact View presents email and phone in separate cards with copy actions, an optional recruiter-name field, a greeting preview, and a prominent copy-greeting action;
+- The Data Dashboard uses the same left-navigation workspace, presents one emphasized conversion card followed by six supporting metric cards, places the date-range filter before the metrics, and shows the reporting period and latest update time;
+- Active test mode displays a persistent “测试模式” text label next to the product identity in both the Entrance View and workspace navigation; color may reinforce but never replace the text label;
 - The visual system uses a white or near-white canvas, dark blue text, bright blue primary actions, pale-blue selected states, subtle borders, restrained shadows, rounded controls, and low-contrast decorative background waves.
 
 ## 3. User Experience Design
@@ -269,11 +304,12 @@ Optional Actions:
 - Ask Follow-up Questions
 - Submit Feedback
 - Contact Candidate
+- View Aggregate Data Dashboard
 ```
 
-The user can access Resume Preview and Contact Candidate from a direct entry point, from the left navigation, or from the matching analysis context.
+The user can access Resume Preview and Contact Candidate from a direct entry point, from the left navigation, or from the matching analysis context. The product evaluator can access Data Dashboard from the persistent navigation or a direct workspace entry without creating a Conversation.
 
-Within the workspace, selecting Job Matching, Resume Preview, or Contact Candidate changes only the active right-side view. Resume Preview and Contact Candidate replace the conversation area rather than opening below it. Selecting the product brand returns to the standalone Entrance View; returning to Job Matching restores the active conversation until a new analysis is intentionally started.
+Within the workspace, selecting Job Matching, Resume Preview, Contact Candidate, or Data Dashboard changes only the active right-side view. Non-conversation views replace the conversation area rather than opening below it. Selecting the product brand returns to the standalone Entrance View; returning to Job Matching restores the active conversation until a new analysis is intentionally started.
 
 ### 3.2 Job Description Input
 
@@ -433,6 +469,52 @@ Frontend responsibility:
 
 
 
+### 3.8 Data Dashboard
+
+Purpose:
+
+Present the aggregate MVP usage and Contact Conversion Rate calculated by the backend for one shared reporting period.
+
+User interaction:
+
+1. Evaluator opens Data Dashboard from the workspace navigation or direct workspace entry.
+2. Frontend requests the default all-retained-data aggregate and displays its reporting-period label.
+3. Evaluator may select an inclusive start date and end date and apply the filter.
+4. Frontend validates that the start date is not later than the end date, requests the filtered aggregate, and updates every metric together only after a successful response.
+5. Reset returns to the all-retained-data aggregate.
+
+Frontend responsibility:
+
+- Render the backend-provided conversion percentage, numerator, denominator, supporting totals, metric definitions, timezone, and latest update time;
+- Keep the last valid result visible when a new date range is invalid or retrieval fails;
+- Display loading, no-data, and recoverable failure states;
+- Avoid calculating conversion, deduplicating sessions, or reading individual events in the browser;
+- Preserve any active matching conversation while the dashboard is open.
+
+The selected dates are inclusive calendar dates in the backend-provided dashboard timezone. Week-over-week comparisons, trend charts, event-level drill-down, export, and real-time refresh are not included.
+
+
+
+### 3.9 Test Mode
+
+Purpose:
+
+Allow intentional product testing without contributing the current tracking session to dashboard metrics.
+
+User interaction:
+
+1. Tester selects the visible “AI” portion of the Entrance View title three consecutive times within two seconds.
+2. Frontend requests backend test-mode designation for the current `sessionId` and prevents duplicate activation requests while pending.
+3. After backend acknowledgement, frontend stores the active state for the current browser-tab session and immediately displays a persistent “测试模式” label next to the product identity.
+4. The label remains visible on the Entrance View and in workspace navigation across page refresh and view changes.
+5. Tester exits through the explicit test-mode control; frontend removes the label, restores normal styling, creates a new non-test `sessionId`, and begins a new normal tracking session.
+
+The two-second gesture counter resets on timeout. A backend designation failure leaves the session in normal mode and displays a concise recoverable error. Test mode changes analytics classification only: matching, AI provider selection, persistence, feedback, and other product behavior remain unchanged.
+
+The “测试模式” text is required; color is optional reinforcement and cannot be the only state indicator. The hidden gesture is a testing convenience, not authentication or access control.
+
+
+
 ## 4. Frontend Behavior and Data Requirements
 
 
@@ -450,6 +532,8 @@ The frontend requires backend-provided information for:
 | Resume Preview      | Backend-provided candidate resume file                                                                      |
 | Contact Candidate   | Frontend static contact information and greeting template                                               |
 | Feedback            | Frontend helpful/not-helpful mapping plus backend-provided submission result/status                     |
+| Data Dashboard      | Backend-provided aggregate metrics, reporting period, timezone, and latest update time                  |
+| Test Mode           | Frontend gesture/session state plus backend acknowledgement of test-session designation                 |
 
 
 For MVP:
@@ -468,7 +552,9 @@ The frontend should provide:
 
 - Processing status during AI generation;
 - Clear feedback while waiting for backend responses;
-- Result display after processing completes.
+- Result display after processing completes;
+- A dashboard loading state that does not clear the last valid aggregate during date-filter refresh;
+- A pending test-mode activation state that prevents duplicate designation requests.
 
 For both initial matching generation and follow-up generation, the visible status states `通常需要约 30–60 秒` and shows `已等待 N 秒`, starting at zero and updating from actual frontend elapsed time. After the elapsed value exceeds 60 seconds, it additionally states that complex roles may take longer. It must not show a percentage, name an unconfirmed backend stage, or imply progress the frontend cannot observe.
 
@@ -483,7 +569,10 @@ The frontend should handle:
 - Invalid user input;
 - Failed backend requests;
 - AI processing failures;
-- Missing information scenarios.
+- Missing information scenarios;
+- Invalid dashboard date ranges without replacing the last valid result;
+- Dashboard retrieval failures with a retry action;
+- Test-mode designation failures without displaying a false active-state label.
 
 Errors should be displayed clearly without exposing unnecessary technical details.
 
@@ -509,6 +598,10 @@ Each event sent to `POST /api/tracking-events` contains only:
 The frontend must never add job descriptions, resume content, follow-up questions, feedback reasons or comments, candidate contact data, prompts, provider payloads, or other user-entered content to a tracking event.
 
 The tracking session is separate from Conversation state. The frontend creates or restores the random `sessionId` from `sessionStorage`, allowing page visits and job-description submissions to be measured before a Conversation exists.
+
+Test mode uses the same `sessionId`. After the approved three-click gesture, the frontend calls `POST /api/tracking-sessions/test-mode` and waits for a successful acknowledgement before storing `testModeActive` in `sessionStorage` or displaying the active-state label. Backend designation excludes the entire session, including already accepted and later-delivered events, so the frontend must not mutate or delete queued tracking events to simulate exclusion.
+
+On test-mode exit, the frontend removes the test-mode state, generates a new random non-test `sessionId`, and emits the normal `page_visit` boundary for that newly active session. Pending events for the preceding test session retain their original `sessionId`; backend classification keeps them excluded when they are eventually delivered.
 
 Central backend persistence is the authoritative source for analytics. Browser storage may contain only a pending-delivery queue of at most 100 privacy-safe events that have not yet been acknowledged by the backend. The tracking client should:
 
@@ -541,14 +634,15 @@ The frontend should maintain either the standalone Entrance View or one active w
 - Entrance;
 - Conversation;
 - Resume Preview;
-- Contact Candidate.
+- Contact Candidate;
+- Data Dashboard.
 
 Navigation between views is a frontend presentation concern. The implementation may use routing or local UI state, provided that:
 
-- The persistent desktop navigation appears in the three workspace views and is hidden on the standalone Entrance View;
+- The persistent desktop navigation appears in the four workspace views and is hidden on the standalone Entrance View;
 - Only the selected view occupies the right workspace;
 - The product brand provides a clear path back to the Entrance View;
-- Navigating to Resume Preview, Contact Candidate, or Entrance does not silently reset the active conversation;
+- Navigating to Resume Preview, Contact Candidate, Data Dashboard, or Entrance does not silently reset the active conversation;
 - Starting a new analysis from the Entrance View intentionally creates or replaces the active matching journey.
 
 ### 4.7 Conversation Scrolling and Action State
@@ -593,6 +687,10 @@ The frontend assumes:
 
 - AI-generated content should be provided in a frontend-renderable format;
 - MVP may use text/Markdown rendering;
+- Dashboard aggregates are returned as one response containing the shared reporting period, timezone, update time, conversion numerator/denominator/rate, and six event totals;
+- Omitting dashboard dates requests all retained data; a custom request supplies both `startDate` and `endDate` as `YYYY-MM-DD` values;
+- `contactConversion.rate` may be `null` only when its denominator is zero, and the frontend renders that state as unavailable rather than an invalid number;
+- Test-mode activation is complete only after the backend acknowledges the current `sessionId` as test mode;
 - Structured output formats can be introduced in future iterations if required.
 
 
@@ -612,4 +710,5 @@ The following decisions remain intentionally unresolved and can be finalized dur
 - Frontend state management approach;
 - Whether workspace view selection uses URL routing or local UI state;
 - Detailed responsive navigation below the desktop breakpoint;
+- Exact dashboard spacing, date-control composition, metric iconography, and optional test-mode reinforcement color;
 - Exact spacing, typography values, icon library, and decorative asset implementation within the approved visual direction.

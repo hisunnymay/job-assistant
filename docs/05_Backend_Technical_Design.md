@@ -6,10 +6,10 @@
 | --- | --- |
 | Document Name | AI Job Fit Assistant Backend Technical Design |
 | Document Type | Backend Technical Design |
-| Version | v1.1 |
+| Version | v1.2 |
 | Status | Finalized |
 | Owner | Mei Chang |
-| Last Updated | 2026-08-28 |
+| Last Updated | 2026-09-01 |
 | Related Documents | Project Alignment Document, Product Requirement Document, Lightweight AI Design Decision, AI System Design, Frontend Technical Design |
 
 
@@ -17,6 +17,7 @@
 
 | Version | Date | Change | Reason |
 | --- | --- | --- | --- |
+| v1.2 | 2026-09-01 | Added server-owned Tracking Session test classification, retroactive whole-session metric exclusion, an idempotent test-mode designation endpoint, and an aggregate dashboard endpoint with shared inclusive date filtering. | Implement PRD v0.9 while preserving privacy-safe event payloads, layered ownership, existing AI behavior, and the prohibition on event-level analytics exposure. |
 | v1.1 | 2026-08-28 | Designated the approved Hong Kong host and `sunnydemo.me` as the current recruiter-production environment; made production UI/API access public without Basic Auth; accepted bounded public-exposure risk while retaining HTTPS, immutable images, Ark spend controls, privacy-safe diagnostics, backup/restore, and local protected-demo validation. | Align the authoritative deployment boundary with the user's approved production decision and public recruiter access without treating provider-side spend limits as general API abuse protection. |
 | v1.0 | 2026-08-28 | Finalized the local development/test, optional Hong Kong staging, and preferred mainland Beijing production boundaries; added the provider/domain/ICP pre-purchase gate, immutable digest-based release path, production-fix prohibition, and live validation requirements; aligned the stale database-decision text with the already implemented PostgreSQL architecture. | Make the MVP deployment path actionable without prematurely purchasing infrastructure, weakening release controls, treating production as a development environment, or leaving contradictory deployment dependencies. |
 | v0.9 | 2026-08-27 | Defined separate second-attempt request behavior for invalid structured results and transient provider failures, safe Markdown rendering, a bounded gateway timeout, and a privacy-safe Mini validation record. | Improve strict-output recovery and end-to-end request safety without changing the public API, retry ceiling, persistence ownership, or default model. |
@@ -42,6 +43,7 @@ The backend is responsible for:
 - Preparing required context for AI processing;
 - Integrating with AI services;
 - Persisting required business data;
+- Classifying tracking sessions and returning privacy-safe aggregate dashboard metrics;
 - Providing stable APIs for frontend consumption.
 
 The backend is not responsible for:
@@ -431,6 +433,39 @@ Suggested information:
 - comment
 - created time
 
+### Tracking Session
+
+Purpose:
+
+Represent the pseudonymous browser-tab session used for aggregate metric deduplication and server-owned test-mode classification. It is not a user account and must not be used to infer a person.
+
+Suggested information:
+
+- `sessionId`: primary key, client-generated random string up to 64 characters;
+- `isTest`: server-owned boolean, default `false`;
+- `createdAt`: server timestamp;
+- `testModeActivatedAt`: nullable server timestamp.
+
+Relationship:
+
+```text
+Tracking Session
+
+1
+
+↓
+
+N
+
+User Behavior Events
+```
+
+Once `isTest` becomes `true`, it is not reverted. Exiting test mode creates a new non-test `sessionId`; this prevents one tracking session from mixing excluded test activity with later production activity. The entity contains no login identifier, IP address, user-agent string, or user-entered content.
+
+---
+
+
+
 ### User Behavior Event
 
 Purpose:
@@ -450,13 +485,13 @@ Suggested information:
 
 - `eventId`: primary key, client-generated string up to 64 characters;
 - `eventName`: allowlisted event-name string;
-- `sessionId`: indexed pseudonymous string up to 64 characters;
+- `sessionId`: indexed relationship to Tracking Session;
 - `occurredAt`: client interaction timestamp with timezone;
 - `receivedAt`: indexed server persistence timestamp with timezone;
 - `requestFingerprint`: internal SHA-256 digest of the canonical accepted event metadata;
 - `conversationId`: nullable indexed foreign key to Conversation with `ON DELETE SET NULL`.
 
-`sessionId` is a random pseudonymous visit identifier and is not a user account or Conversation identifier. `conversationId` is nullable because page visits and job-description submissions can occur before a Conversation exists.
+`sessionId` is a random pseudonymous visit identifier and is not a user account or Conversation identifier. Event ingestion creates the corresponding Tracking Session when it does not yet exist and must never reset an existing test session to non-test. `conversationId` is nullable because page visits and job-description submissions can occur before a Conversation exists.
 
 `requestFingerprint` is derived only from `eventId`, `eventName`, `sessionId`, `occurredAt`, and the original optional `conversationId`. It is not supplied by the frontend and contains no raw interaction content. User Behavior Event must not contain job descriptions, resume content, follow-up questions, feedback comments, contact data, prompts, provider payloads, IP addresses, user-agent strings, or other user-entered content. The implementation approach, idempotency rule, and retention period are defined in Section 7.5.
 
@@ -471,6 +506,7 @@ MVP persistent data:
 - Conversation;
 - Conversation Message;
 - Feedback;
+- Tracking Session;
 - User Behavior Event.
 
 ### Candidate Resume Resource
@@ -621,6 +657,62 @@ Frontend displays PDF preview/download
 
 
 
+### Designate Test Mode
+
+```text
+Frontend submits current sessionId after the approved hidden gesture
+
+↓
+
+Controller validates the request
+
+↓
+
+Tracking Service creates or loads the Tracking Session and sets isTest = true
+
+↓
+
+Repository commits the designation
+
+↓
+
+Backend acknowledges active test classification
+```
+
+The operation is idempotent and one-way for a given `sessionId`. It changes analytics classification only and does not alter Conversation, Feedback, AI Service, provider selection, or recruiter-facing business behavior.
+
+---
+
+
+
+### Retrieve Data Dashboard
+
+```text
+Frontend requests all retained data or one inclusive date range
+
+↓
+
+Controller validates that both dates are present or both are omitted
+
+↓
+
+Analytics Service converts inclusive Asia/Shanghai dates to one half-open timestamp interval
+
+↓
+
+Repository aggregates non-test User Behavior Events only
+
+↓
+
+Service returns one privacy-safe aggregate response
+```
+
+Supporting metrics count accepted events. Contact Conversion Rate deduplicates qualifying events by `sessionId`; it does not count people and does not use raw event counts as its numerator or denominator.
+
+---
+
+
+
 ## 4.2 Error Handling
 
 The backend should provide meaningful errors while hiding internal implementation details.
@@ -718,6 +810,8 @@ The MVP exposes the following APIs.
 | GET /api/resume                                   | Provide resume file        |
 | POST /api/feedback                                | Submit feedback            |
 | POST /api/tracking-events                         | Persist a user behavior event |
+| POST /api/tracking-sessions/test-mode             | Designate a tracking session as test mode |
+| GET /api/dashboard                                | Return aggregate dashboard metrics |
 
 
 ---
@@ -855,6 +949,84 @@ The endpoint returns `200 OK` only after the event is persisted or an identical 
 
 
 
+### Test-mode Session Designation
+
+Request:
+
+```json
+{
+  "sessionId": "session_001"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "sessionId": "session_001",
+  "testMode": true
+}
+```
+
+`sessionId` must be a non-empty string of at most 64 characters. The endpoint creates the Tracking Session when necessary or idempotently preserves its existing `isTest = true` state, then returns `200 OK` only after the designation is committed. It never changes a test session back to non-test. Invalid payloads return `400 Bad Request`; persistence failure returns the existing safe server-error envelope.
+
+The designation applies to every User Behavior Event with that `sessionId`, including an event persisted before designation or delivered from the browser queue afterward. The endpoint does not change AI execution or business-data persistence. It is a hidden testing convenience, not authentication; the current public production boundary does not add user accounts or permissions for this endpoint.
+
+---
+
+
+
+### Data Dashboard Aggregate
+
+Request:
+
+```http
+GET /api/dashboard
+GET /api/dashboard?startDate=2026-08-01&endDate=2026-09-01
+```
+
+`startDate` and `endDate` are optional as a pair and use `YYYY-MM-DD`. Omitting both requests all events currently retained under Section 7.5. Supplying one without the other, using an invalid date, or using a start date later than the end date returns `400 Bad Request`.
+
+For a custom range, both calendar dates are inclusive in `Asia/Shanghai` (`UTC+8`). The backend converts them to a half-open timestamp interval from the start date at `00:00:00` inclusive to the day after the end date at `00:00:00` exclusive and filters by `occurredAt`.
+
+Response:
+
+```json
+{
+  "reportingPeriod": {
+    "mode": "custom",
+    "startDate": "2026-08-01",
+    "endDate": "2026-09-01",
+    "timezone": "Asia/Shanghai"
+  },
+  "updatedAt": "2026-09-01T02:00:00.000Z",
+  "contactConversion": {
+    "rate": 0.423,
+    "numerator": 128,
+    "denominator": 303
+  },
+  "eventTotals": {
+    "pageVisits": 12845,
+    "jobDescriptionSubmissions": 1203,
+    "matchingReportsGenerated": 303,
+    "resumePreviews": 1874,
+    "contactCtaClicks": 128,
+    "feedbackSubmissions": 56
+  }
+}
+```
+
+`reportingPeriod.mode` is `all_retained` when both query parameters are omitted; in that mode `startDate` and `endDate` are `null` and the frontend labels the period as all available data within the 90-day retention boundary. `updatedAt` is the latest `receivedAt` among included non-test events and is `null` when the result contains no events.
+
+`contactConversion.rate` is a decimal ratio between `0` and `1`, calculated from distinct `sessionId` values according to PRD Section 2.2. It is `null` when `denominator` is zero. Supporting totals count accepted events rather than distinct sessions. Every field uses the same reporting period and excludes Tracking Sessions where `isTest = true`.
+
+The endpoint returns aggregate values only. It must not return event records, `sessionId` values, Conversation identifiers, timestamps for individual interactions, user-entered content, or candidate content.
+
+---
+
+
+
 ## 5.3 Integration Considerations
 
 
@@ -888,7 +1060,9 @@ Backend:
 | AI Generated Messages  | Backend generates and stores         |
 | Resume File            | Backend provides                     |
 | Feedback               | Frontend collects, Backend stores    |
+| Tracking Session       | Frontend creates identifier, Backend owns test classification |
 | User Behavior Event    | Frontend detects, Backend validates and stores |
+| Dashboard Aggregate    | Backend calculates, Frontend filters and renders |
 | Contact Me Information | Frontend static content              |
 
 
@@ -1158,22 +1332,28 @@ Changing the provider must remain isolated to the AI Service and must not requir
 
 Decision:
 
-Use the custom `POST /api/tracking-events` endpoint and persist User Behavior Events in the existing MVP database. Centrally persisted events are the authoritative analytics source; browser storage is limited to a temporary delivery queue.
+Use Tracking Session and User Behavior Event records in the existing PostgreSQL database. `POST /api/tracking-events` remains the event-ingestion boundary, `POST /api/tracking-sessions/test-mode` owns one-way test classification, and `GET /api/dashboard` returns the approved aggregate view. Centrally persisted state is authoritative; browser storage remains limited to pseudonymous current-session state and the bounded temporary event-delivery queue.
 
 Tracking session and Conversation are separate concepts:
 
 - Tracking session identifies a user's product visit and may exist before a Conversation is created;
 - Conversation identifies a specific candidate-job evaluation context.
 
-The Controller validates the HTTP payload and delegates to a tracking Service. The Service enforces the event allowlist, optional Conversation association, idempotency, and retention rules, then persists through the Repository Layer. Controllers must not access the database directly.
+`sessionId` deduplicates one browser-tab tracking session, not one person. The tracking Service creates a Tracking Session on first event ingestion when it does not exist. Test-mode designation sets the session's server-owned `isTest` flag to `true` and never reverts it; the frontend exits test mode by creating a new random non-test `sessionId`.
 
-The backend stores only `eventId`, `eventName`, `sessionId`, `occurredAt`, server-generated `receivedAt`, the server-generated `requestFingerprint`, and optional `conversationId`. The fingerprint is a SHA-256 digest of the canonical accepted event metadata and preserves the original request identity if `conversationId` is later cleared. The backend must not log request bodies or persist raw interaction content, IP addresses, user-agent strings, secrets, prompts, or provider payloads as tracking data. Access to event-level data is limited to authorized MVP evaluators; product reporting should use aggregate counts and rates.
+The Controller validates each HTTP payload and delegates to the tracking or analytics Service. The tracking Service enforces the event allowlist, optional Conversation association, idempotency, session creation, and one-way test classification. The analytics Service validates the reporting period and coordinates aggregate repository queries. Controllers must not access the database or calculate metrics directly.
+
+The backend stores only the approved Tracking Session metadata plus `eventId`, `eventName`, `sessionId`, `occurredAt`, server-generated `receivedAt`, server-generated `requestFingerprint`, and optional `conversationId`. The fingerprint remains a SHA-256 digest of the canonical accepted event metadata and preserves original request identity if `conversationId` is later cleared. Test classification is not part of the event payload or fingerprint. The backend must not log request bodies or persist raw interaction content, IP addresses, user-agent strings, secrets, prompts, or provider payloads as tracking data.
 
 Events are retained for 90 days from `receivedAt`, covering the MVP evaluation period. Events older than 90 days must be removed by a documented maintenance operation; the MVP does not require a distributed scheduler or separate analytics service. Deleting a Conversation must not delete its historical metric event; the nullable foreign key is set to null.
 
+Tracking Sessions with no remaining events and no activity inside the retention period may be removed by the same maintenance operation. A schema migration must backfill one non-test Tracking Session for every distinct existing event `sessionId` before enforcing the relationship. Existing event identity, request fingerprints, and Conversation deletion behavior remain unchanged.
+
 The backend uses `eventId` as the unique idempotency key and compares retries against the immutable `requestFingerprint`. Identical retries return success without creating duplicates, including after Conversation deletion sets the relational `conversationId` to null. Tracking failures are returned through the tracking endpoint but must remain isolated from the recruiter-facing workflow by the frontend tracking boundary.
 
-The MVP does not expose event-level tracking data or a recruiter-facing analytics API. Instead, it provides a documented internal aggregate report operation for authorized evaluators. For a requested evaluation period, the report returns total and distinct-session counts for each approved event name and calculates Contact Conversion Rate as:
+Test-mode designation is idempotent. It applies retroactively and prospectively through the Tracking Session relationship: every event with the designated `sessionId` is excluded even if it was accepted before designation or arrives later from the browser queue. A designation failure must not be acknowledged as active. The hidden gesture and endpoint are testing conveniences, not authentication; they do not grant access or change AI, Conversation, Feedback, or provider behavior.
+
+The dashboard endpoint replaces the former internal-only aggregate report as the visual aggregate reporting boundary. It returns total event counts for all six approved event names and calculates Contact Conversion Rate as:
 
 ```text
 Distinct sessionId values with both contact_cta_clicked and matching_report_generated
@@ -1183,7 +1363,11 @@ Distinct sessionId values with both contact_cta_clicked and matching_report_gene
 Distinct sessionId values with matching_report_generated
 ```
 
-The report must handle a zero denominator without returning an invalid numeric value. Event-level export and a visual Dashboard remain outside MVP scope.
+Both sides use non-test sessions whose qualifying events occur inside the same requested reporting period. Supporting totals count accepted events, while the conversion numerator and denominator count distinct `sessionId` values. The dashboard must not infer or label these sessions as people.
+
+With no date parameters, aggregation includes all events currently retained. With `startDate` and `endDate`, both dates are required, inclusive, interpreted in `Asia/Shanghai`, converted to a half-open UTC timestamp interval, and applied to `occurredAt`. Every returned metric uses the same interval. A zero denominator returns `rate = null`; it never returns NaN, infinity, or another invalid numeric value.
+
+The current production app and APIs are public under the approved v1.1 deployment boundary, so the dashboard aggregate is publicly reachable when linked from navigation. It returns aggregate values only and introduces no event-level export, user account, person identity, raw tracking access, or broader recruitment-management capability.
 
 
 ## 7.6 AI Retry Strategy

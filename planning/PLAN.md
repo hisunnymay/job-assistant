@@ -2,14 +2,15 @@
 
 ## Document Information
 
-- **Version:** v0.43
-- **Status:** Draft — Goal 9 Hong Kong Production Live
+- **Version:** v0.44
+- **Status:** Draft — Goal 10 Ready for Implementation
 - **Owner:** Mei Chang
-- **Last Updated:** 2026-08-28
+- **Last Updated:** 2026-09-01
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.44 — 2026-09-01:** Added Goal 10 for the PRD v0.9 aggregate Data Dashboard, inclusive date filtering, server-owned whole-session test exclusion, hidden three-click activation, persistent “测试模式” state, public aggregate API, migration/backfill, and full privacy/conformance validation; implementation, commit, deployment, and provider calls remain separately gated.
 - **v0.43 — 2026-08-28:** Designated the approved Hong Kong ECS and `sunnydemo.me` as the current recruiter-production environment, removed production Basic Auth for public recruiter access, retained the protected local demo harness, deployed immutable locally built `linux/amd64` images by verified content ID, and recorded the first-release rollback limitation and public-abuse-control follow-up.
 - **v0.42 — 2026-08-28:** Promoted Goal 9 to **Release Candidate Ready — Deployment Pending** after an evaluator-hashed complete rerun passed all hard guardrails but exposed one broad source-heading miss, a narrow traceability correction passed three matching/reliability runs, and the final privacy-safe artifact composed those current-prompt results with the unchanged follow-up results. The final evidence uses 39 provider calls within the approved 60-call ceiling and passes every graded threshold; external deployment gates remain unchanged.
 - **v0.41 — 2026-08-28:** Reopened Goal 9 release promotion after final review found that the passing privacy-safe matrix predates the evaluator's post-run negation hardening and cannot be mechanically re-scored because generated outputs are intentionally omitted. Added evaluator hashing for future artifacts and recorded the current candidate as evaluator-evidence-pending until a bounded rerun passes or the user explicitly approves the documented evaluator-only deviation.
@@ -1057,7 +1058,7 @@ Specification-conformance review against every Goal 8 reference and approved thr
 
 ### Authoritative References and Constraints
 
-- Product Requirement Document core journey, F001–F008, S001, privacy, and MVP risks;
+- Product Requirement Document core journey, F001–F007, the pre-dashboard S001 tracking boundary, privacy, and MVP risks as implemented for Goal 9; the subsequently approved F008 dashboard and test-session extension belong to Goal 10;
 - AI System Design v1.3 Sections 6, 8, and 10–11;
 - Frontend Technical Design Sections 4.1–4.7 and 5;
 - Backend Technical Design Sections 4.2, 5–6, and 7.1–7.6;
@@ -1146,7 +1147,156 @@ The local smoke script reads Basic Auth credentials from environment variables, 
 - **Goal 7A:** Complete with the static example, truthful waiting states, correction-only structured retry, full validation, and a privacy-safe Mini comparison; the Pro default remains unchanged because broader evidence-calibration evaluation is still required.
 - **Goal 8:** Complete. The corrected baseline, three bounded tuning iterations, earlier graded-threshold-short attempt, stopped rerun, and passing three-run final artifact are all preserved; the final run passed every hard guardrail and approved graded threshold.
 - **Goal 9:** **Hong Kong Production Live.** Local implementation, locked rebuild, deterministic regression, Mock gateway smoke, persistence/privacy inspection, backup/restore rehearsal, independent-review fixes, evaluator-hashed real-AI evidence, protected local real-provider smoke, public Hong Kong HTTPS deployment, certificate renewal, and remote Ark smoke are complete. The active image content IDs and backup form the first-release rollback baseline; a preceding-image rollback test is not possible until a second release exists.
-- No unresolved product, architecture, schema, retry, persistence, public-API, or environment-boundary decision remains from Goals 7, 7A, 8, or the current production designation. Future infrastructure purchases, mainland deployment, additional paid provider validation, public-abuse hardening, and production replacement remain explicit checkpoints.
+- No unresolved product, architecture, schema, retry, persistence, public-API, or environment-boundary decision remains from Goals 7, 7A, 8, 9, or the current production designation. Goal 10 is a separately approved product-analytics change and does not reopen those completed AI/release goals. Future infrastructure purchases, mainland deployment, additional paid provider validation, public-abuse hardening, and production replacement remain explicit checkpoints.
+
+# Phase C — Product Analytics Dashboard
+
+## Goal 10 — Aggregate Data Dashboard and Test-session Exclusion
+
+- **Status:** Ready for implementation; not started
+- **Depends on:** Goal 5 centralized tracking and Goal 9 production baseline
+- **Branch:** `goal/10-data-dashboard`
+
+### Authoritative References and Constraints
+
+- Product Requirement Document v0.9 Section 2.2, F008, and S001 define the metric meaning, dashboard behavior, inclusive date filter, three-click test-mode entry, persistent visible state, and whole-session exclusion;
+- Frontend Technical Design v1.1 Sections 2.1–2.3, 3.8–3.9, 4.1–4.7, and 5 define the four-view workspace, supplied visual references, backend-owned aggregate rendering, date-filter state, and test-mode browser lifecycle;
+- Backend Technical Design v1.2 Tracking Session/User Behavior Event entities, Section 5 contracts, and Section 7.5 define server-owned classification, migration, endpoints, privacy, retention, and aggregation;
+- `AGENTS.md` owns layered architecture, contract governance, validation, implementation logging, and Git authorization boundaries;
+- Goal 5 event names, event idempotency fingerprints, bounded delivery queue, privacy rules, and 90-day retention remain unchanged unless Goal 10 explicitly extends them below;
+- Goal 10 must not alter AI prompts, models, provider calls, retry behavior, résumé sources, Conversation/Feedback semantics, or existing matching/follow-up/resume/feedback API contracts;
+- The current Hong Kong production app is public. The aggregate dashboard is therefore public when deployed, but event-level data, `sessionId` values, user-entered content, candidate content, and person identity remain prohibited;
+- The hidden three-click gesture is a testing convenience, not authentication. No user account, permission system, IP identification, or user fingerprinting is added.
+
+### Outcome
+
+Product evaluators can open a read-only Data Dashboard, inspect Contact Conversion Rate and six supporting totals for all retained data or one inclusive date range, and intentionally run product tests whose entire tracking session is excluded from every metric without changing AI or recruiter workflow behavior.
+
+### Public API Fixtures
+
+Test-mode designation:
+
+```http
+POST /api/tracking-sessions/test-mode
+Content-Type: application/json
+
+{
+  "sessionId": "session_001"
+}
+```
+
+```json
+{
+  "success": true,
+  "sessionId": "session_001",
+  "testMode": true
+}
+```
+
+Dashboard aggregate:
+
+```http
+GET /api/dashboard
+GET /api/dashboard?startDate=2026-08-01&endDate=2026-09-01
+```
+
+```json
+{
+  "reportingPeriod": {
+    "mode": "custom",
+    "startDate": "2026-08-01",
+    "endDate": "2026-09-01",
+    "timezone": "Asia/Shanghai"
+  },
+  "updatedAt": "2026-09-01T02:00:00.000Z",
+  "contactConversion": {
+    "rate": 0.423,
+    "numerator": 128,
+    "denominator": 303
+  },
+  "eventTotals": {
+    "pageVisits": 12845,
+    "jobDescriptionSubmissions": 1203,
+    "matchingReportsGenerated": 303,
+    "resumePreviews": 1874,
+    "contactCtaClicks": 128,
+    "feedbackSubmissions": 56
+  }
+}
+```
+
+Both dashboard dates must be supplied together or both omitted. Custom dates are inclusive calendar dates in `Asia/Shanghai` and filter event `occurredAt`; the backend converts them to a half-open timestamp interval. Omitting both returns all retained events. `contactConversion.rate` is `null` when the denominator is zero, and `updatedAt` is `null` when no eligible event exists.
+
+### Data and Failure Semantics
+
+- Add a Tracking Session entity keyed by `sessionId`, with server-owned `isTest`, `createdAt`, and nullable `testModeActivatedAt` fields;
+- Backfill one non-test Tracking Session for every distinct existing User Behavior Event `sessionId` before enforcing the event relationship;
+- Event ingestion atomically creates a missing non-test Tracking Session and never resets an existing test session;
+- Test-mode designation is idempotent and one-way for a `sessionId`; it excludes events accepted before designation and events delivered afterward from the browser retry queue;
+- A failed designation does not activate the frontend state or display the “测试模式” label;
+- Exiting test mode creates a new random non-test `sessionId`; the preceding session remains test-classified and its queued events retain their original identity;
+- Supporting cards count accepted non-test events. Contact Conversion Rate counts distinct non-test `sessionId` values whose qualifying events both occur inside the same reporting period;
+- Dashboard aggregation occurs in the backend Service/Repository boundary. The controller and frontend do not calculate conversion or query event rows;
+- Invalid or incomplete date ranges return the existing safe `400` envelope; retrieval and persistence failures return safe errors without clearing the last valid frontend result or changing recruiter-facing workflows;
+- Existing event payloads, request fingerprints, duplicate/conflict behavior, optional Conversation association, deletion-safe replay, privacy prohibition, and 90-day cleanup remain intact.
+
+### Frontend Scope
+
+- Add Data Dashboard as the fourth persistent workspace navigation item and one mutually exclusive right-side view without clearing the active conversation;
+- Use the approved dashboard screenshot as a composition reference, while adding the required date filter and omitting the screenshot's week-over-week values and arrows;
+- Render one emphasized Contact Conversion Rate card, its distinct-session numerator/denominator and definition, six total-event cards, the reporting-period label, timezone, and latest update time;
+- Provide inclusive start/end date controls, Apply and Reset, shared loading, no-data, invalid-range, and recoverable retrieval-error states; update all metrics atomically after a successful response;
+- Recognize three consecutive selections of the Entrance View “AI” title target within two seconds, resetting the counter after timeout and suppressing duplicate activation requests;
+- After backend acknowledgement, persist the active flag for the browser-tab session and show a persistent “测试模式” text label next to the product identity on Entrance and workspace views; color may reinforce but cannot replace the label;
+- Provide an explicit exit action that removes the label, restores normal styling, creates a new normal session, and emits its normal page-visit boundary;
+- Preserve keyboard access, visible focus, screen-reader names/status, responsive usability, and the existing conversation/resume/contact/example-report behavior.
+
+### Implementation Sequence
+
+1. Create `goal/10-data-dashboard` and record the applicable PRD/frontend/backend contracts before code changes;
+2. Add the Tracking Session model and migration, backfill existing session IDs, link event ingestion, and preserve idempotency/fingerprint/deletion semantics;
+3. Add Repository and Service operations plus `POST /api/tracking-sessions/test-mode` and `GET /api/dashboard` controllers using the exact Section 5 contracts;
+4. Extend the frontend tracking-session boundary with the two-second gesture, acknowledgement-gated active state, persistent label, explicit exit, and new-session behavior;
+5. Add the dashboard client, four-view navigation, aggregate cards, inclusive date filter, state handling, accessibility, and supplied visual reference composition;
+6. Add backend unit/integration/migration tests, frontend unit/component tests, and Playwright journeys covering retroactive exclusion, queued-event exclusion, date boundaries, navigation preservation, and error recovery;
+7. Run full network-free regression in Mock AI mode, inspect database/API privacy, perform independent review and specification-conformance review, and write `history/implementation_logs/goal-10-data-dashboard.md`;
+8. Report the completed local changes, validation evidence, remaining risks, and proposed commit message. Do not commit, push, deploy, migrate production, or make paid provider calls without the separately required approval.
+
+### Completion Criteria
+
+- Existing tracking rows are migrated without changing event identity, request fingerprints, Conversation association, or accepted event counts;
+- Triple-click activation succeeds only after backend acknowledgement and visibly persists across navigation/refresh with the required “测试模式” label;
+- The entire designated session is absent from all dashboard totals and conversion calculations, including events stored before activation and queued events delivered after activation;
+- Exiting creates a distinct normal session whose later events are eligible for metrics while the old session remains excluded;
+- The default dashboard covers all retained non-test events; a valid inclusive date range updates every metric together using `Asia/Shanghai` calendar boundaries;
+- Supporting cards use total event counts, while the primary numerator and denominator use distinct `sessionId` values and never claim to identify people;
+- Zero-denominator, no-data, invalid-date, backend-failure, and retry states are valid, understandable, and do not discard the last valid result;
+- Dashboard, test-mode state, and navigation match the approved hierarchy on desktop and remain usable at the compact viewport;
+- No week-over-week comparison, trend chart, event drill-down, export, real-time refresh, user account, AI behavior change, or raw/sensitive analytics exposure is introduced;
+- Normal tests remain Mock/network-free and no provider call or external deployment occurs;
+- Independent review has no unresolved high-severity finding, the conformance record covers every Goal 10 constraint, and the implementation log records validation and remaining limitations.
+
+### Validation
+
+```text
+cd backend && uv run pytest
+cd backend && uv run mypy app tests
+cd backend && uv run ruff check .
+Backend migration check: backfill existing distinct session IDs and preserve event rows/fingerprints
+Backend tracking check: designate before/after event ingestion, identical replay, queued late delivery, and new normal exit session
+Backend dashboard check: all-retained, inclusive UTC+8 boundaries, invalid ranges, six totals, distinct conversion, test exclusion, zero denominator, and privacy-safe response
+cd frontend && npm run test
+cd frontend && npm run type-check
+cd frontend && npm run lint
+cd frontend && npm run build
+cd frontend && AI_PROVIDER=mock npm run test:e2e
+Manual browser check: triple-click -> acknowledged tag -> navigation/refresh persistence -> exit -> new normal session
+Manual browser check: active conversation -> dashboard -> valid/invalid/reset date filters -> matching conversation restored
+Compact viewport and accessibility check: dashboard cards/filter, visible test label, focus order, accessible names, loading/error status
+git diff --check
+Independent read-only code/security review
+Specification-conformance review against PRD v0.9, Frontend v1.1, Backend v1.2, and every Goal 10 criterion
+```
 
 ## Supporting References
 

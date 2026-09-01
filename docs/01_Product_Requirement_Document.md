@@ -9,10 +9,10 @@
 | ------------- | ---------------------------- |
 | Document Name | AI Job Fit Assistant PRD     |
 | Document Type | Product Requirement Document |
-| Version       | v0.6                         |
+| Version       | v0.9                         |
 | Status        | Approved                     |
 | Owner         | Mei Chang                    |
-| Last Updated  | 2026-08-27                   |
+| Last Updated  | 2026-09-01                   |
 | Product Stage | MVP Planning                 |
 
 
@@ -43,6 +43,9 @@ The Version Log records document changes and the reasons behind those changes.
 
 | Version | Date       | Changes                                                           | Reason                                                           |
 | ------- | ---------- | ----------------------------------------------------------------- | ---------------------------------------------------------------- |
+| v0.9    | 2026-09-01 | Required an obvious persistent “测试模式” label after test-mode activation, with optional color styling as secondary reinforcement. | Ensure testers can immediately recognize the excluded analytics state without relying on color alone. |
+| v0.8    | 2026-09-01 | Added the hidden three-click test-mode entry and exit behavior, whole-session metric exclusion, and a dashboard date-range filter. | Allow product testing without contaminating dashboard results and allow evaluators to inspect metrics for a defined period. |
+| v0.7    | 2026-09-01 | Added the aggregate Data Dashboard, clarified that distinct-session metrics deduplicate by `sessionId` rather than person, and excluded test-mode sessions from product metrics. | Make MVP usage and conversion results visible while keeping metric interpretation accurate and preventing product testing from affecting reported results. |
 | v0.6    | 2026-08-27 | Added an immediate, clearly labelled static example report and truthful elapsed-time guidance for real matching generation. | Let recruiters inspect report value without provider cost or persisted activity while setting accurate expectations for synchronous AI latency. |
 | v0.1    | 2026-08-20 | Initial PRD structure created                                     | Establish product requirement documentation structure            |
 | v0.2    | 2026-08-27 | Clarified that S001 requires centralized, cross-session event persistence and aggregate metric evaluation. | Ensure the tracking implementation can evaluate MVP usage and conversion rather than retaining data only in an individual browser. |
@@ -321,7 +324,9 @@ Number of distinct sessions with both a contact CTA click and a generated matchi
 Number of distinct sessions with a generated matching report
 ```
 
-Because the MVP has no user accounts, a distinct pseudonymous tracking session is used as the measurable proxy for a user in this calculation. Both the numerator and denominator use the generated-report session cohort from the same evaluation period; contact-only sessions outside that cohort remain visible in event totals but do not count as converted sessions.
+Because the MVP has no user accounts, a distinct pseudonymous tracking session is used as the measurable proxy for a user in this calculation. “Distinct” means deduplicated by `sessionId`, not by person. Repeated qualifying events within the same tracking session count once for the relevant side of the conversion calculation, while the same person may be counted again if they start another tracking session.
+
+Both the numerator and denominator use the generated-report session cohort from the same evaluation period; contact-only sessions outside that cohort remain visible in event totals but do not count as converted sessions. Sessions explicitly designated as test mode must be excluded from the Contact Conversion Rate and all supporting product metrics.
 
 Purpose:
 
@@ -582,6 +587,7 @@ The MVP includes the following features and system capabilities:
 | F005 | Ask Follow-up Questions       | P1       | Allow recruiters to ask additional questions about candidate experience or background when the matching report does not provide sufficient information. |
 | F006 | Contact CTA                   | P0       | Provide recruiters with a clear method to initiate further communication with the candidate.                                                            |
 | F007 | Report Feedback               | P1       | Collect optional recruiter feedback on the usefulness and quality of the matching report.                                                               |
+| F008 | Data Dashboard                | P1       | Present aggregate MVP usage and contact-conversion metrics in a read-only dashboard.                                                                     |
 
 
 ---
@@ -1024,6 +1030,85 @@ Feedback may include:
 
 
 
+### F008 Data Dashboard
+
+
+
+#### Overview
+
+The Data Dashboard provides a read-only view of aggregate MVP usage and contact-conversion performance. It helps evaluate whether recruiters use the core workflow and proceed from reviewing a generated matching report to initiating contact.
+
+The dashboard displays aggregate metrics only. It must not expose individual tracking events, infer personal identity, or display job descriptions, resume content, follow-up questions, feedback comments, contact information, prompts, provider payloads, or other user-entered content.
+
+---
+
+
+
+#### User Story
+
+As a product evaluator,
+
+I want to view the product's core usage and contact-conversion metrics,
+
+so that I can evaluate MVP adoption and whether generated matching reports lead to further communication.
+
+---
+
+
+
+#### Functional Requirements
+
+The system should:
+
+- Provide a Data Dashboard entry in the persistent workspace navigation;
+- Present Contact Conversion Rate as the primary metric, including its percentage, numerator, denominator, and a concise definition;
+- Calculate Contact Conversion Rate according to Section 2.2 using distinct pseudonymous tracking sessions. “Distinct” means deduplicated by `sessionId`, not by person;
+- Present total counts for page visits, job description submissions, matching reports generated, resume preview views, Contact CTA clicks, and feedback submissions;
+- Use the same reporting period and authoritative centralized tracking source for all displayed metrics;
+- Provide start-date and end-date controls that allow the evaluator to define the reporting period;
+- Treat both selected calendar dates as inclusive in the timezone displayed by the dashboard;
+- Apply the selected date range to the primary metric, its numerator and denominator, and all six supporting metrics together;
+- Default to all available tracking data within the approved retention period and provide a reset action that restores this default;
+- Prevent applying a date range when the start date is later than the end date and explain the validation error clearly;
+- Display the reporting period and latest data-update time, including timezone;
+- Provide a concise definition for each metric;
+- Test-mode sessions must not contribute to dashboard metrics.
+- Display clear loading, empty, and retrieval-failure states without affecting the recruiter-facing matching workflow;
+- Preserve the active conversation when the user enters or leaves the dashboard.
+
+The initial dashboard does not require:
+
+- Week-over-week or other period comparisons;
+- Trend charts;
+- Event-level drill-down;
+- Data export;
+- Real-time automatic refresh.
+
+---
+
+
+
+#### Acceptance Criteria
+
+- The dashboard displays Contact Conversion Rate and all six supporting usage metrics from centrally persisted tracking data;
+- The Contact Conversion Rate numerator and denominator deduplicate qualifying events by `sessionId`, not by inferred person identity or raw event count;
+- Repeated qualifying events within one non-test session count once for the relevant side of the Contact Conversion Rate calculation;
+- Supporting metric cards display total accepted event counts for the reporting period, so their values may differ from the distinct-session numerator and denominator;
+- Events from test-mode sessions do not contribute to the primary metric, its numerator or denominator, or any supporting metric;
+- A zero denominator produces a valid empty or zero-rate presentation rather than an invalid numeric value;
+- All displayed metrics use the same reporting period and show the latest update time with timezone;
+- Selecting and applying a valid date range updates the primary metric, its numerator and denominator, and all six supporting metrics consistently;
+- The selected start and end dates are both included in the calculation according to the dashboard's displayed timezone;
+- Resetting the date filter restores all available tracking data within the approved retention period;
+- An invalid date range cannot be applied and does not replace the last valid dashboard result;
+- The dashboard exposes aggregate values only and does not reveal individual events or user-entered or candidate content;
+- Loading, no-data, and retrieval-failure states are understandable and recoverable;
+- No week-over-week comparison value, direction indicator, or comparison calculation is displayed in the initial dashboard.
+
+---
+
+
+
 ## 4.3 System Requirements
 
 
@@ -1057,6 +1142,14 @@ Each event should include a pseudonymous tracking-session identifier and timesta
 
 Events must be sent to and persist in a centralized backend-owned store so authorized MVP evaluators can aggregate behavior across sessions. Tracking must not include job descriptions, resume content, follow-up questions, feedback comments, contact data, prompts, provider payloads, or other user-entered content.
 
+The standalone Entrance View provides a hidden test-mode entry through the visible “AI” portion of the product title. Selecting “AI” three consecutive times within two seconds designates the current tracking session as test mode. The click sequence resets when the two-second window expires.
+
+After activation, the interface must display a persistent, clearly visible “测试模式” text label next to the product identity and provide an explicit exit action. The product-title styling may also change color as secondary reinforcement, but color alone must not communicate the state. The label remains visible in the Entrance View and persistent workspace navigation. Test mode remains active for the current browser-tab session across navigation and page refresh. Exiting test mode removes the label, restores the normal product-title styling, and starts a new non-test tracking session so later production activity is not associated with the excluded test session.
+
+Test-mode designation applies to every event associated with that session's `sessionId`, including events accepted before test mode was activated. Events associated with a test-mode session must not contribute to the primary success metric, any supporting product metric, or any dashboard date range.
+
+Test mode changes analytics classification only. It must not silently change AI-provider behavior, conversation or feedback persistence, matching behavior, or another recruiter-facing workflow.
+
 ---
 
 
@@ -1066,6 +1159,15 @@ Events must be sent to and persist in a centralized backend-owned store so autho
 - Every required interaction is persisted in the centralized tracking store with its event name, event identifier, timestamp, and pseudonymous tracking-session identifier;
 - Events can be associated with the corresponding Conversation when one exists without treating the Conversation identifier as the tracking-session identifier;
 - Authorized evaluators can run a documented aggregate report across sessions to calculate the supporting usage metrics and the distinct-session Contact Conversion Rate defined in Section 2.2;
+- Distinct-session metrics deduplicate qualifying events by `sessionId`, not by inferred person identity;
+- Events from sessions explicitly designated as test mode do not contribute to the Contact Conversion Rate or supporting product metrics;
+- Selecting the “AI” title text three consecutive times within two seconds on the Entrance View activates test mode for the current tracking session;
+- Activating test mode immediately displays a persistent “测试模式” text label next to the product identity; color may reinforce but must not be the only indicator;
+- The test-mode label remains visible across navigation and refresh until the user exits test mode or the browser-tab session ends;
+- Exiting test mode removes the label and restores the normal product-title styling;
+- Activating test mode excludes all events associated with the current `sessionId`, including events accepted earlier in that session, from every dashboard date range;
+- Exiting test mode creates a new non-test tracking session before later trackable activity is recorded;
+- Test mode does not change AI execution, business-data persistence, or recruiter-facing workflow behavior;
 - Clearing one browser's local data does not remove events already accepted by the centralized store;
 - Tracking payloads exclude user-entered and candidate content, and tracking failures do not prevent completion of the recruiter journey;
 - Tracking data is retained only for the approved MVP evaluation period defined in the Backend Technical Design.
