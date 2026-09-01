@@ -123,7 +123,6 @@ export const zhCN = {
     noAutoSend: '系统不会代表您自动发送任何消息。',
   },
   dashboard: {
-    kicker: '产品使用概览',
     title: '数据看板',
     description: '查看保留期内的汇总使用数据。所有指标均排除已标记的测试会话。',
     startDate: '开始日期',
@@ -211,6 +210,7 @@ export const zhCN = {
             '遗漏关键岗位要求',
             '信息缺口不明确',
             '内容过于冗长',
+            '报告生成时间较长',
           ],
     commentLabel: '或者填写具体反馈',
     commentPlaceholder: '请说明哪些内容有帮助，或还需要改进什么……',

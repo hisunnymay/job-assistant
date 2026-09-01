@@ -855,6 +855,9 @@ describe('Goal 4 recruiter workspace', () => {
         name: zhCN.feedback.dialogTitle(1),
       }),
     ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: '+ 报告生成时间较长' }),
+    ).toBeInTheDocument()
     const submitFeedback = screen.getByRole('button', {
       name: zhCN.feedback.submit,
     })

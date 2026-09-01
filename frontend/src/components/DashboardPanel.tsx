@@ -12,6 +12,9 @@ interface DashboardPanelProps {
 
 type DashboardState = 'loading' | 'ready' | 'failure'
 
+const defaultDashboardStartDate = '2026-09-01'
+const dashboardTimezone = 'Asia/Shanghai'
+
 const totalMetricKeys = [
   'pageVisits',
   'jobDescriptionSubmissions',
@@ -33,12 +36,35 @@ function formatUpdatedAt(value: string, timezone: string) {
   }).format(new Date(value))
 }
 
+function currentDashboardDate() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: dashboardTimezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date(Date.now()))
+  const valueByType = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  )
+  return `${valueByType.year}-${valueByType.month}-${valueByType.day}`
+}
+
+function createDefaultDateRange(): DashboardDateRange {
+  return {
+    startDate: defaultDashboardStartDate,
+    endDate: currentDashboardDate(),
+  }
+}
+
 export function DashboardPanel({ client }: DashboardPanelProps) {
+  const [defaultDateRange] = useState(createDefaultDateRange)
   const [aggregate, setAggregate] = useState<DashboardAggregate>()
   const [state, setState] = useState<DashboardState>('loading')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [retryRange, setRetryRange] = useState<DashboardDateRange>()
+  const [startDate, setStartDate] = useState(defaultDateRange.startDate)
+  const [endDate, setEndDate] = useState(defaultDateRange.endDate)
+  const [retryRange, setRetryRange] = useState<
+    DashboardDateRange | undefined
+  >(defaultDateRange)
   const [validationError, setValidationError] = useState<string>()
   const [retrievalError, setRetrievalError] = useState<string>()
   const requestSequence = useRef(0)
@@ -72,7 +98,7 @@ export function DashboardPanel({ client }: DashboardPanelProps) {
     requestSequence.current += 1
     const requestId = requestSequence.current
     void client
-      .getAggregate()
+      .getAggregate(defaultDateRange)
       .then((nextAggregate) => {
         if (requestSequence.current === requestId) {
           setAggregate(nextAggregate)
@@ -88,7 +114,7 @@ export function DashboardPanel({ client }: DashboardPanelProps) {
     return () => {
       requestSequence.current += 1
     }
-  }, [client])
+  }, [client, defaultDateRange])
 
   function handleApply(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -126,7 +152,6 @@ export function DashboardPanel({ client }: DashboardPanelProps) {
     >
       <header className="dashboard-header">
         <div>
-          <p className="panel-kicker">{zhCN.dashboard.kicker}</p>
           <h1 id="dashboard-title">{zhCN.dashboard.title}</h1>
           <p>{zhCN.dashboard.description}</p>
         </div>

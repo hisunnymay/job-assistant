@@ -9,7 +9,7 @@
 | ------------- | ---------------------------- |
 | Document Name | AI Job Fit Assistant PRD     |
 | Document Type | Product Requirement Document |
-| Version       | v0.9                         |
+| Version       | v0.10                        |
 | Status        | Approved                     |
 | Owner         | Mei Chang                    |
 | Last Updated  | 2026-09-01                   |
@@ -43,6 +43,7 @@ The Version Log records document changes and the reasons behind those changes.
 
 | Version | Date       | Changes                                                           | Reason                                                           |
 | ------- | ---------- | ----------------------------------------------------------------- | ---------------------------------------------------------------- |
+| v0.10   | 2026-09-01 | Changed the Data Dashboard's initial reporting period to the inclusive range from 2026-09-01 through the current Asia/Shanghai calendar date, while retaining Reset as the route to all retained data. | Open the dashboard on the product's operational reporting window without removing access to the full retained dataset. |
 | v0.9    | 2026-09-01 | Required an obvious persistent “测试模式” label after test-mode activation, with optional color styling as secondary reinforcement. | Ensure testers can immediately recognize the excluded analytics state without relying on color alone. |
 | v0.8    | 2026-09-01 | Added the hidden three-click test-mode entry and exit behavior, whole-session metric exclusion, and a dashboard date-range filter. | Allow product testing without contaminating dashboard results and allow evaluators to inspect metrics for a defined period. |
 | v0.7    | 2026-09-01 | Added the aggregate Data Dashboard, clarified that distinct-session metrics deduplicate by `sessionId` rather than person, and excluded test-mode sessions from product metrics. | Make MVP usage and conversion results visible while keeping metric interpretation accurate and preventing product testing from affecting reported results. |
@@ -1068,7 +1069,8 @@ The system should:
 - Provide start-date and end-date controls that allow the evaluator to define the reporting period;
 - Treat both selected calendar dates as inclusive in the timezone displayed by the dashboard;
 - Apply the selected date range to the primary metric, its numerator and denominator, and all six supporting metrics together;
-- Default to all available tracking data within the approved retention period and provide a reset action that restores this default;
+- Prefill the start date as 2026-09-01 and the end date as the current calendar date in `Asia/Shanghai`, then automatically apply that inclusive range when the dashboard opens;
+- Provide a reset action that clears both date controls and returns all available tracking data within the approved retention period;
 - Prevent applying a date range when the start date is later than the end date and explain the validation error clearly;
 - Display the reporting period and latest data-update time, including timezone;
 - Provide a concise definition for each metric;
@@ -1097,6 +1099,7 @@ The initial dashboard does not require:
 - Events from test-mode sessions do not contribute to the primary metric, its numerator or denominator, or any supporting metric;
 - A zero denominator produces a valid empty or zero-rate presentation rather than an invalid numeric value;
 - All displayed metrics use the same reporting period and show the latest update time with timezone;
+- Opening the dashboard pre-fills 2026-09-01 through the current `Asia/Shanghai` calendar date and automatically loads that inclusive reporting period;
 - Selecting and applying a valid date range updates the primary metric, its numerator and denominator, and all six supporting metrics consistently;
 - The selected start and end dates are both included in the calculation according to the dashboard's displayed timezone;
 - Resetting the date filter restores all available tracking data within the approved retention period;

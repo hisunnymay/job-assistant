@@ -4,6 +4,20 @@ import { zhCN } from '../src/content/zh-CN'
 const backendUrl = process.env.E2E_BACKEND_URL ?? 'http://127.0.0.1:8010'
 const pendingEventsKey = 'ai-job-fit-assistant.tracking-events.v1'
 const trackingSessionKey = 'ai-job-fit-assistant.tracking-session.v1'
+const defaultDashboardStartDate = '2026-09-01'
+
+function currentShanghaiDate() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+  const valueByType = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  )
+  return `${valueByType.year}-${valueByType.month}-${valueByType.day}`
+}
 
 async function pageVisitTotal(request: APIRequestContext) {
   const response = await request.get(`${backendUrl}/api/dashboard`)
@@ -72,7 +86,15 @@ test('excludes the acknowledged test session retroactively and after queued deli
   await expect(
     page.getByRole('heading', { name: zhCN.dashboard.title }),
   ).toBeVisible()
-  await expect(page.getByText(zhCN.dashboard.allRetainedPeriod)).toBeVisible()
+  const startDate = page.getByLabel(zhCN.dashboard.startDate)
+  const endDate = page.getByLabel(zhCN.dashboard.endDate)
+  const today = currentShanghaiDate()
+  await expect(startDate).toHaveValue(defaultDashboardStartDate)
+  await expect(endDate).toHaveValue(today)
+  await expect(
+    page.getByText(`${defaultDashboardStartDate} 至 ${today}（含首尾日期）`),
+  ).toBeVisible()
+  await expect(page.getByText('产品使用概览')).toHaveCount(0)
 
   await page.getByRole('button', { name: zhCN.testMode.exit }).click()
   await expect(
@@ -101,16 +123,27 @@ test('filters the dashboard without losing the active matching conversation', as
   ).toContainText('有明确证据')
 
   await page.getByRole('button', { name: zhCN.navigation.dashboard }).click()
-  await expect(page.getByText(zhCN.dashboard.allRetainedPeriod)).toBeVisible()
+  const today = currentShanghaiDate()
+  await expect(
+    page.getByText(
+      `${defaultDashboardStartDate} 至 ${today}（含首尾日期）`,
+    ),
+  ).toBeVisible()
   const startDate = page.getByLabel(zhCN.dashboard.startDate)
   const endDate = page.getByLabel(zhCN.dashboard.endDate)
+  await expect(startDate).toHaveValue(defaultDashboardStartDate)
+  await expect(endDate).toHaveValue(today)
   await startDate.fill('2026-09-02')
   await endDate.fill('2026-09-01')
   await page.getByRole('button', { name: zhCN.dashboard.apply }).click()
   await expect(page.getByRole('alert')).toContainText(
     zhCN.dashboard.invalidRangeError,
   )
-  await expect(page.getByText(zhCN.dashboard.allRetainedPeriod)).toBeVisible()
+  await expect(
+    page.getByText(
+      `${defaultDashboardStartDate} 至 ${today}（含首尾日期）`,
+    ),
+  ).toBeVisible()
 
   await startDate.fill('2026-01-01')
   await endDate.fill('2026-12-31')

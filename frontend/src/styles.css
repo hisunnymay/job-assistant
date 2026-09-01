@@ -466,14 +466,6 @@ p {
   line-height: 1.65;
 }
 
-.panel-kicker {
-  margin: 0;
-  color: var(--blue);
-  font-size: 0.76rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-}
-
 .dashboard-filter {
   margin: 28px 0 24px;
   padding: 16px;
@@ -1451,10 +1443,6 @@ p {
   .dashboard-header p:last-child {
     font-size: 0.72rem;
     line-height: 1.35;
-  }
-
-  .panel-kicker {
-    font-size: 0.66rem;
   }
 
   .dashboard-filter {

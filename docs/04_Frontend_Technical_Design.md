@@ -7,7 +7,7 @@
 | ----------------- | -------------------------------------------------------------------------------------- |
 | Document Name     | AI Job Fit Assistant Frontend Technical Design                                         |
 | Document Type     | Frontend Technical Design                                                              |
-| Version           | v1.1                                                                                   |
+| Version           | v1.2                                                                                   |
 | Status            | Finalized                                                                              |
 | Last Updated      | 2026-09-01                                                                             |
 | Related Documents | Product Requirement Document, Lightweight AI Design Decision, Backend Technical Design |
@@ -17,6 +17,7 @@
 
 | Version | Date | Change | Reason |
 | --- | --- | --- | --- |
+| v1.2 | 2026-09-01 | Removed the Data Dashboard kicker and changed its initial filter to the inclusive range from 2026-09-01 through the current Asia/Shanghai calendar date. | Start evaluation on the product's operational reporting window while preserving Reset access to all retained data. |
 | v1.1 | 2026-09-01 | Added the aggregate Data Dashboard view, shared inclusive date-range filtering, hidden three-click test-mode entry, persistent “测试模式” state, and whole-session metric exclusion flow. | Implement PRD v0.9 without adding frontend analytics logic, person identity, event-level disclosure, or AI behavior changes. |
 | v1.0 | 2026-08-27 | Added the static example-report mode and truthful elapsed-time presentation for matching and follow-up requests. | Provide immediate report value and accurate synchronous-AI waiting feedback without new APIs, fake progress, or frontend AI reasoning. |
 | v0.9 | 2026-08-27 | Distinguished permanent tracking rejections from retryable delivery failures in the bounded browser queue. | Prevent one invalid event from blocking later valid analytics events while retaining transient failures for retry. |
@@ -478,14 +479,15 @@ Present the aggregate MVP usage and Contact Conversion Rate calculated by the ba
 User interaction:
 
 1. Evaluator opens Data Dashboard from the workspace navigation or direct workspace entry.
-2. Frontend requests the default all-retained-data aggregate and displays its reporting-period label.
-3. Evaluator may select an inclusive start date and end date and apply the filter.
+2. Frontend pre-fills 2026-09-01 as the start date and the current `Asia/Shanghai` calendar date as the end date, requests that inclusive range automatically, and displays its reporting-period label.
+3. Evaluator may change the inclusive start date and end date and apply the filter.
 4. Frontend validates that the start date is not later than the end date, requests the filtered aggregate, and updates every metric together only after a successful response.
-5. Reset returns to the all-retained-data aggregate.
+5. Reset clears both controls and returns to the all-retained-data aggregate.
 
 Frontend responsibility:
 
 - Render the backend-provided conversion percentage, numerator, denominator, supporting totals, metric definitions, timezone, and latest update time;
+- Derive the initial end date from the current calendar date in `Asia/Shanghai`, not from the browser's local timezone;
 - Keep the last valid result visible when a new date range is invalid or retrieval fails;
 - Display loading, no-data, and recoverable failure states;
 - Avoid calculating conversion, deduplicating sessions, or reading individual events in the browser;
