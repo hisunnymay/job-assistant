@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ContactPanel } from './components/ContactPanel'
+import { CandidateContext } from './components/CandidateContext'
 import { ConversationMessage } from './components/ConversationMessage'
 import { DashboardPanel } from './components/DashboardPanel'
 import { FeedbackPanel } from './components/FeedbackPanel'
@@ -52,7 +53,7 @@ const defaultFeedbackClient = createFeedbackClient()
 const defaultFollowUpClient = createFollowUpClient()
 const defaultTrackingClient = createTrackingClient()
 const defaultDashboardClient = createDashboardClient()
-const candidateResumeVersion = '03f5c8b961b6d136'
+const candidateResumeVersion = '30ebd7e42087fe69'
 const resumeUrl = `${appConfig.apiBaseUrl.replace(/\/$/, '')}/api/resume?v=${candidateResumeVersion}`
 
 interface AppProps {
@@ -436,11 +437,17 @@ export function App({
   }
 
   function showResume() {
+    if (activeView === 'resume') {
+      return
+    }
     trackSafely(trackingClient, 'resume_previewed', { conversationId })
     setActiveView('resume')
   }
 
   function showContact() {
+    if (activeView === 'contact') {
+      return
+    }
     trackSafely(trackingClient, 'contact_cta_clicked', { conversationId })
     setActiveView('contact')
   }
@@ -580,6 +587,7 @@ export function App({
             onViewExampleReport={handleViewExampleReport}
             onSubmit={handleSubmit}
           />
+          <footer className="developer-credit">{zhCN.developerCredit}</footer>
         </section>
       </main>
     )
@@ -599,6 +607,7 @@ export function App({
           </button>
           {testModeIndicator}
         </div>
+        <CandidateContext />
         {testModeError ? (
           <span className="test-mode-status test-mode-error" role="alert">
             {testModeError}
@@ -642,6 +651,9 @@ export function App({
             <span>{zhCN.navigation.dashboard}</span>
           </button>
         </nav>
+        <footer className="developer-credit sidebar-developer-credit">
+          {zhCN.developerCredit}
+        </footer>
       </aside>
 
       <main className="workspace-main" id="main-content">

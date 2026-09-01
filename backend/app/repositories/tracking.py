@@ -157,8 +157,16 @@ class TrackingRepository:
             "contact_cta_clicked",
             "feedback_submitted",
         )
+        distinct_session_event_names = {
+            "resume_previewed",
+            "contact_cta_clicked",
+        }
         total_columns = [
-            func.count(UserBehaviorEvent.id)
+            (
+                func.count(distinct(UserBehaviorEvent.session_id))
+                if event_name in distinct_session_event_names
+                else func.count(UserBehaviorEvent.id)
+            )
             .filter(UserBehaviorEvent.event_name == event_name)
             .label(f"{event_name}_total")
             for event_name in event_names

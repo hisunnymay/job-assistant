@@ -36,7 +36,6 @@ export function ContactPanel() {
       </header>
 
       <div className="contact-content">
-        <h2>{zhCN.contact.methodsLabel}</h2>
         <div className="contact-methods">
           <article className="contact-method-card">
             <Icon name="mail" size={27} />

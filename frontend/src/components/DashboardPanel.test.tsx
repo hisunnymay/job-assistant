@@ -53,6 +53,17 @@ describe('data dashboard panel', () => {
     expect(screen.getByText('12,845')).toBeInTheDocument()
     expect(screen.getByText('1,203')).toBeInTheDocument()
     expect(screen.getByText('1,874')).toBeInTheDocument()
+    expect(screen.getByText('简历预览会话数')).toBeInTheDocument()
+    expect(screen.getByText('联系 CTA 会话数')).toBeInTheDocument()
+    expect(screen.getByText('查看过简历的会话数，同一会话仅计一次。')).toBeInTheDocument()
+    expect(
+      screen.getByText('点击过联系入口的会话数，同一会话仅计一次。'),
+    ).toBeInTheDocument()
+    expect(document.querySelectorAll('.metric-grid .metric-icon svg')).toHaveLength(
+      6,
+    )
+    expect(document.querySelectorAll('.conversion-visual svg')).toHaveLength(2)
+    expect(document.querySelector('.metric-grid .metric-icon')).toHaveTextContent('')
     expect(
       screen.getByText('2026-09-01 至 2026-09-03（含首尾日期）'),
     ).toBeInTheDocument()

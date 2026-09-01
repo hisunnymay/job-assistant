@@ -98,6 +98,7 @@ test('completes the primary recruiter journey through the real backend', async (
   await expect(
     page.getByRole('heading', { level: 1, name: zhCN.hero.title }),
   ).toBeVisible()
+  await expect(page.getByText(zhCN.developerCredit)).toBeVisible()
 
   await page
     .getByRole('button', { name: zhCN.jobDescription.viewExampleReport })
@@ -110,6 +111,47 @@ test('completes the primary recruiter journey through the real backend', async (
   await expect(
     page.getByRole('heading', { name: zhCN.report.exampleFollowUpTitle }),
   ).toBeVisible()
+  const candidateContext = page.getByRole('region', {
+    name: zhCN.candidateContext.ariaLabel,
+  })
+  await page
+    .getByRole('button', { name: zhCN.candidateContext.infoButton })
+    .click()
+  const candidateHint = page.getByRole('region', {
+    name: zhCN.candidateContext.hintTitle,
+  })
+  await expect(candidateHint).toBeVisible()
+  const candidateBounds = await candidateContext.boundingBox()
+  const hintBounds = await candidateHint.boundingBox()
+  expect(candidateBounds).not.toBeNull()
+  expect(hintBounds).not.toBeNull()
+  expect(hintBounds!.x).toBeGreaterThanOrEqual(
+    candidateBounds!.x + candidateBounds!.width,
+  )
+  const candidateAvatarBounds = await candidateContext
+    .locator('.candidate-context-avatar')
+    .boundingBox()
+  const candidateNameBounds = await candidateContext
+    .locator('.candidate-context-name')
+    .boundingBox()
+  const jobMatchingButton = page.getByRole('button', {
+    name: zhCN.navigation.assistant,
+  })
+  const navigationIconBounds = await jobMatchingButton.locator('svg').boundingBox()
+  const navigationLabelBounds = await jobMatchingButton
+    .locator('span')
+    .boundingBox()
+  expect(candidateAvatarBounds).not.toBeNull()
+  expect(candidateNameBounds).not.toBeNull()
+  expect(navigationIconBounds).not.toBeNull()
+  expect(navigationLabelBounds).not.toBeNull()
+  expect(
+    Math.abs(candidateAvatarBounds!.x - navigationIconBounds!.x),
+  ).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(candidateNameBounds!.x - navigationLabelBounds!.x),
+  ).toBeLessThanOrEqual(1)
+  await page.keyboard.press('Escape')
   expect(matchingAnalysisRequests).toBe(0)
   await expectAcceptedTrackingCounts({
     page_visit: 1,
@@ -209,6 +251,15 @@ test('completes the primary recruiter journey through the real backend', async (
     contact_cta_clicked: 0,
     feedback_submitted: 1,
   })
+  await page.getByRole('button', { name: zhCN.navigation.resume }).click()
+  await expectAcceptedTrackingCounts({
+    page_visit: 1,
+    job_description_submitted: 1,
+    matching_report_generated: 1,
+    resume_previewed: 1,
+    contact_cta_clicked: 0,
+    feedback_submitted: 1,
+  })
   const downloadPromise = page.waitForEvent('download')
   await page.getByRole('link', { name: zhCN.resume.download }).click()
   const download = await downloadPromise
@@ -224,6 +275,15 @@ test('completes the primary recruiter journey through the real backend', async (
   })
   await page.getByRole('button', { name: zhCN.navigation.contact }).click()
   await expect(page.getByRole('heading', { name: zhCN.contact.title })).toBeVisible()
+  await expectAcceptedTrackingCounts({
+    page_visit: 1,
+    job_description_submitted: 1,
+    matching_report_generated: 1,
+    resume_previewed: 1,
+    contact_cta_clicked: 1,
+    feedback_submitted: 1,
+  })
+  await page.getByRole('button', { name: zhCN.navigation.contact }).click()
   await expectAcceptedTrackingCounts({
     page_visit: 1,
     job_description_submitted: 1,

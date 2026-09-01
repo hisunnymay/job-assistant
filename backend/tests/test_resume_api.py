@@ -34,7 +34,7 @@ def test_resume_download_returns_the_same_approved_pdf(client: TestClient) -> No
 
 
 def test_resume_preview_accepts_a_cache_busting_version(client: TestClient) -> None:
-    response = client.get("/api/resume?v=03f5c8b961b6d136")
+    response = client.get("/api/resume?v=30ebd7e42087fe69")
 
     assert response.status_code == 200
     assert sha256(response.content).hexdigest() == CANDIDATE_RESUME_PDF_SHA256
