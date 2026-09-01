@@ -15,6 +15,9 @@ export interface TrackingContext {
 
 export interface TrackingClient {
   track(eventName: TrackingEventName, context?: TrackingContext): void
+  isTestModeActive?(): boolean
+  activateTestMode?(): Promise<void>
+  exitTestMode?(): void
 }
 
 export interface TrackingEventPayload {
@@ -27,4 +30,7 @@ export interface TrackingEventPayload {
 
 export interface TrackingDeliveryClient extends TrackingClient {
   flushPending(): Promise<void>
+  isTestModeActive(): boolean
+  activateTestMode(): Promise<void>
+  exitTestMode(): void
 }

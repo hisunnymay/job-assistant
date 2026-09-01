@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ContactPanel } from './components/ContactPanel'
 import { ConversationMessage } from './components/ConversationMessage'
+import { DashboardPanel } from './components/DashboardPanel'
 import { FeedbackPanel } from './components/FeedbackPanel'
 import { Icon } from './components/Icon'
 import { JobDescriptionForm } from './components/JobDescriptionForm'
@@ -19,6 +20,8 @@ import {
   FollowUpClientError,
 } from './services/followUpClient'
 import { createTrackingClient } from './services/trackingClient'
+import { createDashboardClient } from './services/dashboardClient'
+import type { DashboardClient } from './types/dashboard'
 import type { FeedbackClient } from './types/feedback'
 import type { FollowUpClient } from './types/followUp'
 import type {
@@ -34,7 +37,7 @@ import './styles.css'
 
 type JourneyState = 'ready' | 'loading' | 'success' | 'failure'
 type FollowUpState = 'idle' | 'loading' | 'failure'
-type WorkspaceView = 'home' | 'conversation' | 'resume' | 'contact'
+type WorkspaceView = 'home' | 'conversation' | 'resume' | 'contact' | 'dashboard'
 type ConversationMode = 'formal' | 'example' | null
 
 interface FailedFollowUp {
@@ -48,13 +51,16 @@ const defaultAnalysisClient = createAnalysisClient()
 const defaultFeedbackClient = createFeedbackClient()
 const defaultFollowUpClient = createFollowUpClient()
 const defaultTrackingClient = createTrackingClient()
-const resumeUrl = `${appConfig.apiBaseUrl.replace(/\/$/, '')}/api/resume`
+const defaultDashboardClient = createDashboardClient()
+const candidateResumeVersion = '03f5c8b961b6d136'
+const resumeUrl = `${appConfig.apiBaseUrl.replace(/\/$/, '')}/api/resume?v=${candidateResumeVersion}`
 
 interface AppProps {
   analysisClient?: AnalysisClient
   feedbackClient?: FeedbackClient
   followUpClient?: FollowUpClient
   trackingClient?: TrackingClient
+  dashboardClient?: DashboardClient
 }
 
 function trackSafely(
@@ -78,6 +84,10 @@ function getInitialView(): WorkspaceView {
     return 'contact'
   }
 
+  if (window.location.hash === '#dashboard') {
+    return 'dashboard'
+  }
+
   return 'home'
 }
 
@@ -86,6 +96,7 @@ export function App({
   feedbackClient = defaultFeedbackClient,
   followUpClient = defaultFollowUpClient,
   trackingClient = defaultTrackingClient,
+  dashboardClient = defaultDashboardClient,
 }: AppProps) {
   const [jobDescription, setJobDescription] = useState('')
   const [submittedJobDescription, setSubmittedJobDescription] = useState('')
@@ -105,11 +116,23 @@ export function App({
   const [followUpState, setFollowUpState] = useState<FollowUpState>('idle')
   const [followUpError, setFollowUpError] = useState<string>()
   const [failedFollowUp, setFailedFollowUp] = useState<FailedFollowUp>()
+  const [testModeActive, setTestModeActive] = useState(() => {
+    try {
+      return trackingClient.isTestModeActive?.() ?? false
+    } catch {
+      return false
+    }
+  })
+  const [testModePending, setTestModePending] = useState(false)
+  const [testModeError, setTestModeError] = useState<string>()
   const conversationScrollRef = useRef<HTMLDivElement>(null)
   const activeConversationIdRef = useRef<string | undefined>(undefined)
   const followUpInFlightRef = useRef(false)
   const followUpSequenceRef = useRef(0)
   const pageVisitTrackedRef = useRef(false)
+  const testModeGestureCountRef = useRef(0)
+  const testModeGestureStartedAtRef = useRef<number | undefined>(undefined)
+  const testModeGestureTimeoutRef = useRef<number | undefined>(undefined)
 
   const normalizedJobDescription = jobDescription.trim()
   const normalizedFollowUpQuestion = followUpQuestion.trim()
@@ -139,6 +162,15 @@ export function App({
       trackSafely(trackingClient, 'page_visit')
     }
   }, [trackingClient])
+
+  useEffect(
+    () => () => {
+      if (testModeGestureTimeoutRef.current !== undefined) {
+        window.clearTimeout(testModeGestureTimeoutRef.current)
+      }
+    },
+    [],
+  )
 
   function validateJobDescription(value: string): string | undefined {
     if (!value) {
@@ -418,13 +450,112 @@ export function App({
     trackSafely(trackingClient, 'feedback_submitted', { conversationId })
   }
 
+  function resetTestModeGesture() {
+    testModeGestureCountRef.current = 0
+    testModeGestureStartedAtRef.current = undefined
+    if (testModeGestureTimeoutRef.current !== undefined) {
+      window.clearTimeout(testModeGestureTimeoutRef.current)
+      testModeGestureTimeoutRef.current = undefined
+    }
+  }
+
+  async function activateTestMode() {
+    if (testModePending || testModeActive) {
+      return
+    }
+    setTestModePending(true)
+    setTestModeError(undefined)
+    try {
+      if (!trackingClient.activateTestMode) {
+        throw new Error('Test mode is unavailable.')
+      }
+      await trackingClient.activateTestMode()
+      setTestModeActive(true)
+    } catch {
+      setTestModeError(zhCN.testMode.activationError)
+    } finally {
+      setTestModePending(false)
+    }
+  }
+
+  function handleTestModeGesture() {
+    if (testModePending || testModeActive) {
+      return
+    }
+    const selectedAt = Date.now()
+    const startedAt = testModeGestureStartedAtRef.current
+    if (startedAt === undefined || selectedAt - startedAt > 2000) {
+      resetTestModeGesture()
+      testModeGestureStartedAtRef.current = selectedAt
+      testModeGestureCountRef.current = 1
+      testModeGestureTimeoutRef.current = window.setTimeout(
+        resetTestModeGesture,
+        2000,
+      )
+      return
+    }
+
+    testModeGestureCountRef.current += 1
+    if (testModeGestureCountRef.current === 3) {
+      resetTestModeGesture()
+      void activateTestMode()
+    }
+  }
+
+  function handleExitTestMode() {
+    try {
+      if (!trackingClient.exitTestMode) {
+        throw new Error('Test mode exit is unavailable.')
+      }
+      trackingClient.exitTestMode()
+      setTestModeActive(false)
+      setTestModeError(undefined)
+      trackSafely(trackingClient, 'page_visit')
+    } catch {
+      setTestModeError(zhCN.testMode.exitError)
+    }
+  }
+
+  const testModeIndicator = testModeActive ? (
+    <span className="test-mode-indicator">
+      <span>{zhCN.testMode.activeLabel}</span>
+      <button type="button" onClick={handleExitTestMode}>
+        {zhCN.testMode.exit}
+      </button>
+    </span>
+  ) : null
+
   if (activeView === 'home') {
     return (
       <main className="entrance-page" id="main-content">
         <section className="entrance-view" aria-labelledby="entrance-title">
           <header className="entrance-intro">
-            <h1 id="entrance-title">{zhCN.hero.title}</h1>
+            <div className="entrance-title-row">
+              <h1 id="entrance-title">
+                <button
+                  className="test-mode-trigger"
+                  type="button"
+                  aria-label={zhCN.testMode.triggerLabel}
+                  disabled={testModePending || testModeActive}
+                  onClick={handleTestModeGesture}
+                >
+                  AI
+                </button>{' '}
+                {zhCN.hero.titleAfterTestModeTrigger}
+              </h1>
+              {testModeIndicator}
+            </div>
             <p>{zhCN.hero.introduction}</p>
+            {testModePending ? (
+              <span className="test-mode-status" role="status">
+                {zhCN.testMode.activating}
+              </span>
+            ) : null}
+            {testModeError ? (
+              <span className="test-mode-status test-mode-error" role="alert">
+                {testModeError}
+              </span>
+            ) : null}
           </header>
 
           {hasActiveConversation ? (
@@ -457,14 +588,22 @@ export function App({
   return (
     <div className="workspace-shell">
       <aside className="sidebar">
-        <button
-          className="brand"
-          type="button"
-          aria-label={zhCN.navigation.home}
-          onClick={() => setActiveView('home')}
-        >
-          {zhCN.appName}
-        </button>
+        <div className="brand-identity">
+          <button
+            className="brand"
+            type="button"
+            aria-label={zhCN.navigation.home}
+            onClick={() => setActiveView('home')}
+          >
+            {zhCN.appName}
+          </button>
+          {testModeIndicator}
+        </div>
+        {testModeError ? (
+          <span className="test-mode-status test-mode-error" role="alert">
+            {testModeError}
+          </span>
+        ) : null}
         <nav className="sidebar-nav" aria-label={zhCN.navigation.ariaLabel}>
           <button
             type="button"
@@ -492,6 +631,15 @@ export function App({
           >
             <Icon name="user" />
             <span>{zhCN.navigation.contact}</span>
+          </button>
+          <button
+            type="button"
+            aria-label={zhCN.navigation.dashboard}
+            aria-current={activeView === 'dashboard' ? 'page' : undefined}
+            onClick={() => setActiveView('dashboard')}
+          >
+            <Icon name="chart" />
+            <span>{zhCN.navigation.dashboard}</span>
           </button>
         </nav>
       </aside>
@@ -581,6 +729,7 @@ export function App({
                     <LoadingStatus
                       title={zhCN.followUp.loadingTitle}
                       className="follow-up-status-message"
+                      showTypicalDuration={false}
                     />
                   </li>
                 ) : null}
@@ -685,6 +834,12 @@ export function App({
           <section className="workspace-view contact-view" aria-label={zhCN.contact.title}>
             <ContactPanel />
           </section>
+        ) : null}
+
+        {activeView === 'dashboard' ? (
+          <div className="workspace-view dashboard-view">
+            <DashboardPanel client={dashboardClient} />
+          </div>
         ) : null}
       </main>
     </div>

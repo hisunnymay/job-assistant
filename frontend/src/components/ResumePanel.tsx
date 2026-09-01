@@ -6,7 +6,7 @@ interface ResumePanelProps {
 }
 
 export function ResumePanel({ resumeUrl }: ResumePanelProps) {
-  const downloadUrl = `${resumeUrl}?download=true`
+  const downloadUrl = `${resumeUrl}${resumeUrl.includes('?') ? '&' : '?'}download=true`
 
   return (
     <section className="resume-panel" id="resume" aria-labelledby="resume-title">

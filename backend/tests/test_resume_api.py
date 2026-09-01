@@ -18,6 +18,8 @@ def test_resume_preview_returns_the_approved_pdf(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/pdf"
     assert response.headers["content-disposition"].startswith("inline;")
+    assert response.headers["cache-control"] == "no-store, max-age=0"
+    assert response.headers["pragma"] == "no-cache"
     assert sha256(response.content).hexdigest() == CANDIDATE_RESUME_PDF_SHA256
 
 
@@ -27,6 +29,14 @@ def test_resume_download_returns_the_same_approved_pdf(client: TestClient) -> No
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/pdf"
     assert response.headers["content-disposition"].startswith("attachment;")
+    assert response.headers["cache-control"] == "no-store, max-age=0"
+    assert sha256(response.content).hexdigest() == CANDIDATE_RESUME_PDF_SHA256
+
+
+def test_resume_preview_accepts_a_cache_busting_version(client: TestClient) -> None:
+    response = client.get("/api/resume?v=03f5c8b961b6d136")
+
+    assert response.status_code == 200
     assert sha256(response.content).hexdigest() == CANDIDATE_RESUME_PDF_SHA256
 
 

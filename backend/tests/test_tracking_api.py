@@ -7,8 +7,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import inspect, select
 from sqlalchemy.orm import Session
 
-from app.controllers.tracking import get_tracking_service
-from app.db.models import Conversation, UserBehaviorEvent
+from app.controllers.tracking import get_test_mode_service, get_tracking_service
+from app.db.models import Conversation, TrackingSession, UserBehaviorEvent
 from app.main import app
 from app.services.tracking import TrackingPersistenceError
 
@@ -55,6 +55,9 @@ def test_tracking_event_is_persisted_with_only_the_approved_schema(
     assert event.received_at.tzinfo is not None
     assert re.fullmatch(r"[0-9a-f]{64}", event.request_fingerprint)
     assert event.conversation_id is None
+    tracking_session = db_session.get(TrackingSession, "session_001")
+    assert tracking_session is not None
+    assert tracking_session.is_test is False
     assert {column.name for column in inspect(UserBehaviorEvent).columns} == {
         "id",
         "event_name",
@@ -243,4 +246,101 @@ def test_tracking_storage_failure_uses_safe_error_contract(client: TestClient) -
     assert response.json() == {
         "code": "PERSISTENCE_ERROR",
         "message": "行为事件暂时无法保存。",
+    }
+
+
+def test_test_mode_designation_is_idempotent_and_excludes_late_event_identity(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    assert client.post(
+        "/api/tracking-events",
+        json=tracking_payload(eventId="event_before"),
+    ).status_code == 200
+
+    first = client.post(
+        "/api/tracking-sessions/test-mode",
+        json={"sessionId": "session_001"},
+    )
+    first_activation = db_session.get(TrackingSession, "session_001")
+    assert first_activation is not None
+    activated_at = first_activation.test_mode_activated_at
+
+    second = client.post(
+        "/api/tracking-sessions/test-mode",
+        json={"sessionId": "session_001"},
+    )
+    assert client.post(
+        "/api/tracking-events",
+        json=tracking_payload(eventId="event_after", eventName="resume_previewed"),
+    ).status_code == 200
+
+    db_session.expire_all()
+    tracking_session = db_session.get(TrackingSession, "session_001")
+    assert first.json() == second.json() == {
+        "success": True,
+        "sessionId": "session_001",
+        "testMode": True,
+    }
+    assert tracking_session is not None
+    assert tracking_session.is_test is True
+    assert tracking_session.test_mode_activated_at == activated_at
+    assert set(db_session.scalars(select(UserBehaviorEvent.id))) == {
+        "event_before",
+        "event_after",
+    }
+
+
+def test_test_mode_designation_can_create_session_before_any_event(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    response = client.post(
+        "/api/tracking-sessions/test-mode",
+        json={"sessionId": "session_new_test"},
+    )
+
+    tracking_session = db_session.get(TrackingSession, "session_new_test")
+    assert response.status_code == 200
+    assert tracking_session is not None
+    assert tracking_session.is_test is True
+    assert tracking_session.test_mode_activated_at is not None
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [{}, {"sessionId": ""}, {"sessionId": "x" * 65}, {"sessionId": "ok", "extra": 1}],
+)
+def test_test_mode_rejects_invalid_payloads(
+    client: TestClient,
+    db_session: Session,
+    payload: dict[str, object],
+) -> None:
+    response = client.post("/api/tracking-sessions/test-mode", json=payload)
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "code": "INVALID_REQUEST",
+        "message": "测试模式请求格式无效。",
+    }
+    assert db_session.scalar(select(TrackingSession)) is None
+
+
+class FailingTestModeService:
+    def designate(self, **_kwargs: object) -> None:
+        raise TrackingPersistenceError
+
+
+def test_test_mode_storage_failure_uses_safe_error_contract(client: TestClient) -> None:
+    app.dependency_overrides[get_test_mode_service] = FailingTestModeService
+
+    response = client.post(
+        "/api/tracking-sessions/test-mode",
+        json={"sessionId": "session_001"},
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "code": "PERSISTENCE_ERROR",
+        "message": "测试模式暂时无法启用。",
     }

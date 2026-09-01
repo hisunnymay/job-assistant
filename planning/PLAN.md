@@ -2,14 +2,17 @@
 
 ## Document Information
 
-- **Version:** v0.44
-- **Status:** Draft — Goal 10 Ready for Implementation
+- **Version:** v0.47
+- **Status:** Draft — Goal 10 Complete Locally
 - **Owner:** Mei Chang
 - **Last Updated:** 2026-09-01
 - **Purpose:** Define implementation order, Goal scope, completion criteria, dependencies, and validation for Codex.
 
 ## Version Log
 
+- **v0.47 — 2026-09-01:** Prevented stale embedded résumé previews after fixed-PDF replacement by versioning the frontend resource URL and returning explicit no-store response headers; the approved PDF bytes and public endpoint remain otherwise unchanged.
+- **v0.46 — 2026-09-01:** Replaced the user-approved fixed résumé PDF, synchronized its runtime Markdown contact line and verified digests, updated recruiter contact copy, removed the greeting signature line, limited the 30–60 second expectation to initial report generation, and compacted the dashboard to fit all metrics in one compact viewport; the deployed production manifest remains unchanged pending a separately approved release.
+- **v0.45 — 2026-09-01:** Completed Goal 10 locally with the public aggregate Data Dashboard, inclusive Asia/Shanghai filtering, server-owned whole-session test exclusion, acknowledgement-gated browser test mode, migration/backfill, privacy-safe retention, and full Mock regression, browser, security, and conformance validation; commit, push, merge, production migration, deployment, and provider calls remain pending or separately gated.
 - **v0.44 — 2026-09-01:** Added Goal 10 for the PRD v0.9 aggregate Data Dashboard, inclusive date filtering, server-owned whole-session test exclusion, hidden three-click activation, persistent “测试模式” state, public aggregate API, migration/backfill, and full privacy/conformance validation; implementation, commit, deployment, and provider calls remain separately gated.
 - **v0.43 — 2026-08-28:** Designated the approved Hong Kong ECS and `sunnydemo.me` as the current recruiter-production environment, removed production Basic Auth for public recruiter access, retained the protected local demo harness, deployed immutable locally built `linux/amd64` images by verified content ID, and recorded the first-release rollback limitation and public-abuse-control follow-up.
 - **v0.42 — 2026-08-28:** Promoted Goal 9 to **Release Candidate Ready — Deployment Pending** after an evaluator-hashed complete rerun passed all hard guardrails but exposed one broad source-heading miss, a narrow traceability correction passed three matching/reliability runs, and the final privacy-safe artifact composed those current-prompt results with the unchanged follow-up results. The final evidence uses 39 provider calls within the approved 60-call ceiling and passes every graded threshold; external deployment gates remain unchanged.
@@ -118,8 +121,8 @@ These are agreed project inputs, not a coding Goal.
 ### Fixed Candidate Résumé Resource
 
 - **Status:** Confirmed; the Markdown was supplied and verified by the user.
-- **Recruiter preview/download:** `backend/app/resources/resume/mei_chang_resume.pdf`, SHA-256 `20a4d191dcc675b67a55da4296c2200cf2ceed1b3deb9aca4fbdf9e5e8cb08bd`.
-- **Runtime AI context:** `backend/app/resources/resume/mei_chang_resume.md`, SHA-256 `9e1db40802663dd49fc5ece9637a7b386f3f7a7dcc552bdc7444ae1cf17e1c04`.
+- **Recruiter preview/download:** `backend/app/resources/resume/mei_chang_resume.pdf`, SHA-256 `03f5c8b961b6d13647cf365be3d36d84aecf714ecd0a0910c2c46fbc361768d1`.
+- **Runtime AI context:** `backend/app/resources/resume/mei_chang_resume.md`, SHA-256 `8bcb54a37a4e6b15a44ed853708d0401eea170bf1b337fa860d8d41d171aa685`.
 - Treat both files as one approved fixed resource. Do not add request-time extraction/preprocessing, résumé upload/management, or independently edit either representation without renewed verification and digest updates.
 
 Already finalized:
@@ -1153,9 +1156,10 @@ The local smoke script reads Basic Auth credentials from environment variables, 
 
 ## Goal 10 — Aggregate Data Dashboard and Test-session Exclusion
 
-- **Status:** Ready for implementation; not started
+- **Status:** Complete — local implementation validated; commit and deployment pending
 - **Depends on:** Goal 5 centralized tracking and Goal 9 production baseline
 - **Branch:** `goal/10-data-dashboard`
+- **Actual Implementation Time:** 38 minutes, measured by the Codex Goal timer from implementation start through local closeout; no separately measurable user-decision wait was included.
 
 ### Authoritative References and Constraints
 

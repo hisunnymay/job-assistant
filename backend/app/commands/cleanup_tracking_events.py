@@ -19,13 +19,14 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     arguments = build_parser().parse_args()
     with get_session_factory()() as session:
-        deleted_events, cutoff = TrackingRetentionService(
+        deleted_events, deleted_sessions, cutoff = TrackingRetentionService(
             TrackingRepository(session)
         ).delete_expired(now=arguments.now)
     print(
         json.dumps(
             {
                 "deletedEvents": deleted_events,
+                "deletedSessions": deleted_sessions,
                 "cutoff": cutoff.isoformat(),
             },
             ensure_ascii=False,

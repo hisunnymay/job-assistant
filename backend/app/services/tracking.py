@@ -6,7 +6,7 @@ from typing import Literal, Protocol
 
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from app.db.models import Conversation, UserBehaviorEvent
+from app.db.models import Conversation, TrackingSession, UserBehaviorEvent
 
 TrackingEventName = Literal[
     "page_visit",
@@ -53,23 +53,45 @@ class TrackingRepositoryProtocol(Protocol):
 
     def get_conversation(self, conversation_id: str) -> Conversation | None: ...
 
+    def get_tracking_session(self, session_id: str) -> TrackingSession | None: ...
+
+    def ensure_tracking_session(self, session_id: str) -> None: ...
+
+    def designate_test_session(self, session_id: str, activated_at: datetime) -> None: ...
+
     def add_event(self, event: UserBehaviorEvent) -> None: ...
 
     def aggregate_events(
         self,
         *,
-        period_start: datetime,
-        period_end: datetime,
+        period_start: datetime | None,
+        period_end: datetime | None,
     ) -> list[tuple[str, int, int]]: ...
 
     def count_contact_sessions_with_report(
         self,
         *,
-        period_start: datetime,
-        period_end: datetime,
+        period_start: datetime | None,
+        period_end: datetime | None,
     ) -> int: ...
 
+    def latest_received_at(
+        self,
+        *,
+        period_start: datetime | None,
+        period_end: datetime | None,
+    ) -> datetime | None: ...
+
+    def dashboard_aggregate(
+        self,
+        *,
+        period_start: datetime | None,
+        period_end: datetime | None,
+    ) -> tuple[dict[str, int], int, int, datetime | None]: ...
+
     def delete_events_received_before(self, cutoff: datetime) -> int: ...
+
+    def delete_inactive_empty_sessions(self, cutoff: datetime) -> int: ...
 
     def commit(self) -> None: ...
 
@@ -187,6 +209,7 @@ class TrackingService:
             ):
                 raise TrackingConversationNotFoundError
 
+            self._repository.ensure_tracking_session(session_id)
             self._repository.add_event(
                 UserBehaviorEvent(
                     id=event_id,
@@ -273,6 +296,19 @@ class TrackingService:
             raise TrackingPersistenceError from lookup_error
 
 
+class TestModeService:
+    def __init__(self, repository: TrackingRepositoryProtocol) -> None:
+        self._repository = repository
+
+    def designate(self, *, session_id: str) -> None:
+        try:
+            self._repository.designate_test_session(session_id, datetime.now(UTC))
+            self._repository.commit()
+        except SQLAlchemyError as error:
+            self._repository.rollback()
+            raise TrackingPersistenceError from error
+
+
 class TrackingReportService:
     def __init__(self, repository: TrackingRepositoryProtocol) -> None:
         self._repository = repository
@@ -322,13 +358,16 @@ class TrackingRetentionService:
     def __init__(self, repository: TrackingRepositoryProtocol) -> None:
         self._repository = repository
 
-    def delete_expired(self, *, now: datetime | None = None) -> tuple[int, datetime]:
+    def delete_expired(
+        self, *, now: datetime | None = None
+    ) -> tuple[int, int, datetime]:
         current_time = now or datetime.now(UTC)
         cutoff = current_time - timedelta(days=TRACKING_RETENTION_DAYS)
         try:
             deleted_events = self._repository.delete_events_received_before(cutoff)
+            deleted_sessions = self._repository.delete_inactive_empty_sessions(cutoff)
             self._repository.commit()
         except SQLAlchemyError as error:
             self._repository.rollback()
             raise TrackingPersistenceError from error
-        return deleted_events, cutoff
+        return deleted_events, deleted_sessions, cutoff

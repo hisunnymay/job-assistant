@@ -1,6 +1,7 @@
 interface IconProps {
   name:
     | 'briefcase'
+    | 'chart'
     | 'copy'
     | 'download'
     | 'file'
@@ -31,6 +32,12 @@ export function Icon({ name, size = 22 }: IconProps) {
         <svg {...commonProps}>
           <rect x="3" y="7" width="18" height="13" rx="2" />
           <path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7M3 12h18M10 12v2h4v-2" />
+        </svg>
+      )
+    case 'chart':
+      return (
+        <svg {...commonProps}>
+          <path d="M4 20V10h4v10M10 20V4h4v16M16 20v-7h4v7M2 20h20" />
         </svg>
       )
     case 'copy':

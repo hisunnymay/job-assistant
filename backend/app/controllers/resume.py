@@ -26,4 +26,8 @@ def get_resume(
         media_type="application/pdf",
         filename="mei_chang_resume.pdf",
         content_disposition_type="attachment" if download else "inline",
+        headers={
+            "Cache-Control": "no-store, max-age=0",
+            "Pragma": "no-cache",
+        },
     )

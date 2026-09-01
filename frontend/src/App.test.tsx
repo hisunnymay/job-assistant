@@ -11,6 +11,7 @@ import { FeedbackClientError } from './services/feedbackClient'
 import { FollowUpClientError } from './services/followUpClient'
 import { createMockAnalysisClient } from './services/mockAnalysisClient'
 import type { FollowUpClient } from './types/followUp'
+import type { DashboardClient } from './types/dashboard'
 import type { AnalysisClient } from './types/matching'
 import type { TrackingClient } from './types/tracking'
 
@@ -18,6 +19,7 @@ function renderJourney(options?: {
   failFirstRequest?: boolean
   followUpClient?: FollowUpClient
   trackingClient?: TrackingClient
+  dashboardClient?: DashboardClient
 }) {
   const analysisClient = createMockAnalysisClient({
     delayMs: 0,
@@ -29,6 +31,7 @@ function renderJourney(options?: {
       analysisClient={analysisClient}
       followUpClient={options?.followUpClient}
       trackingClient={options?.trackingClient}
+      dashboardClient={options?.dashboardClient}
     />,
   )
 }
@@ -167,6 +170,138 @@ describe('Goal 4 recruiter workspace', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('opens the dashboard without clearing an active conversation', async () => {
+    const getAggregate = vi.fn().mockResolvedValue({
+      reportingPeriod: {
+        mode: 'all_retained',
+        startDate: null,
+        endDate: null,
+        timezone: 'Asia/Shanghai',
+      },
+      updatedAt: null,
+      contactConversion: { rate: null, numerator: 0, denominator: 0 },
+      eventTotals: {
+        pageVisits: 0,
+        jobDescriptionSubmissions: 0,
+        matchingReportsGenerated: 0,
+        resumePreviews: 0,
+        contactCtaClicks: 0,
+        feedbackSubmissions: 0,
+      },
+    })
+    renderJourney({ dashboardClient: { getAggregate } })
+    await openCompletedAnalysis()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.navigation.dashboard }),
+    )
+    expect(
+      await screen.findByRole('heading', { name: zhCN.dashboard.title }),
+    ).toBeInTheDocument()
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.navigation.assistant }),
+    )
+
+    expect(
+      screen.getByRole('article', {
+        name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('activates test mode only after acknowledgement and exits with a normal page visit', async () => {
+    let resolveActivation: (() => void) | undefined
+    const activateTestMode = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveActivation = resolve
+        }),
+    )
+    const exitTestMode = vi.fn()
+    const track = vi.fn()
+    renderJourney({
+      trackingClient: {
+        track,
+        isTestModeActive: () => false,
+        activateTestMode,
+        exitTestMode,
+      },
+    })
+
+    const trigger = screen.getByRole('button', {
+      name: zhCN.testMode.triggerLabel,
+    })
+    fireEvent.click(trigger)
+    fireEvent.click(trigger)
+    fireEvent.click(trigger)
+    expect(activateTestMode).toHaveBeenCalledOnce()
+    expect(screen.queryByText(zhCN.testMode.activeLabel)).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(
+      zhCN.testMode.activating,
+    )
+
+    resolveActivation?.()
+    expect(await screen.findByText(zhCN.testMode.activeLabel)).toBeInTheDocument()
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.testMode.exit }),
+    )
+
+    expect(exitTestMode).toHaveBeenCalledOnce()
+    expect(screen.queryByText(zhCN.testMode.activeLabel)).not.toBeInTheDocument()
+    expect(track.mock.calls).toEqual([
+      ['page_visit', undefined],
+      ['page_visit', undefined],
+    ])
+  })
+
+  it('keeps the test label hidden when designation fails', async () => {
+    renderJourney({
+      trackingClient: {
+        track: vi.fn(),
+        isTestModeActive: () => false,
+        activateTestMode: vi.fn().mockRejectedValue(new Error('failed')),
+      },
+    })
+    const trigger = screen.getByRole('button', {
+      name: zhCN.testMode.triggerLabel,
+    })
+
+    fireEvent.click(trigger)
+    fireEvent.click(trigger)
+    fireEvent.click(trigger)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      zhCN.testMode.activationError,
+    )
+    expect(screen.queryByText(zhCN.testMode.activeLabel)).not.toBeInTheDocument()
+  })
+
+  it('resets the hidden activation sequence after two seconds', async () => {
+    vi.useFakeTimers()
+    const activateTestMode = vi.fn().mockResolvedValue(undefined)
+    renderJourney({
+      trackingClient: {
+        track: vi.fn(),
+        isTestModeActive: () => false,
+        activateTestMode,
+      },
+    })
+    const trigger = screen.getByRole('button', {
+      name: zhCN.testMode.triggerLabel,
+    })
+
+    fireEvent.click(trigger)
+    fireEvent.click(trigger)
+    act(() => vi.advanceTimersByTime(2001))
+    fireEvent.click(trigger)
+    fireEvent.click(trigger)
+    expect(activateTestMode).not.toHaveBeenCalled()
+
+    fireEvent.click(trigger)
+    await act(async () => Promise.resolve())
+    expect(activateTestMode).toHaveBeenCalledOnce()
+  })
+
   it('moves a valid JD into the three-item workspace and keeps loading in context', () => {
     renderJourney()
     submitExampleJobDescription()
@@ -270,7 +405,7 @@ describe('Goal 4 recruiter workspace', () => {
       screen.getByRole('status', {
         name: `${zhCN.conversation.assistantName}：${zhCN.followUp.loadingTitle}`,
       }),
-    ).toHaveTextContent(zhCN.loading.typicalDuration)
+    ).not.toHaveTextContent(zhCN.loading.typicalDuration)
     expect(screen.getByText(zhCN.loading.elapsed(0))).toBeInTheDocument()
     expect(followUpInput).toBeDisabled()
     expect(ask).toHaveBeenCalledOnce()
@@ -584,14 +719,25 @@ describe('Goal 4 recruiter workspace', () => {
     )
     expect(screen.getByTitle(zhCN.resume.previewTitle)).toHaveAttribute(
       'src',
-      'http://localhost:8000/api/resume',
+      'http://localhost:8000/api/resume?v=03f5c8b961b6d136',
     )
     expect(
       screen.getByRole('link', { name: zhCN.resume.download }),
-    ).toHaveAttribute('href', 'http://localhost:8000/api/resume?download=true')
+    ).toHaveAttribute(
+      'href',
+      'http://localhost:8000/api/resume?v=03f5c8b961b6d136&download=true',
+    )
 
     fireEvent.click(
       screen.getByRole('button', { name: zhCN.navigation.contact }),
+    )
+    expect(screen.getByText(zhCN.contact.email)).toHaveAttribute(
+      'href',
+      `mailto:${zhCN.contact.email}`,
+    )
+    expect(screen.getByText(zhCN.contact.phoneLabel)).toBeInTheDocument()
+    expect(screen.getByLabelText(zhCN.contact.greetingLabel)).not.toHaveTextContent(
+      '—— 招聘负责人',
     )
     fireEvent.click(screen.getByRole('button', { name: zhCN.contact.copyEmail }))
     expect(writeText).toHaveBeenCalledWith(zhCN.contact.email)
@@ -601,6 +747,9 @@ describe('Goal 4 recruiter workspace', () => {
     })
     expect(screen.getByLabelText(zhCN.contact.greetingLabel)).toHaveTextContent(
       '您好梅唱，我是张经理。',
+    )
+    expect(screen.getByLabelText(zhCN.contact.greetingLabel)).not.toHaveTextContent(
+      '——',
     )
     fireEvent.click(
       screen.getByRole('button', { name: zhCN.contact.copyGreeting }),
