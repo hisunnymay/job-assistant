@@ -1,14 +1,24 @@
 export const zhCN = {
   appName: 'AI 职位匹配助手',
+  developerCredit: '产品设计与开发：梅唱',
   navigationLabel: '招聘评估工作台',
   navigation: {
     ariaLabel: '主要功能',
     home: '首页',
     assistant: '职位匹配',
     resume: '简历预览',
-    contact: '联系候选人',
+    contact: '联系方式',
     dashboard: '数据看板',
     returnToConversation: '返回当前匹配',
+  },
+  candidateContext: {
+    ariaLabel: '当前候选人信息',
+    label: '当前候选人',
+    name: '梅唱',
+    infoButton: '了解候选人范围',
+    hintTitle: '候选人范围',
+    hintBody:
+      '当前版本仅支持固定候选人梅唱。后续版本将支持上传简历并更换候选人。',
   },
   brandMark: '梅',
   demoChip: 'Mock MVP',
@@ -102,7 +112,6 @@ export const zhCN = {
     kicker: '联系候选人',
     title: '联系梅唱',
     description: '联系方式来自候选人批准的简历。你可以填写姓名并复制问候语。',
-    methodsLabel: '联系方式',
     emailLabel: '邮箱',
     phoneLabel: '电话 / 微信号',
     email: 'hisunnymay@gmail.com',
@@ -152,32 +161,26 @@ export const zhCN = {
     },
     metrics: {
       pageVisits: {
-        icon: '访',
         title: '页面访问量',
         definition: '已接受的页面访问事件总数。',
       },
       jobDescriptionSubmissions: {
-        icon: 'JD',
         title: '职位描述提交数',
         definition: '已接受的职位描述提交事件总数。',
       },
       matchingReportsGenerated: {
-        icon: '报',
         title: '匹配报告生成数',
         definition: '已接受的匹配报告生成事件总数。',
       },
       resumePreviews: {
-        icon: '简',
-        title: '简历预览数',
-        definition: '已接受的简历预览事件总数。',
+        title: '简历预览会话数',
+        definition: '查看过简历的会话数，同一会话仅计一次。',
       },
       contactCtaClicks: {
-        icon: '联',
-        title: '联系 CTA 点击数',
-        definition: '已接受的联系候选人点击事件总数。',
+        title: '联系 CTA 会话数',
+        definition: '点击过联系入口的会话数，同一会话仅计一次。',
       },
       feedbackSubmissions: {
-        icon: '评',
         title: '反馈提交数',
         definition: '已接受的反馈提交事件总数。',
       },

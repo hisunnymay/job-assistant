@@ -9,7 +9,7 @@
 | ------------- | ---------------------------- |
 | Document Name | AI Job Fit Assistant PRD     |
 | Document Type | Product Requirement Document |
-| Version       | v0.10                        |
+| Version       | v0.11                        |
 | Status        | Approved                     |
 | Owner         | Mei Chang                    |
 | Last Updated  | 2026-09-01                   |
@@ -43,6 +43,7 @@ The Version Log records document changes and the reasons behind those changes.
 
 | Version | Date       | Changes                                                           | Reason                                                           |
 | ------- | ---------- | ----------------------------------------------------------------- | ---------------------------------------------------------------- |
+| v0.11   | 2026-09-01 | Changed résumé-preview and Contact CTA supporting metrics to distinct-session counts and prohibited duplicate tracking when their already-active workspace navigation item is selected again. | Measure meaningful candidate exploration and contact intent without inflating results through repeated navigation in one browser-tab session. |
 | v0.10   | 2026-09-01 | Changed the Data Dashboard's initial reporting period to the inclusive range from 2026-09-01 through the current Asia/Shanghai calendar date, while retaining Reset as the route to all retained data. | Open the dashboard on the product's operational reporting window without removing access to the full retained dataset. |
 | v0.9    | 2026-09-01 | Required an obvious persistent “测试模式” label after test-mode activation, with optional color styling as secondary reinforcement. | Ensure testers can immediately recognize the excluded analytics state without relying on color alone. |
 | v0.8    | 2026-09-01 | Added the hidden three-click test-mode entry and exit behavior, whole-session metric exclusion, and a dashboard date-range filter. | Allow product testing without contaminating dashboard results and allow evaluators to inspect metrics for a defined period. |
@@ -344,13 +345,13 @@ Measure whether the product helps users transition from understanding candidate-
 #### Product Usage Metrics
 
 
-| Metric                     | Purpose                                            |
-| -------------------------- | -------------------------------------------------- |
-| Page visits                | Measure product exposure                           |
-| JD submissions             | Measure user willingness to use the core feature   |
-| Matching reports generated | Measure successful completion of the main workflow |
-| Resume preview views       | Measure candidate information exploration          |
-| Contact CTA clicks         | Measure conversion behavior                        |
+| Metric                     | Aggregation | Purpose                                            |
+| -------------------------- | ----------- | -------------------------------------------------- |
+| Page visits                | Accepted event count | Measure product exposure                           |
+| JD submissions             | Accepted event count | Measure user willingness to use the core feature   |
+| Matching reports generated | Accepted event count | Measure successful completion of the main workflow |
+| Resume preview sessions    | Distinct non-test `sessionId` count | Measure candidate information exploration without repeated-session inflation |
+| Contact CTA sessions       | Distinct non-test `sessionId` count | Measure contact intent without repeated-session inflation |
 
 
 ---
@@ -1064,7 +1065,9 @@ The system should:
 - Provide a Data Dashboard entry in the persistent workspace navigation;
 - Present Contact Conversion Rate as the primary metric, including its percentage, numerator, denominator, and a concise definition;
 - Calculate Contact Conversion Rate according to Section 2.2 using distinct pseudonymous tracking sessions. “Distinct” means deduplicated by `sessionId`, not by person;
-- Present total counts for page visits, job description submissions, matching reports generated, resume preview views, Contact CTA clicks, and feedback submissions;
+- Present accepted-event totals for page visits, job description submissions, matching reports generated, and feedback submissions;
+- Present distinct non-test session counts for resume previews and Contact CTA interactions, deduplicated by `sessionId` within the selected reporting period;
+- Do not emit another resume-preview or Contact CTA event when the corresponding workspace view is already active and its navigation item is selected again;
 - Use the same reporting period and authoritative centralized tracking source for all displayed metrics;
 - Provide start-date and end-date controls that allow the evaluator to define the reporting period;
 - Treat both selected calendar dates as inclusive in the timezone displayed by the dashboard;
@@ -1095,7 +1098,9 @@ The initial dashboard does not require:
 - The dashboard displays Contact Conversion Rate and all six supporting usage metrics from centrally persisted tracking data;
 - The Contact Conversion Rate numerator and denominator deduplicate qualifying events by `sessionId`, not by inferred person identity or raw event count;
 - Repeated qualifying events within one non-test session count once for the relevant side of the Contact Conversion Rate calculation;
-- Supporting metric cards display total accepted event counts for the reporting period, so their values may differ from the distinct-session numerator and denominator;
+- Page visits, job description submissions, matching reports generated, and feedback submissions display total accepted event counts for the reporting period;
+- Resume previews and Contact CTA interactions display distinct non-test session counts for the reporting period; repeated qualifying events in one session count once on their respective cards;
+- Selecting an already-active Resume Preview or Contact Candidate navigation item does not emit another tracking event;
 - Events from test-mode sessions do not contribute to the primary metric, its numerator or denominator, or any supporting metric;
 - A zero denominator produces a valid empty or zero-rate presentation rather than an invalid numeric value;
 - All displayed metrics use the same reporting period and show the latest update time with timezone;

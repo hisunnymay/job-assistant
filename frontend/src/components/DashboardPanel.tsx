@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { zhCN } from '../content/zh-CN'
+import { Icon } from './Icon'
 import type {
   DashboardAggregate,
   DashboardClient,
@@ -23,6 +24,15 @@ const totalMetricKeys = [
   'contactCtaClicks',
   'feedbackSubmissions',
 ] as const
+
+const totalMetricIcons = {
+  pageVisits: 'eye',
+  jobDescriptionSubmissions: 'file-plus',
+  matchingReportsGenerated: 'report',
+  resumePreviews: 'candidate',
+  contactCtaClicks: 'phone-outgoing',
+  feedbackSubmissions: 'message',
+} as const
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat('zh-CN').format(value)
@@ -259,6 +269,12 @@ export function DashboardPanel({ client }: DashboardPanelProps) {
             <p className="metric-definition">
               {zhCN.dashboard.conversion.definition}
             </p>
+            <div className="conversion-visual" aria-hidden="true">
+              <Icon name="funnel" size={58} />
+              <span className="conversion-contact-icon">
+                <Icon name="phone-outgoing" size={18} />
+              </span>
+            </div>
           </article>
 
           <div className="metric-grid">
@@ -267,7 +283,7 @@ export function DashboardPanel({ client }: DashboardPanelProps) {
               return (
                 <article className={`metric-card metric-card-${index + 1}`} key={metricKey}>
                   <span className="metric-icon" aria-hidden="true">
-                    {metric.icon}
+                    <Icon name={totalMetricIcons[metricKey]} size={25} />
                   </span>
                   <div>
                     <h2>{metric.title}</h2>

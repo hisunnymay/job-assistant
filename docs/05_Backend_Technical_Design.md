@@ -6,7 +6,7 @@
 | --- | --- |
 | Document Name | AI Job Fit Assistant Backend Technical Design |
 | Document Type | Backend Technical Design |
-| Version | v1.2 |
+| Version | v1.3 |
 | Status | Finalized |
 | Owner | Mei Chang |
 | Last Updated | 2026-09-01 |
@@ -17,6 +17,7 @@
 
 | Version | Date | Change | Reason |
 | --- | --- | --- | --- |
+| v1.3 | 2026-09-01 | Changed the dashboard's `resumePreviews` and `contactCtaClicks` values to distinct non-test session counts while preserving the existing aggregate response shape and conversion cohort calculation. | Prevent repeated actions within one browser-tab session from inflating candidate-exploration and contact-intent metrics. |
 | v1.2 | 2026-09-01 | Added server-owned Tracking Session test classification, retroactive whole-session metric exclusion, an idempotent test-mode designation endpoint, and an aggregate dashboard endpoint with shared inclusive date filtering. | Implement PRD v0.9 while preserving privacy-safe event payloads, layered ownership, existing AI behavior, and the prohibition on event-level analytics exposure. |
 | v1.1 | 2026-08-28 | Designated the approved Hong Kong host and `sunnydemo.me` as the current recruiter-production environment; made production UI/API access public without Basic Auth; accepted bounded public-exposure risk while retaining HTTPS, immutable images, Ark spend controls, privacy-safe diagnostics, backup/restore, and local protected-demo validation. | Align the authoritative deployment boundary with the user's approved production decision and public recruiter access without treating provider-side spend limits as general API abuse protection. |
 | v1.0 | 2026-08-28 | Finalized the local development/test, optional Hong Kong staging, and preferred mainland Beijing production boundaries; added the provider/domain/ICP pre-purchase gate, immutable digest-based release path, production-fix prohibition, and live validation requirements; aligned the stale database-decision text with the already implemented PostgreSQL architecture. | Make the MVP deployment path actionable without prematurely purchasing infrastructure, weakening release controls, treating production as a development environment, or leaving contradictory deployment dependencies. |
@@ -1019,7 +1020,7 @@ Response:
 
 `reportingPeriod.mode` is `all_retained` when both query parameters are omitted; in that mode `startDate` and `endDate` are `null` and the frontend labels the period as all available data within the 90-day retention boundary. `updatedAt` is the latest `receivedAt` among included non-test events and is `null` when the result contains no events.
 
-`contactConversion.rate` is a decimal ratio between `0` and `1`, calculated from distinct `sessionId` values according to PRD Section 2.2. It is `null` when `denominator` is zero. Supporting totals count accepted events rather than distinct sessions. Every field uses the same reporting period and excludes Tracking Sessions where `isTest = true`.
+`contactConversion.rate` is a decimal ratio between `0` and `1`, calculated from distinct `sessionId` values according to PRD Section 2.2. It is `null` when `denominator` is zero. Within `eventTotals`, `pageVisits`, `jobDescriptionSubmissions`, `matchingReportsGenerated`, and `feedbackSubmissions` count accepted events; `resumePreviews` and `contactCtaClicks` count distinct `sessionId` values. Every field uses the same reporting period and excludes Tracking Sessions where `isTest = true`.
 
 The endpoint returns aggregate values only. It must not return event records, `sessionId` values, Conversation identifiers, timestamps for individual interactions, user-entered content, or candidate content.
 

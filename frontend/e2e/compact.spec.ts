@@ -25,6 +25,42 @@ test('keeps the compact recruiter journey readable and keyboard operable', async
   await page.getByRole('button', { name: zhCN.navigation.resume }).click()
   await expect(page.getByRole('heading', { name: zhCN.resume.title })).toBeVisible()
   await expect(page.getByRole('navigation', { name: zhCN.navigation.ariaLabel })).toBeVisible()
+  await expect(page.getByText(zhCN.developerCredit)).toBeVisible()
+  const candidateContext = page.getByRole('region', {
+    name: zhCN.candidateContext.ariaLabel,
+  })
+  await expect(candidateContext).toContainText(zhCN.candidateContext.name)
+  await expect(candidateContext).not.toContainText('固定简历')
+  const candidateInfoButton = page.getByRole('button', {
+    name: zhCN.candidateContext.infoButton,
+  })
+  expect(
+    await candidateContext.locator('.candidate-context-label').evaluate(
+      (label) => window.getComputedStyle(label).whiteSpace,
+    ),
+  ).toBe('nowrap')
+  await expect(candidateInfoButton.locator('..')).toContainText(
+    zhCN.candidateContext.name,
+  )
+  expect(
+    await candidateInfoButton.evaluate(
+      (button) => window.getComputedStyle(button).borderStyle,
+    ),
+  ).toBe('none')
+  expect(
+    await candidateContext.evaluate(
+      (context) => window.getComputedStyle(context).textAlign,
+    ),
+  ).toBe('left')
+  await candidateInfoButton.click()
+  await expect(
+    page.getByRole('region', { name: zhCN.candidateContext.hintTitle }),
+  ).toContainText(zhCN.candidateContext.hintBody)
+  await page.keyboard.press('Escape')
+  await expect(
+    page.getByRole('region', { name: zhCN.candidateContext.hintTitle }),
+  ).toHaveCount(0)
+  await expect(candidateInfoButton).toBeFocused()
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

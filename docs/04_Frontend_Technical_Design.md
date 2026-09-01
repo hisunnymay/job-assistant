@@ -7,7 +7,7 @@
 | ----------------- | -------------------------------------------------------------------------------------- |
 | Document Name     | AI Job Fit Assistant Frontend Technical Design                                         |
 | Document Type     | Frontend Technical Design                                                              |
-| Version           | v1.2                                                                                   |
+| Version           | v1.4                                                                                   |
 | Status            | Finalized                                                                              |
 | Last Updated      | 2026-09-01                                                                             |
 | Related Documents | Product Requirement Document, Lightweight AI Design Decision, Backend Technical Design |
@@ -17,6 +17,8 @@
 
 | Version | Date | Change | Reason |
 | --- | --- | --- | --- |
+| v1.4 | 2026-09-01 | Defined distinct-session presentation for résumé-preview and Contact CTA dashboard metrics and suppressed repeat tracking when their already-active workspace navigation item is selected. | Keep exploration and contact-intent metrics meaningful without changing the dashboard API shape or preventing legitimate navigation from other views. |
+| v1.3 | 2026-09-01 | Added a persistent workspace indicator aligned to the navigation grid, using a candidate-profile icon and identifying Mei Chang as the current candidate with an unframed information control beside the name and a right-side desktop disclosure. | Keep the MVP's single-candidate scope visible across every workspace view while explaining the planned direction without presenting résumé upload as an available control. |
 | v1.2 | 2026-09-01 | Removed the Data Dashboard kicker and changed its initial filter to the inclusive range from 2026-09-01 through the current Asia/Shanghai calendar date. | Start evaluation on the product's operational reporting window while preserving Reset access to all retained data. |
 | v1.1 | 2026-09-01 | Added the aggregate Data Dashboard view, shared inclusive date-range filtering, hidden three-click test-mode entry, persistent “测试模式” state, and whole-session metric exclusion flow. | Implement PRD v0.9 without adding frontend analytics logic, person identity, event-level disclosure, or AI behavior changes. |
 | v1.0 | 2026-08-27 | Added the static example-report mode and truthful elapsed-time presentation for matching and follow-up requests. | Provide immediate report value and accurate synchronous-AI waiting feedback without new APIs, fake progress, or frontend AI reasoning. |
@@ -132,6 +134,7 @@ Entrance View
 Job Assistant Workspace
 ├── Persistent Left Navigation
 │   ├── Product Brand / Home Control
+│   ├── Current Candidate: Mei Chang / Information Hint
 │   ├── Job Matching
 │   ├── Resume Preview
 │   ├── Contact Candidate
@@ -219,6 +222,7 @@ Responsible for providing independent access to major capabilities.
 It includes:
 
 - A product brand/title control that returns to Home;
+- A persistent “当前候选人：梅唱” indicator aligned to the navigation icon-and-label grid, with an unframed information control beside the candidate name explaining that a later version will support résumé upload and candidate changes;
 - Job Matching;
 - Resume Preview;
 - Contact Candidate;
@@ -234,7 +238,7 @@ It includes:
 
 - An inclusive start-date and end-date filter, Apply action, and Reset action;
 - Contact Conversion Rate as the primary metric with percentage, distinct-session numerator, distinct-session denominator, and definition;
-- Total event counts for page visits, job-description submissions, matching reports generated, résumé previews, Contact CTA clicks, and feedback submissions;
+- Accepted-event totals for page visits, job-description submissions, matching reports generated, and feedback submissions, plus distinct-session counts for résumé previews and Contact CTA interactions;
 - Metric definitions, the active reporting period, timezone, and latest update time;
 - Loading, no-data, validation-error, and recoverable retrieval-error states.
 
@@ -260,6 +264,7 @@ The reference images define the intended visual hierarchy and control placement,
 - The visible “AI” portion of the Entrance View title is the three-click test-mode target without appearing as a primary recruiter action;
 - The analysis button is disabled until the job description is valid;
 - Workspace views use a narrow left navigation and a larger right content area on desktop;
+- The workspace navigation persistently identifies “梅唱” as the current candidate and aligns its candidate-profile icon and text with the navigation icon and label columns. A keyboard-accessible, visually unframed information control beside the candidate name may disclose that a later version will support résumé upload and candidate changes; the disclosure opens to the indicator's right on desktop and below it on compact screens. It must not present an upload or candidate-switching control in the MVP;
 - The active navigation item uses a visible light-blue selected state and an icon plus Chinese label;
 - The Conversation View presents the submitted job description above the analysis, keeps the message area vertically scrollable, and keeps the follow-up composer available at the bottom;
 - The matching reply emphasizes a conclusion or summary, evidence-status labels, traceable evidence, partial or transferable information, and unknown information without calculating those conclusions in the frontend;
@@ -589,6 +594,8 @@ The frontend owns detecting the six S001 interaction boundaries:
 - Contact CTA click;
 - Feedback submission after successful persistence.
 
+Résumé-preview and Contact CTA events are emitted when navigation enters their respective workspace views from a different active view. Selecting the already-active Resume Preview or Contact Candidate navigation item must not emit another event. This frontend guard reduces accidental duplicate delivery; the backend remains authoritative for distinct-session dashboard aggregation.
+
 Each event sent to `POST /api/tracking-events` contains only:
 
 - `eventId`: a stable client-generated identifier used for idempotent delivery;
@@ -689,7 +696,7 @@ The frontend assumes:
 
 - AI-generated content should be provided in a frontend-renderable format;
 - MVP may use text/Markdown rendering;
-- Dashboard aggregates are returned as one response containing the shared reporting period, timezone, update time, conversion numerator/denominator/rate, and six event totals;
+- Dashboard aggregates are returned as one response containing the shared reporting period, timezone, update time, conversion numerator/denominator/rate, four accepted-event totals, and two distinct-session counts for résumé preview and Contact CTA activity;
 - Omitting dashboard dates requests all retained data; a custom request supplies both `startDate` and `endDate` as `YYYY-MM-DD` values;
 - `contactConversion.rate` may be `null` only when its denominator is zero, and the frontend renders that state as unavailable rather than an invalid number;
 - Test-mode activation is complete only after the backend acknowledges the current `sessionId` as test mode;

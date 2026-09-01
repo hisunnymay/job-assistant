@@ -67,6 +67,7 @@ describe('Goal 4 recruiter workspace', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: zhCN.hero.title }),
     ).toBeInTheDocument()
+    expect(screen.getByText(zhCN.developerCredit)).toBeInTheDocument()
     expect(
       screen.queryByRole('navigation', { name: zhCN.navigation.ariaLabel }),
     ).not.toBeInTheDocument()
@@ -158,6 +159,14 @@ describe('Goal 4 recruiter workspace', () => {
     expect(
       screen.getByRole('button', { name: zhCN.navigation.resume }),
     ).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByText(zhCN.developerCredit)).toBeInTheDocument()
+    const candidateContext = screen.getByRole('region', {
+      name: zhCN.candidateContext.ariaLabel,
+    })
+    expect(candidateContext).toHaveTextContent(
+      `${zhCN.candidateContext.label}${zhCN.candidateContext.name}`,
+    )
+    expect(candidateContext).not.toHaveTextContent('固定简历')
 
     fireEvent.click(
       screen.getByRole('button', { name: zhCN.navigation.contact }),
@@ -165,6 +174,9 @@ describe('Goal 4 recruiter workspace', () => {
     expect(
       screen.getByRole('heading', { name: zhCN.contact.title }),
     ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: zhCN.navigation.contact }),
+    ).not.toBeInTheDocument()
     expect(
       screen.queryByRole('heading', { name: zhCN.resume.title }),
     ).not.toBeInTheDocument()
@@ -719,13 +731,13 @@ describe('Goal 4 recruiter workspace', () => {
     )
     expect(screen.getByTitle(zhCN.resume.previewTitle)).toHaveAttribute(
       'src',
-      'http://localhost:8000/api/resume?v=03f5c8b961b6d136',
+      'http://localhost:8000/api/resume?v=30ebd7e42087fe69',
     )
     expect(
       screen.getByRole('link', { name: zhCN.resume.download }),
     ).toHaveAttribute(
       'href',
-      'http://localhost:8000/api/resume?v=03f5c8b961b6d136&download=true',
+      'http://localhost:8000/api/resume?v=30ebd7e42087fe69&download=true',
     )
 
     fireEvent.click(
@@ -979,6 +991,9 @@ describe('Goal 4 recruiter workspace', () => {
       }),
     )
     fireEvent.click(
+      screen.getByRole('button', { name: zhCN.navigation.resume }),
+    )
+    fireEvent.click(
       screen.getByRole('button', { name: zhCN.navigation.assistant }),
     )
     fireEvent.click(
@@ -987,6 +1002,9 @@ describe('Goal 4 recruiter workspace', () => {
           name: `${zhCN.conversation.assistantName}：${zhCN.conversation.matchingAnalysisMessageLabel}`,
         }),
       ).getByRole('button', { name: zhCN.report.contactCandidate }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: zhCN.navigation.contact }),
     )
     fireEvent.click(
       screen.getByRole('button', { name: zhCN.navigation.assistant }),

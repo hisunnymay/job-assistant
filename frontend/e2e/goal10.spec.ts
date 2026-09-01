@@ -86,6 +86,10 @@ test('excludes the acknowledged test session retroactively and after queued deli
   await expect(
     page.getByRole('heading', { name: zhCN.dashboard.title }),
   ).toBeVisible()
+  await expect(page.locator('.metric-grid .metric-icon svg')).toHaveCount(6)
+  await expect(page.locator('.conversion-visual svg')).toHaveCount(2)
+  await expect(page.getByText('简历预览会话数')).toBeVisible()
+  await expect(page.getByText('联系 CTA 会话数')).toBeVisible()
   const startDate = page.getByLabel(zhCN.dashboard.startDate)
   const endDate = page.getByLabel(zhCN.dashboard.endDate)
   const today = currentShanghaiDate()

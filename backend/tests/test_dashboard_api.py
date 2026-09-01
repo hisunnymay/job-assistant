@@ -33,7 +33,7 @@ def submit_event(
     assert response.status_code == 200
 
 
-def test_dashboard_returns_six_totals_distinct_conversion_and_no_identifiers(
+def test_dashboard_returns_mixed_aggregates_distinct_conversion_and_no_identifiers(
     client: TestClient,
 ) -> None:
     submit_event(
@@ -59,6 +59,27 @@ def test_dashboard_returns_six_totals_distinct_conversion_and_no_identifiers(
     )
     submit_event(
         client,
+        event_id="contact_1_repeat",
+        event_name="contact_cta_clicked",
+        session_id="normal_1",
+        occurred_at="2026-09-01T03:05:00Z",
+    )
+    submit_event(
+        client,
+        event_id="resume_1a",
+        event_name="resume_previewed",
+        session_id="normal_1",
+        occurred_at="2026-09-01T03:10:00Z",
+    )
+    submit_event(
+        client,
+        event_id="resume_1b",
+        event_name="resume_previewed",
+        session_id="normal_1",
+        occurred_at="2026-09-01T03:15:00Z",
+    )
+    submit_event(
+        client,
         event_id="report_2",
         event_name="matching_report_generated",
         session_id="normal_2",
@@ -70,6 +91,13 @@ def test_dashboard_returns_six_totals_distinct_conversion_and_no_identifiers(
         event_name="contact_cta_clicked",
         session_id="contact_only_session",
         occurred_at="2026-09-01T05:00:00Z",
+    )
+    submit_event(
+        client,
+        event_id="contact_only_repeat",
+        event_name="contact_cta_clicked",
+        session_id="contact_only_session",
+        occurred_at="2026-09-01T05:05:00Z",
     )
 
     response = client.get("/api/dashboard")
@@ -91,7 +119,7 @@ def test_dashboard_returns_six_totals_distinct_conversion_and_no_identifiers(
         "pageVisits": 0,
         "jobDescriptionSubmissions": 0,
         "matchingReportsGenerated": 3,
-        "resumePreviews": 0,
+        "resumePreviews": 1,
         "contactCtaClicks": 2,
         "feedbackSubmissions": 0,
     }
