@@ -2,11 +2,11 @@ from pathlib import Path
 
 CANDIDATE_RESUME_PDF_FILENAME = "mei_chang_resume.pdf"
 CANDIDATE_RESUME_PDF_SHA256 = (
-    "20a4d191dcc675b67a55da4296c2200cf2ceed1b3deb9aca4fbdf9e5e8cb08bd"
+    "03f5c8b961b6d13647cf365be3d36d84aecf714ecd0a0910c2c46fbc361768d1"
 )
 CANDIDATE_RESUME_CONTEXT_FILENAME = "mei_chang_resume.md"
 CANDIDATE_RESUME_CONTEXT_SHA256 = (
-    "9e1db40802663dd49fc5ece9637a7b386f3f7a7dcc552bdc7444ae1cf17e1c04"
+    "8bcb54a37a4e6b15a44ed853708d0401eea170bf1b337fa860d8d41d171aa685"
 )
 
 

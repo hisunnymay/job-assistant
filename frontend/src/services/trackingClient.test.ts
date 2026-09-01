@@ -14,6 +14,10 @@ class MemoryStorage {
   setItem(key: string, value: string) {
     this.values.set(key, value)
   }
+
+  removeItem(key: string) {
+    this.values.delete(key)
+  }
 }
 
 function acknowledgedResponse() {
@@ -289,5 +293,125 @@ describe('centralized tracking delivery client', () => {
 
     expect(() => client.track('contact_cta_clicked')).not.toThrow()
     expect(fetchImplementation).not.toHaveBeenCalled()
+  })
+
+  it('activates test mode only after one acknowledged designation request', async () => {
+    const sessionStorage = new MemoryStorage()
+    let resolveDesignation: ((response: Response) => void) | undefined
+    const fetchImplementation = vi.fn<typeof fetch>().mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveDesignation = resolve
+        }),
+    )
+    const client = createTrackingClient({
+      fetchImplementation,
+      pendingStorage: new MemoryStorage(),
+      sessionStorage,
+      createId: () => 'test-session',
+    })
+
+    const firstRequest = client.activateTestMode()
+    const duplicateRequest = client.activateTestMode()
+    expect(client.isTestModeActive()).toBe(false)
+    expect(fetchImplementation).toHaveBeenCalledOnce()
+    expect(requestBody(fetchImplementation.mock.calls[0])).toEqual({
+      sessionId: 'session_test-session',
+    })
+
+    resolveDesignation?.(
+      new Response(
+        JSON.stringify({
+          success: true,
+          sessionId: 'session_test-session',
+          testMode: true,
+        }),
+        { status: 200 },
+      ),
+    )
+    await Promise.all([firstRequest, duplicateRequest])
+    expect(client.isTestModeActive()).toBe(true)
+  })
+
+  it('exits test mode into a distinct normal session without rewriting queued events', async () => {
+    const pendingStorage = new MemoryStorage()
+    const sessionStorage = new MemoryStorage()
+    const identifiers = ['session-old', 'event-old', 'session-new', 'event-new']
+    const fetchImplementation = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            success: true,
+            sessionId: 'session_session-old',
+            testMode: true,
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValue(new Response(null, { status: 503 }))
+    const client = createTrackingClient({
+      fetchImplementation,
+      pendingStorage,
+      sessionStorage,
+      createId: () => identifiers.shift() ?? 'unexpected',
+    })
+
+    await client.activateTestMode()
+    client.track('page_visit')
+    await client.flushPending()
+    client.exitTestMode()
+    client.track('page_visit')
+    await client.flushPending()
+
+    const pendingEvents = readPendingTrackingEvents(pendingStorage)
+    expect(client.isTestModeActive()).toBe(false)
+    expect(pendingEvents).toHaveLength(2)
+    expect(pendingEvents[0].sessionId).toBe('session_session-old')
+    expect(pendingEvents[1].sessionId).toBe('session_session-new')
+  })
+
+  it('does not persist active test mode after a failed designation', async () => {
+    const client = createTrackingClient({
+      fetchImplementation: vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(new Response(null, { status: 500 })),
+      pendingStorage: new MemoryStorage(),
+      sessionStorage: new MemoryStorage(),
+      createId: () => 'failed-session',
+    })
+
+    await expect(client.activateTestMode()).rejects.toThrow()
+    expect(client.isTestModeActive()).toBe(false)
+  })
+
+  it('keeps acknowledged test mode active in memory when tab storage is unavailable', async () => {
+    const failingSessionStorage = {
+      getItem() {
+        throw new Error('storage unavailable')
+      },
+      setItem() {
+        throw new Error('storage unavailable')
+      },
+    }
+    const client = createTrackingClient({
+      fetchImplementation: vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: true,
+            sessionId: 'session_memory-only',
+            testMode: true,
+          }),
+          { status: 200 },
+        ),
+      ),
+      pendingStorage: new MemoryStorage(),
+      sessionStorage: failingSessionStorage,
+      createId: () => 'memory-only',
+    })
+
+    await client.activateTestMode()
+
+    expect(client.isTestModeActive()).toBe(true)
   })
 })

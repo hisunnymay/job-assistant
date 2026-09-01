@@ -42,11 +42,39 @@ def ensure_tracking_event_fingerprints(connection: Connection) -> None:
     )
 
 
+def ensure_tracking_sessions(connection: Connection) -> None:
+    connection.execute(
+        text(
+            "INSERT INTO tracking_sessions (id, is_test, created_at, "
+            "test_mode_activated_at) "
+            "SELECT session_id, FALSE, MIN(received_at), NULL "
+            "FROM user_behavior_events GROUP BY session_id "
+            "ON CONFLICT (id) DO NOTHING"
+        )
+    )
+    connection.execute(
+        text(
+            "DO $$ BEGIN "
+            "IF NOT EXISTS ("
+            "SELECT 1 FROM pg_constraint "
+            "WHERE conname = 'fk_user_behavior_events_tracking_session' "
+            "AND conrelid = 'user_behavior_events'::regclass"
+            ") THEN "
+            "ALTER TABLE user_behavior_events "
+            "ADD CONSTRAINT fk_user_behavior_events_tracking_session "
+            "FOREIGN KEY (session_id) REFERENCES tracking_sessions(id) "
+            "ON DELETE RESTRICT; "
+            "END IF; END $$"
+        )
+    )
+
+
 def initialize_database() -> None:
     engine = get_engine()
     Base.metadata.create_all(bind=engine)
     with engine.begin() as connection:
         ensure_tracking_event_fingerprints(connection)
+        ensure_tracking_sessions(connection)
         connection.execute(text("SELECT 1"))
 
 

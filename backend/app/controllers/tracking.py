@@ -9,6 +9,7 @@ from app.api.errors import raise_api_error
 from app.db.session import get_db_session
 from app.repositories.tracking import TrackingRepository
 from app.services.tracking import (
+    TestModeService,
     TrackingConversationNotFoundError,
     TrackingEventConflictError,
     TrackingEventName,
@@ -46,10 +47,28 @@ class TrackingEventResponse(BaseModel):
     success: Literal[True]
 
 
+class TestModeRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    session_id: str = Field(alias="sessionId", min_length=1, max_length=64)
+
+
+class TestModeResponse(BaseModel):
+    success: Literal[True]
+    session_id: str = Field(alias="sessionId")
+    test_mode: Literal[True] = Field(alias="testMode")
+
+
 def get_tracking_service(
     session: Annotated[Session, Depends(get_db_session)],
 ) -> TrackingService:
     return TrackingService(TrackingRepository(session))
+
+
+def get_test_mode_service(
+    session: Annotated[Session, Depends(get_db_session)],
+) -> TestModeService:
+    return TestModeService(TrackingRepository(session))
 
 
 @router.post("/tracking-events", response_model=TrackingEventResponse)
@@ -91,3 +110,23 @@ def submit_tracking_event(
         )
 
     return TrackingEventResponse(success=True)
+
+
+@router.post("/tracking-sessions/test-mode", response_model=TestModeResponse)
+def designate_test_mode(
+    request: TestModeRequest,
+    service: Annotated[TestModeService, Depends(get_test_mode_service)],
+) -> TestModeResponse:
+    try:
+        service.designate(session_id=request.session_id)
+    except TrackingPersistenceError:
+        raise_api_error(
+            status_code=500,
+            code="PERSISTENCE_ERROR",
+            message="测试模式暂时无法启用。",
+        )
+    return TestModeResponse(
+        success=True,
+        sessionId=request.session_id,
+        testMode=True,
+    )

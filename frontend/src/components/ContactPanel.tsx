@@ -8,9 +8,7 @@ type CopyState = { target?: CopyTarget; result: 'idle' | 'success' | 'error' }
 export function ContactPanel() {
   const [recruiterName, setRecruiterName] = useState('')
   const [copyState, setCopyState] = useState<CopyState>({ result: 'idle' })
-  const greeting = zhCN.contact.greeting(
-    recruiterName.trim() || zhCN.contact.recruiterNameFallback,
-  )
+  const greeting = zhCN.contact.greeting(recruiterName)
 
   async function copy(value: string, target: CopyTarget) {
     try {

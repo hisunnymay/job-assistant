@@ -16,7 +16,7 @@ from urllib.request import Request, urlopen
 from uuid import uuid4
 
 APPROVED_RESUME_PDF_SHA256 = (
-    "20a4d191dcc675b67a55da4296c2200cf2ceed1b3deb9aca4fbdf9e5e8cb08bd"
+    "03f5c8b961b6d13647cf365be3d36d84aecf714ecd0a0910c2c46fbc361768d1"
 )
 SMOKE_JOB_DESCRIPTION = (
     "我们招聘 AI 产品经理，必须具备大模型测试与评估平台的产品设计和研发落地经验，"

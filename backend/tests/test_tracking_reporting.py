@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.commands import cleanup_tracking_events as cleanup_command
 from app.commands import tracking_report as report_command
 from app.commands.tracking_report import parse_timestamp
-from app.db.models import UserBehaviorEvent
+from app.db.models import TrackingSession, UserBehaviorEvent
 from app.repositories.tracking import TrackingRepository
 from app.services.tracking import (
     TRACKING_EVENT_NAMES,
@@ -34,6 +34,9 @@ def add_event(
     occurred_at: datetime,
     received_at: datetime | None = None,
 ) -> None:
+    if db_session.get(TrackingSession, session_id) is None:
+        db_session.add(TrackingSession(id=session_id))
+        db_session.flush()
     db_session.add(
         UserBehaviorEvent(
             id=event_id,
@@ -199,6 +202,10 @@ def test_retention_deletes_only_events_older_than_ninety_days(
         occurred_at=cutoff - timedelta(days=1),
         received_at=cutoff - timedelta(microseconds=1),
     )
+    expired_session = db_session.get(TrackingSession, "session_1")
+    assert expired_session is not None
+    expired_session.created_at = cutoff - timedelta(days=1)
+    db_session.commit()
     add_event(
         db_session,
         event_id="event_boundary",
@@ -216,16 +223,60 @@ def test_retention_deletes_only_events_older_than_ninety_days(
         received_at=now,
     )
 
-    deleted_events, actual_cutoff = TrackingRetentionService(
+    deleted_events, deleted_sessions, actual_cutoff = TrackingRetentionService(
         TrackingRepository(db_session)
     ).delete_expired(now=now)
 
     assert deleted_events == 1
+    assert deleted_sessions == 1
     assert actual_cutoff == cutoff
     assert set(db_session.scalars(select(UserBehaviorEvent.id))) == {
         "event_boundary",
         "event_recent",
     }
+    assert db_session.get(TrackingSession, "session_1") is None
+
+
+def test_retention_preserves_test_session_classification_for_late_events(
+    db_session: Session,
+) -> None:
+    now = datetime(2026, 8, 27, 12, tzinfo=UTC)
+    cutoff = now - timedelta(days=90)
+    add_event(
+        db_session,
+        event_id="event_expired_test",
+        event_name="page_visit",
+        session_id="test_session_tombstone",
+        occurred_at=cutoff - timedelta(days=1),
+        received_at=cutoff - timedelta(days=1),
+    )
+    test_session = db_session.get(TrackingSession, "test_session_tombstone")
+    assert test_session is not None
+    test_session.is_test = True
+    test_session.created_at = cutoff - timedelta(days=1)
+    test_session.test_mode_activated_at = cutoff - timedelta(days=1)
+    db_session.commit()
+
+    deleted_events, deleted_sessions, _ = TrackingRetentionService(
+        TrackingRepository(db_session)
+    ).delete_expired(now=now)
+    TrackingService(TrackingRepository(db_session)).submit(
+        event_id="event_late_test",
+        event_name="page_visit",
+        session_id="test_session_tombstone",
+        occurred_at=now,
+        conversation_id=None,
+    )
+    totals, converted, denominator, _ = TrackingRepository(
+        db_session
+    ).dashboard_aggregate(period_start=None, period_end=None)
+
+    assert deleted_events == 1
+    assert deleted_sessions == 0
+    assert db_session.get(TrackingSession, "test_session_tombstone") is not None
+    assert totals["page_visit"] == 0
+    assert converted == 0
+    assert denominator == 0
 
 
 def test_tracking_report_timestamp_parser_requires_timezone() -> None:
@@ -300,4 +351,5 @@ def test_retention_command_deletes_expired_events(
 
     output = cast(dict[str, object], json.loads(capsys.readouterr().out))
     assert output["deletedEvents"] == 1
+    assert output["deletedSessions"] == 0
     assert db_session.get(UserBehaviorEvent, "event_cleanup_command") is None

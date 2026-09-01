@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -78,12 +78,40 @@ class Feedback(Base):
     message: Mapped[ConversationMessage] = relationship(back_populates="feedback_entries")
 
 
+class TrackingSession(Base):
+    __tablename__ = "tracking_sessions"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    is_test: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        nullable=False,
+    )
+    test_mode_activated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    behavior_events: Mapped[list["UserBehaviorEvent"]] = relationship(
+        back_populates="tracking_session",
+        passive_deletes=True,
+    )
+
+
 class UserBehaviorEvent(Base):
     __tablename__ = "user_behavior_events"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     event_name: Mapped[str] = mapped_column(String(32), nullable=False)
-    session_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    session_id: Mapped[str] = mapped_column(
+        ForeignKey(
+            "tracking_sessions.id",
+            name="fk_user_behavior_events_tracking_session",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+        index=True,
+    )
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     received_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -98,5 +126,8 @@ class UserBehaviorEvent(Base):
         index=True,
     )
     conversation: Mapped[Conversation | None] = relationship(
+        back_populates="behavior_events"
+    )
+    tracking_session: Mapped[TrackingSession] = relationship(
         back_populates="behavior_events"
     )

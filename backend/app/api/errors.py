@@ -37,6 +37,10 @@ def register_error_handlers(application: FastAPI) -> None:
             message = "反馈格式无效，请检查评分和反馈内容。"
         elif request.url.path == "/api/tracking-events":
             message = "行为事件格式无效。"
+        elif request.url.path == "/api/tracking-sessions/test-mode":
+            message = "测试模式请求格式无效。"
+        elif request.url.path == "/api/dashboard":
+            message = "数据看板日期范围无效。"
         elif request.url.path.startswith("/api/conversations/") and request.url.path.endswith(
             "/messages"
         ):

@@ -4,9 +4,14 @@ import { zhCN } from '../content/zh-CN'
 interface LoadingStatusProps {
   title: string
   className?: string
+  showTypicalDuration?: boolean
 }
 
-export function LoadingStatus({ title, className = '' }: LoadingStatusProps) {
+export function LoadingStatus({
+  title,
+  className = '',
+  showTypicalDuration = true,
+}: LoadingStatusProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const durationDescriptionId = useId()
 
@@ -25,7 +30,7 @@ export function LoadingStatus({ title, className = '' }: LoadingStatusProps) {
     <article
       className={`status-message loading-message ${className}`.trim()}
       aria-label={`${zhCN.conversation.assistantName}：${title}`}
-      aria-describedby={durationDescriptionId}
+      aria-describedby={showTypicalDuration ? durationDescriptionId : undefined}
       role="status"
     >
       <span className="typing-indicator" aria-hidden="true">
@@ -35,7 +40,9 @@ export function LoadingStatus({ title, className = '' }: LoadingStatusProps) {
       </span>
       <div>
         <h2>{title}</h2>
-        <p id={durationDescriptionId}>{zhCN.loading.typicalDuration}</p>
+        {showTypicalDuration ? (
+          <p id={durationDescriptionId}>{zhCN.loading.typicalDuration}</p>
+        ) : null}
         <p className="elapsed-time" aria-hidden="true">
           {zhCN.loading.elapsed(elapsedSeconds)}
         </p>

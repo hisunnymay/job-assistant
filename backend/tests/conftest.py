@@ -10,7 +10,13 @@ from app.ai.dependencies import get_ai_service
 from app.ai.mock import MockAIService
 from app.core.config import get_settings
 from app.db.base import Base
-from app.db.models import Conversation, ConversationMessage, Feedback, UserBehaviorEvent
+from app.db.models import (
+    Conversation,
+    ConversationMessage,
+    Feedback,
+    TrackingSession,
+    UserBehaviorEvent,
+)
 from app.db.session import get_db_session
 from app.main import app
 
@@ -48,6 +54,7 @@ def db_session(database_engine: Engine) -> Generator[Session, None, None]:
 
     with database_engine.begin() as connection:
         connection.execute(delete(UserBehaviorEvent))
+        connection.execute(delete(TrackingSession))
         connection.execute(delete(Feedback))
         connection.execute(delete(ConversationMessage))
         connection.execute(delete(Conversation))

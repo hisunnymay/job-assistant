@@ -47,4 +47,22 @@ test('keeps the compact recruiter journey readable and keyboard operable', async
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true)
+
+  await page.getByRole('button', { name: zhCN.navigation.dashboard }).click()
+  await expect(
+    page.getByRole('heading', { name: zhCN.dashboard.title }),
+  ).toBeVisible()
+  await expect(page.getByLabel(zhCN.dashboard.startDate)).toBeVisible()
+  await expect(page.getByLabel(zhCN.dashboard.endDate)).toBeVisible()
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+  expect(
+    await page.evaluate(() => {
+      const dashboard = document.querySelector('.dashboard-view')
+      return dashboard !== null && dashboard.scrollHeight <= dashboard.clientHeight + 1
+    }),
+  ).toBe(true)
 })
